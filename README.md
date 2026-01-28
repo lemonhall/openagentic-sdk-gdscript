@@ -103,6 +103,8 @@ scripts/run_godot_tests.sh
 
 1. Start the proxy (above).
 2. Run the Godot project.
+   - Default main scene is the RPG-style demo: `res://demo_rpg/World.tscn`
+   - The older “chat UI” demo remains at `res://demo/Main.tscn`
 
 Optional environment variables for the demo:
 

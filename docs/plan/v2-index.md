@@ -13,11 +13,11 @@ Make the project feel like a **real game** (RPG Maker-style) while keeping `addo
 
 ## Milestones (facts panel)
 
-1. **RPG demo scene (movement + collisions):** Player + at least 1 NPC placed in a small map. (todo)
-2. **Interact & dialogue state machine:** proximity → prompt → talk mode → exit. (todo)
-3. **Dialogue UI (RPG Maker style):** bottom panel + speaker name + input; streams text. (todo)
+1. **RPG demo scene (movement + collisions):** Player + at least 1 NPC placed in a small map. (done; placeholder visuals)
+2. **Interact & dialogue state machine:** proximity → prompt → talk mode → exit. (done)
+3. **Dialogue UI (RPG Maker style):** bottom panel + speaker name + input; streams text. (done)
 4. **Asset pack integrated:** Kenney CC0 sprites/tiles included with attribution docs. (todo)
-5. **Smoke test:** headless script loads RPG scene and verifies required nodes/scripts exist. (todo)
+5. **Smoke test:** headless script loads RPG scene and verifies required nodes/scripts exist. (done)
 
 ## Plans (v2)
 
@@ -47,4 +47,3 @@ Headless smoke test (when using a local Godot CLI):
 - Speech bubbles above NPCs (optional).
 - Multiple NPCs + quest/state tools.
 - Automatic context compacting / summarization policies.
-

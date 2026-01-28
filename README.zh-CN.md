@@ -103,6 +103,8 @@ scripts/run_godot_tests.sh
 
 1. 先启动上面的代理。
 2. 运行 Godot 工程。
+   - 默认主场景已切到 RPG 风格 demo：`res://demo_rpg/World.tscn`
+   - 旧的“聊天 UI” demo 仍保留在：`res://demo/Main.tscn`
 
 Demo 可通过环境变量配置：
 
