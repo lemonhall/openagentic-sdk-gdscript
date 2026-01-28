@@ -74,6 +74,14 @@ The client does **not** store a long-lived OpenAI API key. It calls your proxy e
 - `POST /v1/responses` with `stream: true`
 - Response is SSE with `data: ...` frames and `[DONE]` terminator
 
+This repo includes a tiny dependency-free Node.js proxy in `proxy/`:
+
+```bash
+export OPENAI_API_KEY=...
+export OPENAI_BASE_URL=https://api.openai.com/v1
+node proxy/server.mjs
+```
+
 ## Tests (local)
 
 This repo includes headless test scripts under `tests/` (requires `godot4` locally):
@@ -85,8 +93,19 @@ godot4 --headless --script tests/test_tool_runner.gd
 godot4 --headless --script tests/test_agent_runtime.gd
 ```
 
+## Demo (talk to the first NPC)
+
+1. Start the proxy (above).
+2. Run the Godot project.
+
+Optional environment variables for the demo:
+
+- `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
+- `OPENAGENTIC_MODEL` (default `gpt-4.1-mini`)
+- `OPENAGENTIC_SAVE_ID` (default `slot1`)
+- `OPENAGENTIC_NPC_ID` (default `npc_1`)
+
 ## Docs / Plans
 
 - `docs/plan/v1-index.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`
-

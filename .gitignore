@@ -1,0 +1,10 @@
+.godot/
+.import/
+*.import
+*.tmp
+*.log
+
+# Node proxy
+proxy/node_modules/
+proxy/.env
+

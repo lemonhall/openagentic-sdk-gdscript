@@ -74,6 +74,14 @@ await OpenAgentic.run_npc_turn("npc_blacksmith_001", "你好", func(ev: Dictiona
 - `POST /v1/responses`（请求体含 `stream: true`）
 - 响应为 SSE：`data: ...` 帧 + `[DONE]` 结束
 
+本仓库内置了一个无依赖的 Node.js 代理（`proxy/`）：
+
+```bash
+export OPENAI_API_KEY=...
+export OPENAI_BASE_URL=https://api.openai.com/v1
+node proxy/server.mjs
+```
+
 ## 测试（本地）
 
 仓库 `tests/` 里提供了 headless 测试脚本（本地需要 `godot4`）：
@@ -85,8 +93,19 @@ godot4 --headless --script tests/test_tool_runner.gd
 godot4 --headless --script tests/test_agent_runtime.gd
 ```
 
+## Demo（和第一个 NPC 对话）
+
+1. 先启动上面的代理。
+2. 运行 Godot 工程。
+
+Demo 可通过环境变量配置：
+
+- `OPENAGENTIC_PROXY_BASE_URL`（默认 `http://127.0.0.1:8787/v1`）
+- `OPENAGENTIC_MODEL`（默认 `gpt-4.1-mini`）
+- `OPENAGENTIC_SAVE_ID`（默认 `slot1`）
+- `OPENAGENTIC_NPC_ID`（默认 `npc_1`）
+
 ## 文档 / 计划
 
 - `docs/plan/v1-index.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`
-

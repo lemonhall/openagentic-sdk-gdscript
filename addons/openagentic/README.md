@@ -43,3 +43,6 @@ This repo includes headless test scripts under `tests/` intended to run locally:
 godot4 --headless --script tests/test_sse_parser.gd
 ```
 
+## Local proxy
+
+If you need a local OpenAI Responses-compatible SSE proxy, see `proxy/README.md`.

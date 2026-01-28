@@ -33,10 +33,17 @@ The runtime talks to a game server / local proxy that is **OpenAI Responses API 
 - `stream: true` returns SSE (`data: ...` + blank line delimiter), `[DONE]` terminator
 - Event types consumed match OpenAI Responses (`response.output_text.delta`, etc.)
 
+## Local proxy (dev)
+
+This repo includes a minimal Node.js proxy at `proxy/server.mjs`:
+
+- accepts `POST /v1/responses`
+- forwards to `${OPENAI_BASE_URL}/responses` with `OPENAI_API_KEY`
+- streams SSE through to the client
+
 ## Safety policy
 
 Tools and file access are restricted by construction:
 
 - Tools are registered explicitly in a `ToolRegistry` allowlist.
 - File tools (memory) are restricted to the save-scoped `user://` subtree.
-
