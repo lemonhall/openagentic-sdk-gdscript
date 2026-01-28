@@ -43,12 +43,18 @@ In the RPG demo, the collision node is wired in `demo_rpg/World.tscn` under `Gro
 
 Generator script: `scripts/generate_collision_mask.py` (default heuristic: `town`)
 
-It creates a **draft** obstacle mask from a background image using a simple heuristic:
+It creates a **draft** obstacle mask from a background image using a heuristic.
 
-1. Quantize the background into a small palette (`--colors`)
-2. Take the most frequent palette colors as “walkable” seeds (`--walkable-top-k`)
-3. Also treat colors close to the most frequent color as walkable (`--similar-threshold`)
-4. Anything not classified as walkable becomes **opaque** in the output mask (obstacle)
+### Heuristic: `town` (default)
+
+For the Kenney sample-town style background, the generator:
+
+1. Quantizes the background into a palette (`--colors`)
+2. Auto-picks **grass** and **road** seed pixels from the original image (HSV rules)
+3. Flood-fills connected pixels whose **palette indices** look like grass/road
+4. Everything else becomes **opaque** in the output mask (obstacle)
+
+This keeps “house walls” from becoming walkable even when their colors are similar to roads.
 
 Command:
 
@@ -59,10 +65,12 @@ python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>
 Useful knobs:
 
 - `--heuristic town|simple`:
-  - `town` (default): tries to treat grass + road as walkable and water as obstacle
-  - `simple`: only expands around the most frequent color (often fails to include roads)
+  - `town` (default): connected-component flood fill from grass+road seeds (better for towns)
+  - `simple`: expands around the most frequent color (often fails to include roads)
 - `--colors 16|32|64`: more colors can separate road/grass/water better
-- `--similar-threshold X`: include more “nearby” colors as walkable (can accidentally include water/buildings)
+- `--similar-threshold X`:
+  - `town`: road palette radius (smaller = fewer false positives, but can miss shaded road pixels)
+  - `simple`: expands around the most frequent color
 - `--invert`: swap meaning (rarely useful; mostly for debugging)
 
 ---
