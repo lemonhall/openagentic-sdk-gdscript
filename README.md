@@ -107,7 +107,7 @@ scripts/run_godot_tests.sh
 Optional environment variables for the demo:
 
 - `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
-- `OPENAGENTIC_MODEL` (default `gpt-4.1-mini`)
+- `OPENAGENTIC_MODEL` (default `gpt-5.2`)
 - `OPENAGENTIC_SAVE_ID` (default `slot1`)
 - `OPENAGENTIC_NPC_ID` (default `npc_1`)
 

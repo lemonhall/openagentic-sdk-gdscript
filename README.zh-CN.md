@@ -107,7 +107,7 @@ scripts/run_godot_tests.sh
 Demo 可通过环境变量配置：
 
 - `OPENAGENTIC_PROXY_BASE_URL`（默认 `http://127.0.0.1:8787/v1`）
-- `OPENAGENTIC_MODEL`（默认 `gpt-4.1-mini`）
+- `OPENAGENTIC_MODEL`（默认 `gpt-5.2`）
 - `OPENAGENTIC_SAVE_ID`（默认 `slot1`）
 - `OPENAGENTIC_NPC_ID`（默认 `npc_1`）
 

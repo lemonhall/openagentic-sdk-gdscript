@@ -11,7 +11,7 @@ var _assistant_buf: String = ""
 var _save_id: String = "slot1"
 var _npc_id: String = "npc_1"
 var _proxy_base_url: String = "http://127.0.0.1:8787/v1"
-var _model: String = "gpt-4.1-mini"
+var _model: String = "gpt-5.2"
 
 func _ready() -> void:
 	_load_env_defaults()
