@@ -22,7 +22,7 @@ func reset() -> void:
 	_event_data = []
 
 func feed_line(raw_line: String, on_event: Callable) -> bool:
-	var line := String(raw_line).rstrip("\r")
+	var line := String(raw_line).rstrip()
 	if line.strip_edges() == "":
 		if _event_data.size() == 0:
 			return false

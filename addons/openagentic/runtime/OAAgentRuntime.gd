@@ -99,6 +99,7 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 
 		var tool_calls: Array = []
 		var parts: Array[String] = []
+		var provider_error: String = ""
 
 		var req := {"model": _model, "input": input_items, "tools": _tool_schemas(), "stream": true}
 		var stream_res = _provider_stream_maybe(req, func(mev: Dictionary) -> void:
@@ -117,6 +118,8 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 				var tc := mev.get("tool_call", {})
 				if typeof(tc) == TYPE_DICTIONARY:
 					tool_calls.append(tc)
+			elif t == "done" and typeof(mev.get("error", null)) == TYPE_STRING:
+				provider_error = String(mev.error)
 		)
 		if stream_res is GDScriptFunctionState:
 			await stream_res
@@ -127,7 +130,14 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 			continue
 
 		if parts.size() == 0:
-			break
+			var stop := "no_output" if provider_error == "" else "provider_error"
+			var final0 := {"type": "result", "final_text": "", "stop_reason": stop, "ts": _now_ms()}
+			if provider_error != "":
+				final0["error"] = provider_error
+			_store.append_event(npc_id, final0)
+			if on_event != null and not on_event.is_null():
+				on_event.call(final0)
+			return
 
 		var assistant_text := "".join(parts)
 		var msg := {"type": "assistant.message", "text": assistant_text, "ts": _now_ms()}
