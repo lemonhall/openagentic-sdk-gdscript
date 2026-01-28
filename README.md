@@ -1,5 +1,7 @@
 # OpenAgentic Godot (GDScript)
 
+![Screenshot](screenshot.png)
+
 Runtime-first **Godot 4** addon that ports the core loop of `openagentic-sdk-ts` into GDScript:
 
 - Event-sourced, per-save + per-NPC **continuous sessions** (JSONL)

@@ -1,5 +1,7 @@
 # OpenAgentic Godot（GDScript）
 
+![截图](screenshot.png)
+
 面向 **Godot 4 运行时** 的 Agent 插件：把 `openagentic-sdk-ts` 的核心 tool-loop 移植到 GDScript，方便在游戏里用 Agent 驱动 Actor/NPC 行为。
 
 - 事件溯源：按存档 + NPC 维度持久化 **连续会话**（JSONL）
