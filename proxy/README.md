@@ -18,6 +18,12 @@ export OPENAI_BASE_URL=https://api.openai.com/v1
 node proxy/server.mjs
 ```
 
+Or via flags:
+
+```bash
+node proxy/server.mjs --api-key "$OPENAI_API_KEY" --base-url "https://api.openai.com/v1"
+```
+
 Defaults:
 
 - `HOST=127.0.0.1`
@@ -31,4 +37,3 @@ The demo reads:
 - `OPENAGENTIC_MODEL` (default `gpt-4.1-mini`)
 - `OPENAGENTIC_SAVE_ID` (default `slot1`)
 - `OPENAGENTIC_NPC_ID` (default `npc_1`)
-

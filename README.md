@@ -78,7 +78,7 @@ This repo includes a tiny dependency-free Node.js proxy in `proxy/`:
 
 ```bash
 export OPENAI_API_KEY=...
-export OPENAI_BASE_URL=https://api.openai.com/v1
+export OPENAI_BASE_URL=https://api.openai.com/v1  # optional
 node proxy/server.mjs
 ```
 

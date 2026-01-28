@@ -78,7 +78,7 @@ await OpenAgentic.run_npc_turn("npc_blacksmith_001", "你好", func(ev: Dictiona
 
 ```bash
 export OPENAI_API_KEY=...
-export OPENAI_BASE_URL=https://api.openai.com/v1
+export OPENAI_BASE_URL=https://api.openai.com/v1  # 可选
 node proxy/server.mjs
 ```
 

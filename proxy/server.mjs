@@ -1,11 +1,37 @@
 import http from "node:http";
 import { Readable } from "node:stream";
 
-const HOST = process.env.HOST || "127.0.0.1";
-const PORT = Number.parseInt(process.env.PORT || "8787", 10);
+function parseArgs(argv) {
+  const out = {};
+  for (let i = 2; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--help" || a === "-h") out.help = true;
+    else if (a === "--host") out.host = argv[++i];
+    else if (a === "--port") out.port = argv[++i];
+    else if (a === "--base-url") out.baseUrl = argv[++i];
+    else if (a === "--api-key") out.apiKey = argv[++i];
+    else throw new Error(`Unknown arg: ${a}`);
+  }
+  return out;
+}
 
-const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const args = parseArgs(process.argv);
+if (args.help) {
+  // eslint-disable-next-line no-console
+  console.log(`Usage:
+  node proxy/server.mjs [--host 127.0.0.1] [--port 8787] [--base-url https://.../v1] [--api-key sk-...]
+
+Environment variables:
+  HOST, PORT, OPENAI_BASE_URL, OPENAI_API_KEY
+`);
+  process.exit(0);
+}
+
+const HOST = args.host || process.env.HOST || "127.0.0.1";
+const PORT = Number.parseInt(args.port || process.env.PORT || "8787", 10);
+
+const OPENAI_BASE_URL = ((args.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1") + "").replace(/\/+$/, "");
+const OPENAI_API_KEY = (args.apiKey || process.env.OPENAI_API_KEY || "") + "";
 
 function json(res, status, obj) {
   const body = JSON.stringify(obj, null, 2) + "\n";
@@ -112,4 +138,3 @@ server.listen(PORT, HOST, () => {
   console.log(`[openagentic-proxy] listening on http://${HOST}:${PORT}`);
   console.log(`[openagentic-proxy] upstream: ${OPENAI_BASE_URL}`);
 });
-
