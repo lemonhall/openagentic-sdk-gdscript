@@ -1,5 +1,4 @@
 extends Node
-class_name OpenAgentic
 
 const _ToolRegistryScript := preload("res://addons/openagentic/core/OAToolRegistry.gd")
 const _PermissionGateScript := preload("res://addons/openagentic/core/OAAskOncePermissionGate.gd")
