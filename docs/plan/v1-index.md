@@ -15,7 +15,7 @@ Deliver a **runtime-first** Godot 4 addon that:
 2. **Streaming via SSE:** OpenAI Responses-compatible SSE parsing + streaming deltas. (done)
 3. **Save/NPC isolation:** strict path scoping under `user://openagentic/saves/<save_id>/...`. (done)
 4. **Memory injection:** world + NPC summaries are added to the prompt preamble. (done; optional files)
-5. **Local proxy + runnable demo:** Node proxy + in-engine chat UI to talk to `npc_1`. (in progress)
+5. **Local proxy + runnable demo:** Node proxy + in-engine chat UI to talk to `npc_1`. (done)
 
 ## Plans
 
@@ -50,3 +50,5 @@ Manual demo:
 - Automatic context compacting / summarization.
 - Retrieval (vector DB / embeddings) and long-term memory policies.
 - Rich “actor action” toolset; v1 focuses on minimal end-to-end.
+- Plan drift: `docs/plans/2026-01-28-openagentic-godot4-runtime.md` mentions `OAMemory.gd` + `tests/test_memory_injection.gd`, but v1 currently injects memory directly in `OAAgentRuntime.gd` and does not include that test script yet.
+- Verification in this sandbox is limited (no `godot4`, and binding a local TCP port for the proxy can be blocked); run the verification commands locally.
