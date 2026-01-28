@@ -18,6 +18,8 @@ func _init() -> void:
 		return
 
 	# Core nodes.
+	if not T.require_true(self, world.get_node_or_null("Ground") != null, "Missing node World/Ground"):
+		return
 	var player := world.get_node_or_null("Player")
 	if not T.require_true(self, player != null, "Missing node World/Player"):
 		return
@@ -27,6 +29,8 @@ func _init() -> void:
 	if not T.require_true(self, npc_container != null, "Missing node World/NPCs"):
 		return
 	if not T.require_true(self, npc_container.get_child_count() >= 1, "Expected at least 1 NPC under World/NPCs"):
+		return
+	if not T.require_true(self, npc_container.get_child(0).get_node_or_null("InteractionArea") != null, "Expected NPC to have InteractionArea"):
 		return
 
 	# UI exists.
@@ -40,4 +44,3 @@ func _init() -> void:
 
 	world.queue_free()
 	T.pass_and_quit(self)
-
