@@ -119,6 +119,13 @@ scripts/import_kenney_roguelike_characters.sh
 
 见 `assets/CREDITS.md`。
 
+## 碰撞 Mask（自动初稿）
+
+对于“一张背景图”的地图，可以用一张 PNG mask 自动生成碰撞（mask 不透明区域 = 障碍）：
+
+- 生成脚本：`python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`
+- 运行时生成碰撞：`demo_rpg/collision/OACollisionFromMask.gd`
+
 Demo 可通过环境变量配置：
 
 - `OPENAGENTIC_PROXY_BASE_URL`（默认 `http://127.0.0.1:8787/v1`）

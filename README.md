@@ -119,6 +119,13 @@ scripts/import_kenney_roguelike_characters.sh
 
 See `assets/CREDITS.md`.
 
+## Collision masks (auto draft)
+
+For “painted background” maps, collisions can be generated from a PNG mask (opaque = obstacle). This repo includes:
+
+- Generator: `python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`
+- Runtime collider: `demo_rpg/collision/OACollisionFromMask.gd`
+
 Optional environment variables for the demo:
 
 - `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
