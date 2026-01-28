@@ -121,6 +121,22 @@ See `assets/CREDITS.md`.
 
 ## Collision masks (auto draft)
 
+For “painted background” maps, you can generate collisions from a PNG mask (opaque = obstacle):
+
+- Generator: `python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`
+- Runtime collider: `demo_rpg/collision/OACollisionFromMask.gd`
+
+Details: `docs/collision_masks/README.md`
+
+Demo can be configured via env vars:
+
+- `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
+- `OPENAGENTIC_MODEL` (default `gpt-5.2`)
+- `OPENAGENTIC_SAVE_ID` (default `slot1`)
+- `OPENAGENTIC_NPC_ID` (default `npc_1`)
+
+## Collision masks (auto draft)
+
 For “painted background” maps, collisions can be generated from a PNG mask (opaque = obstacle). This repo includes:
 
 - Generator: `python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`

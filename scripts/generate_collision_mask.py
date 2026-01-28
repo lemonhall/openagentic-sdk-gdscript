@@ -5,6 +5,7 @@ import colorsys
 import math
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Tuple
 
 from PIL import Image
 
@@ -15,6 +16,9 @@ class Config:
     colors: int
     similar_threshold: int
     invert: bool
+    grass_radius: int
+    grass_seed: Optional[Tuple[int, int]]
+    road_seed: Optional[Tuple[int, int]]
 
 
 def _rgb_dist(a, b) -> int:
@@ -131,46 +135,60 @@ def _generate_mask_town(img_rgba: Image.Image, pal_img: Image.Image, palette, en
     def pal_rgb(i):
         return tuple(palette[i * 3 : i * 3 + 3])
 
-    # Auto-pick grass seed: scan from top-left for a grass-ish pixel.
+    # Pick grass seed: CLI override or scan from top-left for a grass-ish pixel.
     img_px = img_rgba.convert("RGB").load()
     w, h = pal_img.size
-    grass_seed = None
-    for y in range(0, min(h, 200)):
-        for x in range(0, min(w, 300)):
-            c = img_px[x, y]
-            if _is_grass(c) and not _is_water(c):
-                grass_seed = (x, y)
-                break
-        if grass_seed:
-            break
+    grass_seed = cfg.grass_seed
     if grass_seed is None:
-        grass_seed = (0, 0)
-
-    # Auto-pick road seed: scan a right-side band for a road-ish pixel.
-    road_seed = None
-    for y in range(0, h):
-        for x in range(int(w * 0.62), int(w * 0.95)):
-            c = img_px[x, y]
-            if _is_road(c) and not _is_water(c) and not _is_grass(c):
-                road_seed = (x, y)
+        for y in range(0, min(h, 200)):
+            for x in range(0, min(w, 300)):
+                c = img_px[x, y]
+                if _is_grass(c) and not _is_water(c):
+                    grass_seed = (x, y)
+                    break
+            if grass_seed:
                 break
-        if road_seed:
-            break
+        if grass_seed is None:
+            grass_seed = (0, 0)
+
+    # Pick road seed: CLI override or scan a right-side band for a road-ish pixel.
+    road_seed = cfg.road_seed
     if road_seed is None:
-        # Fallback: scan whole image.
-        for y in range(h):
-            for x in range(w):
+        for y in range(0, h):
+            for x in range(int(w * 0.62), int(w * 0.95)):
                 c = img_px[x, y]
                 if _is_road(c) and not _is_water(c) and not _is_grass(c):
                     road_seed = (x, y)
                     break
             if road_seed:
                 break
+        if road_seed is None:
+            # Fallback: scan whole image.
+            for y in range(h):
+                for x in range(w):
+                    c = img_px[x, y]
+                    if _is_road(c) and not _is_water(c) and not _is_grass(c):
+                        road_seed = (x, y)
+                        break
+                if road_seed:
+                    break
 
     idxs = pal_img.load()
 
-    # Grass palette indices: all palette entries that look grass-ish.
-    grass_allowed = {i for i, _count in entries if _is_grass(pal_rgb(i)) and not _is_water(pal_rgb(i))}
+    # Grass palette indices: near the grass seed color (avoid picking up tent tops / foliage).
+    gx, gy = grass_seed
+    grass_seed_idx = idxs[gx, gy]
+    grass_seed_rgb = pal_rgb(grass_seed_idx)
+    grass_radius = max(0, int(cfg.grass_radius))
+    grass_allowed = set()
+    for i, _count in entries:
+        c = pal_rgb(i)
+        if _is_water(c):
+            continue
+        if not _is_grass(c):
+            continue
+        if _rgb_dist(c, grass_seed_rgb) <= grass_radius:
+            grass_allowed.add(i)
 
     # Road palette indices: road-ish entries near the road seed palette color.
     road_allowed = set()
@@ -248,7 +266,25 @@ def main() -> None:
         "--similar-threshold",
         type=int,
         default=20,
-        help="Heuristic-dependent RGB distance threshold (town: road palette radius)",
+        help="Heuristic-dependent RGB distance threshold (town: road palette radius; smaller = fewer false positives)",
+    )
+    ap.add_argument(
+        "--grass-radius",
+        type=int,
+        default=55,
+        help="(town) RGB distance from grass seed palette color to allow (smaller = less accidental walkable foliage)",
+    )
+    ap.add_argument(
+        "--grass-seed",
+        type=str,
+        default=None,
+        help="(town) Override grass seed pixel as 'x,y' (optional)",
+    )
+    ap.add_argument(
+        "--road-seed",
+        type=str,
+        default=None,
+        help="(town) Override road seed pixel as 'x,y' (optional)",
     )
     ap.add_argument("--invert", action="store_true", help="Invert walkable vs obstacle classification")
     args = ap.parse_args()
@@ -257,11 +293,25 @@ def main() -> None:
     if out is None:
         out = args.background.with_name(args.background.stem + "_collision_mask.png")
 
+    def parse_xy(s: Optional[str]) -> Optional[Tuple[int, int]]:
+        if s is None:
+            return None
+        parts = [p.strip() for p in s.split(",")]
+        if len(parts) != 2:
+            raise SystemExit(f"invalid seed format (expected x,y): {s}")
+        try:
+            return int(parts[0]), int(parts[1])
+        except ValueError as e:
+            raise SystemExit(f"invalid seed format (expected integers): {s}") from e
+
     cfg = Config(
         heuristic=args.heuristic,
         colors=args.colors,
-        similar_threshold=args.similar_threshold,
+        similar_threshold=int(args.similar_threshold),
         invert=bool(args.invert),
+        grass_radius=int(args.grass_radius),
+        grass_seed=parse_xy(args.grass_seed),
+        road_seed=parse_xy(args.road_seed),
     )
 
     generate_mask(args.background, out, cfg)

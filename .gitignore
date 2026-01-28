@@ -4,6 +4,10 @@
 *.tmp
 *.log
 
+# Python
+__pycache__/
+*.pyc
+
 # Local-only asset zips (import via scripts/)
 kenney_*.zip
 

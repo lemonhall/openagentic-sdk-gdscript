@@ -58,14 +58,23 @@ fi
 proj_win="$(wslpath -w "$ROOT_DIR")"
 
 tests=(
-  "tests/test_sse_parser.gd"
-  "tests/test_session_store.gd"
-  "tests/test_tool_runner.gd"
-  "tests/test_agent_runtime.gd"
+  # Filled below (auto-discovery). Kept as a variable for `--one` override.
 )
 
 if [[ -n "$ONE" ]]; then
   tests=("$ONE")
+else
+  shopt -s nullglob
+  tests=(tests/test_*.gd)
+  shopt -u nullglob
+
+  if [[ ${#tests[@]} -eq 0 ]]; then
+    echo "No tests found under tests/test_*.gd" >&2
+    exit 2
+  fi
+
+  IFS=$'\n' tests=($(printf '%s\n' "${tests[@]}" | LC_ALL=C sort))
+  unset IFS
 fi
 
 status=0
@@ -84,4 +93,3 @@ for t in "${tests[@]}"; do
 done
 
 exit "$status"
-

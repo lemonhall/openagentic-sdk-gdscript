@@ -22,6 +22,8 @@ func _init() -> void:
 		return
 	if not _expect_alpha(img, Vector2i(210, 310), 255, "house should be obstacle (opaque)"):
 		return
+	if not _expect_alpha(img, Vector2i(612, 55), 255, "tent should be obstacle (opaque)"):
+		return
 
 	T.pass_and_quit(self)
 

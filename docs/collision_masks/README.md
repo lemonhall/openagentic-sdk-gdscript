@@ -15,6 +15,7 @@ The mask is intended to be a **draft** you can quickly touch up (erase roads / a
 - Draft mask (example): `demo_rpg/collision/sample1_collision_mask.png`
 - Runtime collider builder: `demo_rpg/collision/OACollisionFromMask.gd`
 - Headless test: `tests/test_collision_from_mask.gd`
+- Mask quality regression test: `tests/test_collision_mask_quality.gd`
 
 In the RPG demo, the collision node is wired in `demo_rpg/World.tscn` under `Ground/Collision`.
 
@@ -71,25 +72,30 @@ Useful knobs:
 - `--similar-threshold X`:
   - `town`: road palette radius (smaller = fewer false positives, but can miss shaded road pixels)
   - `simple`: expands around the most frequent color
+- `--grass-radius X` (`town`): how far from the grass seed palette color to allow (smaller reduces “accidental walkable foliage”)
+- `--grass-seed x,y` / `--road-seed x,y` (`town`): override the auto-picked seed pixels when the scan picks a bad spot
 - `--invert`: swap meaning (rarely useful; mostly for debugging)
 
 ---
 
 ## 4) Why roads can become “unwalkable” (and what to do)
 
-This generator is intentionally naive: it does **not** understand “roads” or “houses”.
-If the road color isn’t part of the walkable seed set, it will be treated as obstacle.
+This generator is intentionally heuristic-based: it does **not** truly “understand” roads/houses.
+If the auto-picked road seed lands on the wrong pixel (or the palette radius is too tight), roads can be treated as obstacle.
 
 Recommended workflow:
 
-1. **Generate a draft** mask with the script.
-2. **Open the mask** in an editor (Aseprite / Krita / Photoshop / GIMP).
-3. **Erase** the road area (make it transparent), and **paint** obstacles opaque.
+1. **Regenerate** with a slightly larger road radius: `--similar-threshold 25` (or smaller if it leaks into buildings).
+2. If the scan picked a bad seed, **override**: `--road-seed x,y` (pick any road pixel).
+3. As a last resort, **touch up** the draft in an image editor (erase roads / paint walls).
 
-If you want to improve the automatic draft later, a good next step is letting the generator accept:
+If you want to improve the automatic draft later, good next steps include:
 
 - explicit “walkable color” overrides (picked from the background)
-- or a second “walkable seed” image / scribble input
+- an extra “scribble seed” mask as a hint layer
+- a vision-model segmentation pass (offline/dev-time) to propose obstacles
+
+For the RPG demo, this repo ships a pre-generated mask at `demo_rpg/collision/sample1_collision_mask.png` so you can play immediately without running the generator.
 
 ---
 
