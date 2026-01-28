@@ -23,6 +23,8 @@ func _init() -> void:
 	var player := world.get_node_or_null("Player")
 	if not T.require_true(self, player != null, "Missing node World/Player"):
 		return
+	if not T.require_true(self, player.get_node_or_null("Visual") != null, "Missing node World/Player/Visual"):
+		return
 
 	# At least one NPC exists.
 	var npc_container := world.get_node_or_null("NPCs")
@@ -31,6 +33,8 @@ func _init() -> void:
 	if not T.require_true(self, npc_container.get_child_count() >= 1, "Expected at least 1 NPC under World/NPCs"):
 		return
 	if not T.require_true(self, npc_container.get_child(0).get_node_or_null("InteractionArea") != null, "Expected NPC to have InteractionArea"):
+		return
+	if not T.require_true(self, npc_container.get_child(0).get_node_or_null("Visual") != null, "Expected NPC to have Visual"):
 		return
 
 	# UI exists.

@@ -112,6 +112,7 @@ RPG demo 使用 Kenney 的 CC0 资源。如果你的仓库里还没有素材，�
 
 ```bash
 scripts/import_kenney_roguelike_rpg_pack.sh
+scripts/import_kenney_roguelike_characters.sh
 ```
 
 见 `assets/CREDITS.md`。

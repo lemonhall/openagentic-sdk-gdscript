@@ -112,6 +112,7 @@ The RPG demo uses Kenney CC0 art. If you didn't clone with assets already presen
 
 ```bash
 scripts/import_kenney_roguelike_rpg_pack.sh
+scripts/import_kenney_roguelike_characters.sh
 ```
 
 See `assets/CREDITS.md`.
