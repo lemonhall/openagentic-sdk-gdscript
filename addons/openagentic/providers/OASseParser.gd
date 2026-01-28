@@ -3,7 +3,6 @@ class_name OASseParser
 
 var _ongoing: Dictionary = {} # output_index -> {call_id,name,arguments}
 var _event_data: Array[String] = []
-
 func _parse_tool_arguments(raw) -> Dictionary:
 	if typeof(raw) == TYPE_DICTIONARY:
 		return raw
@@ -22,7 +21,7 @@ func reset() -> void:
 	_event_data = []
 
 func feed_line(raw_line: String, on_event: Callable) -> bool:
-	var line := String(raw_line).rstrip()
+	var line := String(raw_line).rstrip("\r\n")
 	if line.strip_edges() == "":
 		if _event_data.size() == 0:
 			return false
@@ -35,10 +34,20 @@ func feed_line(raw_line: String, on_event: Callable) -> bool:
 
 func parse_from_string(sse: String, on_event: Callable) -> void:
 	reset()
-	for raw_line in sse.split("\n"):
-		var done := feed_line(raw_line, on_event)
+	var start := 0
+	while true:
+		var idx := sse.find("\n", start)
+		if idx < 0:
+			var tail := sse.substr(start)
+			var done_tail := feed_line(tail, on_event)
+			if done_tail:
+				return
+			break
+		var line := sse.substr(start, idx - start)
+		var done := feed_line(line, on_event)
 		if done:
 			return
+		start = idx + 1
 	# Flush.
 	if _event_data.size() > 0:
 		_handle_data("\n".join(_event_data), on_event)
@@ -54,36 +63,39 @@ func _handle_data(data: String, on_event: Callable) -> bool:
 	var typ := String(obj.get("type", ""))
 
 	if typ == "response.output_text.delta":
-		var delta := obj.get("delta", "")
-		if typeof(delta) == TYPE_STRING and delta != "":
+		var delta: String = String(obj.get("delta", ""))
+		if delta != "":
 			on_event.call({"type": "text_delta", "delta": delta})
 		return false
 
 	if typ == "response.output_item.added":
-		var idx = obj.get("output_index", null)
+		var idx_v = obj.get("output_index", null)
 		var item = obj.get("item", null)
-		if typeof(idx) == TYPE_INT and typeof(item) == TYPE_DICTIONARY and String(item.get("type", "")) == "function_call":
+		if (typeof(idx_v) == TYPE_INT or typeof(idx_v) == TYPE_FLOAT) and typeof(item) == TYPE_DICTIONARY and String(item.get("type", "")) == "function_call":
+			var idx := int(idx_v)
 			var call_id := String(item.get("call_id", ""))
 			var name := String(item.get("name", ""))
 			if call_id != "" and name != "":
-				_ongoing[int(idx)] = {"call_id": call_id, "name": name, "arguments": ""}
+				_ongoing[idx] = {"call_id": call_id, "name": name, "arguments": ""}
 		return false
 
 	if typ == "response.function_call_arguments.delta":
-		var idx = obj.get("output_index", null)
-		var delta = obj.get("delta", "")
-		if typeof(idx) == TYPE_INT and typeof(delta) == TYPE_STRING:
-			var st: Dictionary = _ongoing.get(int(idx), {})
+		var idx_v = obj.get("output_index", null)
+		var delta: String = String(obj.get("delta", ""))
+		if typeof(idx_v) == TYPE_INT or typeof(idx_v) == TYPE_FLOAT:
+			var idx := int(idx_v)
+			var st: Dictionary = _ongoing.get(idx, {})
 			if st.size() > 0:
 				st["arguments"] = String(st.get("arguments", "")) + String(delta)
-				_ongoing[int(idx)] = st
+				_ongoing[idx] = st
 		return false
 
 	if typ == "response.output_item.done":
-		var idx = obj.get("output_index", null)
+		var idx_v = obj.get("output_index", null)
 		var item = obj.get("item", null)
-		if typeof(idx) == TYPE_INT and typeof(item) == TYPE_DICTIONARY and String(item.get("type", "")) == "function_call":
-			var st: Dictionary = _ongoing.get(int(idx), {})
+		if (typeof(idx_v) == TYPE_INT or typeof(idx_v) == TYPE_FLOAT) and typeof(item) == TYPE_DICTIONARY and String(item.get("type", "")) == "function_call":
+			var idx := int(idx_v)
+			var st: Dictionary = _ongoing.get(idx, {})
 			var call_id := String(st.get("call_id", item.get("call_id", "")))
 			var name := String(st.get("name", item.get("name", "")))
 			var args := st.get("arguments", item.get("arguments", ""))

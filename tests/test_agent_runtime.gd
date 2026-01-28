@@ -13,7 +13,8 @@ func _init() -> void:
 		T.fail_and_quit(self, "Missing runtime/core classes")
 		return
 
-	var store = StoreScript.new("slot_test_3")
+	var save_id := "slot_test_3_%s" % str(Time.get_ticks_msec())
+	var store = StoreScript.new(save_id)
 	var tools = RegistryScript.new()
 	var echo = ToolScript.new("echo", "echoes input", func(input: Dictionary, _ctx: Dictionary):
 		return {"echoed": input}
@@ -26,19 +27,18 @@ func _init() -> void:
 	var runner = RunnerScript.new(tools, gate, store)
 
 	# Fake provider: 1st call produces a tool call; 2nd call produces assistant text.
-	var fake_provider := {
-		"name": "fake",
-		"call_count": 0,
-		"stream": func(req: Dictionary, on_event: Callable) -> void:
-			fake_provider.call_count += 1
-			if fake_provider.call_count == 1:
-				on_event.call({"type": "tool_call", "tool_call": {"tool_use_id": "call_1", "name": "echo", "input": {"x": 1}}})
-				on_event.call({"type": "done"})
-				return
-			on_event.call({"type": "text_delta", "delta": "Hi"})
-			on_event.call({"type": "text_delta", "delta": "!"})
+	var provider_state := {"call_count": 0}
+	var fake_provider := {"name": "fake"}
+	fake_provider["stream"] = func(_req: Dictionary, on_event: Callable) -> void:
+		var cc := int(provider_state.get("call_count", 0)) + 1
+		provider_state["call_count"] = cc
+		if cc == 1:
+			on_event.call({"type": "tool_call", "tool_call": {"tool_use_id": "call_1", "name": "echo", "input": {"x": 1}}})
 			on_event.call({"type": "done"})
-	}
+			return
+		on_event.call({"type": "text_delta", "delta": "Hi"})
+		on_event.call({"type": "text_delta", "delta": "!"})
+		on_event.call({"type": "done"})
 
 	var rt = RuntimeScript.new(store, runner, tools, fake_provider, "gpt-test")
 	var npc_id := "npc_1"
@@ -48,9 +48,13 @@ func _init() -> void:
 	)
 
 	var events: Array = store.read_events(npc_id)
-	T.assert_true(events.any(func(e): return e.type == "assistant.delta"), "expected streaming delta events")
-	T.assert_true(events.any(func(e): return e.type == "tool.use"), "expected tool.use")
-	T.assert_true(events.any(func(e): return e.type == "assistant.message"), "expected assistant.message")
-	T.assert_true(events.any(func(e): return e.type == "result"), "expected result event")
+	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "assistant.delta"), "expected streaming delta events"):
+		return
+	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "tool.use"), "expected tool.use"):
+		return
+	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "assistant.message"), "expected assistant.message"):
+		return
+	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "result"), "expected result event"):
+		return
 
 	T.pass_and_quit(self)

@@ -41,6 +41,10 @@ Godot headless scripts:
 - Run: `godot4 --headless --script tests/test_tool_runner.gd`
 - Run: `godot4 --headless --script tests/test_agent_runtime.gd`
 
+WSL2 + Windows Godot helper:
+
+- Run: `scripts/run_godot_tests.sh`
+
 Manual demo:
 
 - Start proxy, open the Godot project, type in the demo UI, observe streaming deltas.

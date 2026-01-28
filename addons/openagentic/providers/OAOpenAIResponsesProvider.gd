@@ -11,7 +11,8 @@ var _auth_header: String
 var _auth_token: String
 var _auth_is_bearer: bool
 
-var _parser := OASseParser.new()
+const _OASseParserScript := preload("res://addons/openagentic/providers/OASseParser.gd")
+var _parser = _OASseParserScript.new()
 
 func _init(base_url: String, auth_header: String = "", auth_token: String = "", auth_is_bearer: bool = true) -> void:
 	_base_url = String(base_url).rstrip("/")

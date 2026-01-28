@@ -19,24 +19,31 @@ func _init() -> void:
 	sse += "data: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"echo\",\"arguments\":\"{\\\\\\\"x\\\\\\\":1}\"}}\n\n"
 	sse += "data: [DONE]\n\n"
 
-	var got_text := ""
-	var got_tool := false
-	var got_done := false
+	var state := {"text": "", "tool": false, "done": false}
 
 	parser.parse_from_string(sse, func(ev: Dictionary) -> void:
-		if ev.type == "text_delta":
-			got_text += ev.delta
-		elif ev.type == "tool_call":
-			got_tool = true
-			T.assert_eq(ev.tool_call.name, "echo")
-			T.assert_eq(ev.tool_call.tool_use_id, "call_1")
-			T.assert_eq(ev.tool_call.input.x, 1)
-		elif ev.type == "done":
-			got_done = true
+		var t := String(ev.get("type", ""))
+		if t == "text_delta":
+			state["text"] = String(state.get("text", "")) + String(ev.get("delta", ""))
+		elif t == "tool_call":
+			state["tool"] = true
+			var tc: Dictionary = ev.get("tool_call", {})
+			if String(tc.get("name", "")) != "echo" or String(tc.get("tool_use_id", "")) != "call_1":
+				T.fail_and_quit(self, "unexpected tool_call: " + JSON.stringify(ev))
+				return
+			var tc_input: Dictionary = tc.get("input", {})
+			if tc_input.get("x", null) != 1:
+				T.fail_and_quit(self, "unexpected tool_call input: " + JSON.stringify(ev))
+				return
+		elif t == "done":
+			state["done"] = true
 	)
 
-	T.assert_eq(got_text, "Hello")
-	T.assert_true(got_tool, "expected tool_call")
-	T.assert_true(got_done, "expected done")
+	var got_text := String(state.get("text", ""))
+	var got_tool := bool(state.get("tool", false))
+	var got_done := bool(state.get("done", false))
+	if got_text != "Hello" or not got_tool or not got_done:
+		T.fail_and_quit(self, "parse failed: got_text=%s got_tool=%s got_done=%s" % [got_text, str(got_tool), str(got_done)])
+		return
 
 	T.pass_and_quit(self)

@@ -1,12 +1,12 @@
 extends RefCounted
 class_name OAToolRunner
 
-var _tools: OAToolRegistry
-var _gate: OAAskOncePermissionGate
-var _store: OAJsonlNpcSessionStore
+var _tools
+var _gate
+var _store
 var _context_factory: Callable
 
-func _init(tools: OAToolRegistry, gate: OAAskOncePermissionGate, store: OAJsonlNpcSessionStore, context_factory: Callable = Callable()) -> void:
+func _init(tools, gate, store, context_factory: Callable = Callable()) -> void:
 	_tools = tools
 	_gate = gate
 	_store = store
@@ -38,7 +38,7 @@ func run(session_id: String, tool_call: Dictionary) -> void:
 
 	_store.append_event(session_id, {"type": "tool.use", "tool_use_id": tool_use_id, "name": name, "input": input, "ts": _now_ms()})
 
-	var approval := _gate.approve(session_id, name, input, tool_use_id)
+	var approval = _gate.approve(session_id, name, input, tool_use_id)
 	if approval.has("question"):
 		var q: Dictionary = approval.question
 		_store.append_event(session_id, {
@@ -68,7 +68,7 @@ func run(session_id: String, tool_call: Dictionary) -> void:
 		await _maybe_yield()
 		return
 
-	var tool := _tools.get(name)
+	var tool = _tools.get_tool(name)
 	if tool == null:
 		_store.append_event(session_id, {
 			"type": "tool.result",
@@ -84,8 +84,6 @@ func run(session_id: String, tool_call: Dictionary) -> void:
 
 	var ok := true
 	var output = tool.run(input, ctx)
-	if output is GDScriptFunctionState:
-		output = await output
 	_store.append_event(session_id, {
 		"type": "tool.result",
 		"tool_use_id": tool_use_id,

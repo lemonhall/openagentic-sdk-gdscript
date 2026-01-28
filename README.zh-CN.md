@@ -93,6 +93,12 @@ godot4 --headless --script tests/test_tool_runner.gd
 godot4 --headless --script tests/test_agent_runtime.gd
 ```
 
+WSL2 + Windows Godot 的便捷脚本：
+
+```bash
+scripts/run_godot_tests.sh
+```
+
 ## Demo（和第一个 NPC 对话）
 
 1. 先启动上面的代理。

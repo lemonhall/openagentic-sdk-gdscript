@@ -1,15 +1,18 @@
 extends RefCounted
 class_name OAAgentRuntime
 
-var _store: OAJsonlNpcSessionStore
-var _tool_runner: OAToolRunner
-var _tools: OAToolRegistry
+const _OAReplay := preload("res://addons/openagentic/runtime/OAReplay.gd")
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+
+var _store
+var _tool_runner
+var _tools
 var _provider
 var _model: String
 var _system_prompt: String = ""
 var _max_steps: int = 50
 
-func _init(store: OAJsonlNpcSessionStore, tool_runner: OAToolRunner, tools: OAToolRegistry, provider, model: String) -> void:
+func _init(store, tool_runner, tools, provider, model: String) -> void:
 	_store = store
 	_tool_runner = tool_runner
 	_tools = tools
@@ -28,25 +31,27 @@ func _now_ms() -> int:
 func _tool_schemas() -> Array:
 	var out: Array = []
 	for name in _tools.names():
-		var t := _tools.get(name)
+		var t = _tools.get_tool(name)
 		if t == null:
 			continue
-		var params := t.input_schema if typeof(t.input_schema) == TYPE_DICTIONARY and t.input_schema.size() > 0 else {"type": "object", "properties": {}}
+		var params = t.input_schema if typeof(t.input_schema) == TYPE_DICTIONARY and t.input_schema.size() > 0 else {"type": "object", "properties": {}}
 		var schema := {"type": "function", "name": t.name, "parameters": params}
 		if t.description.strip_edges() != "":
 			schema["description"] = t.description
 		out.append(schema)
 	return out
 
-func _provider_stream_maybe(req: Dictionary, on_model_event: Callable):
+func _provider_stream(req: Dictionary, on_model_event: Callable) -> void:
 	# Support either an object with .stream(req, cb) or a Dictionary with key "stream" as Callable.
 	if _provider == null:
 		return
 	if typeof(_provider) == TYPE_DICTIONARY and (_provider as Dictionary).has("stream"):
 		var c: Callable = (_provider as Dictionary).stream
-		return c.call(req, on_model_event)
+		c.call(req, on_model_event)
+		return
 	if typeof(_provider) == TYPE_OBJECT and _provider.has_method("stream"):
-		return _provider.stream(req, on_model_event)
+		await _provider.stream(req, on_model_event)
+		return
 
 func _load_optional_text(path: String) -> String:
 	if not FileAccess.file_exists(path):
@@ -62,10 +67,10 @@ func _build_system_preamble(save_id: String, npc_id: String) -> String:
 	var parts: Array[String] = []
 	if _system_prompt.strip_edges() != "":
 		parts.append(_system_prompt.strip_edges())
-	var world := _load_optional_text(OAPaths.shared_world_summary_path(save_id))
+	var world := _load_optional_text(_OAPaths.shared_world_summary_path(save_id))
 	if world != "":
 		parts.append("World summary:\n" + world)
-	var npc_sum := _load_optional_text(OAPaths.npc_summary_path(save_id, npc_id))
+	var npc_sum := _load_optional_text(_OAPaths.npc_summary_path(save_id, npc_id))
 	if npc_sum != "":
 		parts.append("NPC summary:\n" + npc_sum)
 	return "\n\n---\n\n".join(parts)
@@ -89,7 +94,7 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 	while steps < _max_steps:
 		steps += 1
 		var events: Array = _store.read_events(npc_id)
-		var input_items: Array = OAReplay.rebuild_responses_input(events)
+		var input_items: Array = _OAReplay.rebuild_responses_input(events)
 
 		# Optional system preamble injection (used when save_id is passed in).
 		if save_id.strip_edges() != "":
@@ -102,7 +107,7 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 		var provider_error: String = ""
 
 		var req := {"model": _model, "input": input_items, "tools": _tool_schemas(), "stream": true}
-		var stream_res = _provider_stream_maybe(req, func(mev: Dictionary) -> void:
+		await _provider_stream(req, func(mev: Dictionary) -> void:
 			if typeof(mev) != TYPE_DICTIONARY:
 				return
 			var t := String(mev.get("type", ""))
@@ -121,8 +126,6 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 			elif t == "done" and typeof(mev.get("error", null)) == TYPE_STRING:
 				provider_error = String(mev.error)
 		)
-		if stream_res is GDScriptFunctionState:
-			await stream_res
 
 		if tool_calls.size() > 0:
 			for tc in tool_calls:

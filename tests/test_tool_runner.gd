@@ -12,7 +12,8 @@ func _init() -> void:
 		T.fail_and_quit(self, "Missing core tool classes")
 		return
 
-	var store = StoreScript.new("slot_test_2")
+	var save_id := "slot_test_2_%s" % str(Time.get_ticks_msec())
+	var store = StoreScript.new(save_id)
 	var tools = RegistryScript.new()
 
 	var echo = ToolScript.new("echo", "echoes input", func(input: Dictionary, _ctx: Dictionary):
@@ -29,7 +30,9 @@ func _init() -> void:
 	await runner.run(npc_id, {"tool_use_id": "call_1", "name": "echo", "input": {"x": 1}})
 
 	var events: Array = store.read_events(npc_id)
-	T.assert_true(events.any(func(e): return e.type == "tool.use"), "expected tool.use event")
-	T.assert_true(events.any(func(e): return e.type == "tool.result" and e.is_error == false), "expected ok tool.result")
+	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "tool.use"), "expected tool.use event"):
+		return
+	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "tool.result" and e.get("is_error", false) == false), "expected ok tool.result"):
+		return
 
 	T.pass_and_quit(self)

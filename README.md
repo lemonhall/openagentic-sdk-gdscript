@@ -93,6 +93,12 @@ godot4 --headless --script tests/test_tool_runner.gd
 godot4 --headless --script tests/test_agent_runtime.gd
 ```
 
+WSL2 + Windows Godot helper script:
+
+```bash
+scripts/run_godot_tests.sh
+```
+
 ## Demo (talk to the first NPC)
 
 1. Start the proxy (above).
