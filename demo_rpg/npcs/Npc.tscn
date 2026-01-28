@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://demo_rpg/npcs/OAInteractableNpc.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/kenney/roguelike-characters/Spritesheet/roguelikeChar_transparent.png" id="2"]
+[ext_resource type="Script" path="res://demo_rpg/characters/OACharacterSprite.gd" id="3"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 22.0
@@ -11,10 +12,13 @@ script = ExtResource("1")
 
 [node name="Visual" type="Sprite2D" parent="."]
 texture = ExtResource("2")
-region_enabled = true
-region_rect = Rect2(17, 0, 16, 16)
-centered = true
-scale = Vector2(2, 2)
+script = ExtResource("3")
+# Pick a distinct static character; this pack is modular and not fully animated.
+base_cell = Vector2i(0, 6)
+alt_cell = Vector2i(-1, -1)
+use_alt_for_walk = false
+bob_enabled = false
+scale_factor = 2.0
 
 [node name="InteractionArea" type="Area2D" parent="."]
 

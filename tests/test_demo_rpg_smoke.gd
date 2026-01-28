@@ -25,6 +25,9 @@ func _init() -> void:
 		return
 	if not T.require_true(self, player.get_node_or_null("Visual") != null, "Missing node World/Player/Visual"):
 		return
+	var pvis := player.get_node_or_null("Visual")
+	if not T.require_true(self, pvis.has_method("set_walking") and pvis.has_method("set_move_dir"), "Expected Player/Visual to be character sprite script"):
+		return
 
 	# At least one NPC exists.
 	var npc_container := world.get_node_or_null("NPCs")
@@ -35,6 +38,9 @@ func _init() -> void:
 	if not T.require_true(self, npc_container.get_child(0).get_node_or_null("InteractionArea") != null, "Expected NPC to have InteractionArea"):
 		return
 	if not T.require_true(self, npc_container.get_child(0).get_node_or_null("Visual") != null, "Expected NPC to have Visual"):
+		return
+	var nvis := npc_container.get_child(0).get_node_or_null("Visual")
+	if not T.require_true(self, nvis.has_method("set_walking") and nvis.has_method("set_move_dir"), "Expected NPC/Visual to be character sprite script"):
 		return
 
 	# UI exists.
