@@ -126,6 +126,8 @@ For “painted background” maps, collisions can be generated from a PNG mask (
 - Generator: `python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`
 - Runtime collider: `demo_rpg/collision/OACollisionFromMask.gd`
 
+Details: `docs/collision_masks/README.md`
+
 Optional environment variables for the demo:
 
 - `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)

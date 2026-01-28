@@ -126,6 +126,8 @@ scripts/import_kenney_roguelike_characters.sh
 - 生成脚本：`python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`
 - 运行时生成碰撞：`demo_rpg/collision/OACollisionFromMask.gd`
 
+详细机制：`docs/collision_masks/README.md`
+
 Demo 可通过环境变量配置：
 
 - `OPENAGENTIC_PROXY_BASE_URL`（默认 `http://127.0.0.1:8787/v1`）
