@@ -114,4 +114,6 @@ Demo 可通过环境变量配置：
 ## 文档 / 计划
 
 - `docs/plan/v1-index.md`
+- `docs/plan/v2-index.md`
+- `docs/plan/v2-rpg-demo.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`

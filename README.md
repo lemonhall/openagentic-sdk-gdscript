@@ -114,4 +114,6 @@ Optional environment variables for the demo:
 ## Docs / Plans
 
 - `docs/plan/v1-index.md`
+- `docs/plan/v2-index.md`
+- `docs/plan/v2-rpg-demo.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`

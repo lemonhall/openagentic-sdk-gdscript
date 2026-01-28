@@ -1,8 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://dslkpmu28jidj"]
 
-[ext_resource type="Script" path="res://demo/Main.gd" id="1"]
+[ext_resource type="Script" uid="uid://4fqgahekf1l8" path="res://demo/Main.gd" id="1"]
 
 [node name="Main" type="Control"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -11,7 +12,7 @@ grow_vertical = 2
 script = ExtResource("1")
 
 [node name="Root" type="VBoxContainer" parent="."]
-anchors_preset = 15
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -25,9 +26,9 @@ bbcode_enabled = true
 scroll_following = true
 
 [node name="LiveOutput" type="RichTextLabel" parent="Root"]
+custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
 size_flags_vertical = 0
-custom_minimum_size = Vector2(0, 70)
 bbcode_enabled = true
 scroll_following = true
 

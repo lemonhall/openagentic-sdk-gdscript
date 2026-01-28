@@ -20,6 +20,7 @@ Deliver a **runtime-first** Godot 4 addon that:
 ## Plans
 
 - Implementation plan: `docs/plans/2026-01-28-openagentic-godot4-runtime.md`
+- Next: `docs/plan/v2-index.md`
 
 ## Definition of Done (DoD)
 
@@ -54,5 +55,6 @@ Manual demo:
 - Automatic context compacting / summarization.
 - Retrieval (vector DB / embeddings) and long-term memory policies.
 - Rich “actor action” toolset; v1 focuses on minimal end-to-end.
+- Game-like demo UX (movement + proximity dialogue UI) is planned in v2.
 - Plan drift: `docs/plans/2026-01-28-openagentic-godot4-runtime.md` mentions `OAMemory.gd` + `tests/test_memory_injection.gd`, but v1 currently injects memory directly in `OAAgentRuntime.gd` and does not include that test script yet.
 - Verification in this sandbox is limited (no `godot4`, and binding a local TCP port for the proxy can be blocked); run the verification commands locally.

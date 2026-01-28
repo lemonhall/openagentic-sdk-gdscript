@@ -1,11 +1,19 @@
 ; Engine configuration file.
-; This repo is a Godot 4 project so `--headless --script` tests can run.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
+
 config/name="openagentic-sdk-gdscript"
 run/main_scene="res://demo/Main.tscn"
+config/features=PackedStringArray("4.5")
 
 [autoload]
-OpenAgentic="res://addons/openagentic/OpenAgentic.gd"
 
+OpenAgentic="*res://addons/openagentic/OpenAgentic.gd"
