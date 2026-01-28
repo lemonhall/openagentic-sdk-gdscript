@@ -9,7 +9,10 @@ extends Node2D
 func polygons_from_mask() -> Array:
 	if mask_path.strip_edges() == "":
 		return []
-	var img := Image.load_from_file(mask_path)
+	var tex := load(mask_path) as Texture2D
+	if tex == null:
+		return []
+	var img := tex.get_image()
 	if img == null:
 		return []
 	return _polygons_from_image(img)
@@ -69,4 +72,3 @@ func _polygons_from_image(img: Image) -> Array:
 	var rect := Rect2i(Vector2i.ZERO, rgba.get_size())
 	var polys: Array = bm.opaque_to_polygons(rect, epsilon)
 	return polys
-

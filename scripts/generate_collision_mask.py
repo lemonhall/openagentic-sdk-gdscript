@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import colorsys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,14 +10,96 @@ from PIL import Image
 
 @dataclass(frozen=True)
 class Config:
+    heuristic: str
     colors: int
-    walkable_top_k: int
     similar_threshold: int
     invert: bool
 
 
 def _rgb_dist(a, b) -> int:
     return int(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5)
+
+
+def _rgb_to_hsv(rgb):
+    r, g, b = [c / 255.0 for c in rgb]
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    return h * 360.0, s, v
+
+
+def _is_water(rgb) -> bool:
+    h, s, v = _rgb_to_hsv(rgb)
+    return 160.0 <= h <= 220.0 and s >= 0.15 and v >= 0.30
+
+
+def _is_grass(rgb) -> bool:
+    h, s, v = _rgb_to_hsv(rgb)
+    return 65.0 <= h <= 170.0 and s >= 0.20 and v >= 0.25
+
+
+def _is_road(rgb) -> bool:
+    h, s, v = _rgb_to_hsv(rgb)
+    # Brown-ish, moderately saturated, not too dark/bright.
+    return 10.0 <= h <= 55.0 and s >= 0.15 and 0.25 <= v <= 0.90
+
+
+def _is_building_like(rgb) -> bool:
+    # Near-white / grey-ish tiles (walls/stone) often show up as large regions.
+    r, g, b = rgb
+    if r + g + b >= 720:
+        return True
+    h, s, v = _rgb_to_hsv(rgb)
+    return s <= 0.12 and v >= 0.70
+
+
+def _select_walkable_palette(entries, palette, cfg: Config):
+    def rgb(idx):
+        return tuple(palette[idx * 3 : idx * 3 + 3])
+
+    if cfg.heuristic == "simple":
+        # Back-compat: treat the single most frequent color as walkable seed and expand by distance.
+        entries_sorted = sorted(entries, key=lambda t: t[1], reverse=True)
+        seed = entries_sorted[0][0]
+        seed_rgb = rgb(seed)
+        walkable = {seed}
+        for idx, _count in entries_sorted:
+            if _rgb_dist(rgb(idx), seed_rgb) <= cfg.similar_threshold:
+                walkable.add(idx)
+        return walkable
+
+    if cfg.heuristic == "town":
+        entries_sorted = sorted(entries, key=lambda t: t[1], reverse=True)
+        walkable = set()
+
+        # Seed with obvious grass/road colors; exclude water.
+        for idx, _count in entries_sorted:
+            c = rgb(idx)
+            if _is_water(c):
+                continue
+            if _is_grass(c) or _is_road(c):
+                walkable.add(idx)
+
+        # Ensure we always include the most frequent non-water color as a baseline.
+        for idx, _count in entries_sorted:
+            c = rgb(idx)
+            if not _is_water(c):
+                walkable.add(idx)
+                break
+
+        # Expand by distance to selected walkable colors, while still excluding water/building-like.
+        if cfg.similar_threshold > 0 and walkable:
+            seeds = [rgb(i) for i in walkable]
+            for idx, _count in entries_sorted:
+                if idx in walkable:
+                    continue
+                c = rgb(idx)
+                if _is_water(c) or _is_building_like(c):
+                    continue
+                if any(_rgb_dist(c, s) <= cfg.similar_threshold for s in seeds):
+                    walkable.add(idx)
+
+        return walkable
+
+    raise ValueError(f"unknown heuristic: {cfg.heuristic}")
 
 
 def generate_mask(background_path: Path, out_path: Path, cfg: Config) -> None:
@@ -33,15 +116,7 @@ def generate_mask(background_path: Path, out_path: Path, cfg: Config) -> None:
     if not entries:
         raise RuntimeError("no palette entries found")
 
-    walkable = set(i for i, _ in entries[: cfg.walkable_top_k])
-    ground_idx = entries[0][0]
-    ground_rgb = tuple(palette[ground_idx * 3 : ground_idx * 3 + 3])
-
-    # Expand walkable by RGB distance to ground.
-    for idx, _count in entries:
-        rgb = tuple(palette[idx * 3 : idx * 3 + 3])
-        if _rgb_dist(rgb, ground_rgb) <= cfg.similar_threshold:
-            walkable.add(idx)
+    walkable = _select_walkable_palette(entries, palette, cfg)
 
     # Build mask where obstacles are opaque (alpha=255) and walkable is transparent.
     idxs = pal_img.load()
@@ -70,8 +145,13 @@ def main() -> None:
         default=None,
         help="Output mask path (default: <background>_collision_mask.png)",
     )
+    ap.add_argument(
+        "--heuristic",
+        choices=["simple", "town"],
+        default="town",
+        help="Classification heuristic (default: town)",
+    )
     ap.add_argument("--colors", type=int, default=16, help="Palette size used for quantization")
-    ap.add_argument("--walkable-top-k", type=int, default=2, help="Treat top-K most frequent colors as walkable")
     ap.add_argument(
         "--similar-threshold",
         type=int,
@@ -86,8 +166,8 @@ def main() -> None:
         out = args.background.with_name(args.background.stem + "_collision_mask.png")
 
     cfg = Config(
+        heuristic=args.heuristic,
         colors=args.colors,
-        walkable_top_k=args.walkable_top_k,
         similar_threshold=args.similar_threshold,
         invert=bool(args.invert),
     )
@@ -98,4 +178,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

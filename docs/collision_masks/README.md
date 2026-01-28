@@ -41,7 +41,7 @@ In the RPG demo, the collision node is wired in `demo_rpg/World.tscn` under `Gro
 
 ## 3) How the draft mask is generated (Python)
 
-Generator script: `scripts/generate_collision_mask.py`
+Generator script: `scripts/generate_collision_mask.py` (default heuristic: `town`)
 
 It creates a **draft** obstacle mask from a background image using a simple heuristic:
 
@@ -58,8 +58,10 @@ python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>
 
 Useful knobs:
 
+- `--heuristic town|simple`:
+  - `town` (default): tries to treat grass + road as walkable and water as obstacle
+  - `simple`: only expands around the most frequent color (often fails to include roads)
 - `--colors 16|32|64`: more colors can separate road/grass/water better
-- `--walkable-top-k N`: include more frequent colors as walkable
 - `--similar-threshold X`: include more “nearby” colors as walkable (can accidentally include water/buildings)
 - `--invert`: swap meaning (rarely useful; mostly for debugging)
 
@@ -92,4 +94,3 @@ If you want to improve the automatic draft later, a good next step is letting th
 - If polygons are too jagged / too heavy:
   - increase `epsilon` in `Ground/Collision`
   - simplify the mask (paint cleaner shapes)
-
