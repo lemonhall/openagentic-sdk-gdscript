@@ -18,6 +18,7 @@ alt_cell = Vector2i(1, 0)
 use_alt_for_walk = true
 bob_enabled = false
 scale_factor = 2.0
+anim_fps = 8.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_1")
