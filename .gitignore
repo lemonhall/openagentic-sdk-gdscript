@@ -4,7 +4,9 @@
 *.tmp
 *.log
 
+# Local-only asset zips (import via scripts/)
+kenney_*.zip
+
 # Node proxy
 proxy/node_modules/
 proxy/.env
-

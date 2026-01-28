@@ -106,6 +106,16 @@ scripts/run_godot_tests.sh
    - 默认主场景已切到 RPG 风格 demo：`res://demo_rpg/World.tscn`
    - 旧的“聊天 UI” demo 仍保留在：`res://demo/Main.tscn`
 
+## 美术资源
+
+RPG demo 使用 Kenney 的 CC0 资源。如果你的仓库里还没有素材，可以从本地 zip 一键解包导入：
+
+```bash
+scripts/import_kenney_roguelike_rpg_pack.sh
+```
+
+见 `assets/CREDITS.md`。
+
 Demo 可通过环境变量配置：
 
 - `OPENAGENTIC_PROXY_BASE_URL`（默认 `http://127.0.0.1:8787/v1`）

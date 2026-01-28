@@ -106,6 +106,16 @@ scripts/run_godot_tests.sh
    - Default main scene is the RPG-style demo: `res://demo_rpg/World.tscn`
    - The older “chat UI” demo remains at `res://demo/Main.tscn`
 
+## Assets
+
+The RPG demo uses Kenney CC0 art. If you didn't clone with assets already present, you can import them from a local zip:
+
+```bash
+scripts/import_kenney_roguelike_rpg_pack.sh
+```
+
+See `assets/CREDITS.md`.
+
 Optional environment variables for the demo:
 
 - `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
