@@ -16,10 +16,14 @@ extends CharacterBody3D
 @export var wander_bounds := Rect2(Vector2(-6.0, -4.0), Vector2(12.0, 8.0))
 
 @onready var model_root: Node3D = $ModelRoot
-@onready var selection_ring: Node3D = $SelectionRing
+@onready var selection_plumbob: Node3D = $SelectionPlumbob
 
 var _wander_target_xz := Vector2.ZERO
 var _wander_pause_left := 0.0
+
+var _select_time := 0.0
+var _plumbob_base_y := 0.0
+var _plumbob_base_rot_y := 0.0
 
 var _anim_player: AnimationPlayer = null
 var _anim_idle: StringName = &""
@@ -30,6 +34,9 @@ func _ready() -> void:
 	add_to_group("vr_offices_npc")
 	_load_model()
 	_pick_new_wander_target()
+	if selection_plumbob != null:
+		_plumbob_base_y = selection_plumbob.position.y
+		_plumbob_base_rot_y = selection_plumbob.rotation.y
 
 func _physics_process(delta: float) -> void:
 	_update_wander(delta)
@@ -40,8 +47,17 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(0.0, velocity.y)
 	move_and_slide()
 
+func _process(delta: float) -> void:
+	if selection_plumbob == null or not selection_plumbob.visible:
+		return
+	_select_time += delta
+	selection_plumbob.position.y = _plumbob_base_y + sin(_select_time * 2.0) * 0.12
+	selection_plumbob.rotation.y = _plumbob_base_rot_y + _select_time * 1.2
+
 func set_selected(is_selected: bool) -> void:
-	selection_ring.visible = is_selected
+	selection_plumbob.visible = is_selected
+	if is_selected:
+		_select_time = 0.0
 
 func set_wander_bounds(bounds: Rect2) -> void:
 	wander_bounds = bounds
