@@ -15,10 +15,10 @@ func _init() -> void:
 	for t2 in (Web as Script).call("tools"):
 		tools.append(t2)
 
-	for tool0 in tools:
-		if tool0 == null:
-			continue
-		var name := String(tool0.name)
+		for tool0 in tools:
+			if tool0 == null:
+				continue
+			var name := str(tool0.name)
 		var schema0: Variant = tool0.input_schema
 		if typeof(schema0) != TYPE_DICTIONARY:
 			T.fail_and_quit(self, "Tool '%s' missing input_schema dictionary" % name)
@@ -33,8 +33,8 @@ func _init() -> void:
 
 func _validate_schema(s: Dictionary) -> bool:
 	# Minimal JSON Schema sanity checks compatible with OpenAI function parameters.
-	var t := String(s.get("type", ""))
-	if t == "array":
+	var types: Array[String] = _schema_types(s)
+	if types.has("array"):
 		if not s.has("items"):
 			return false
 		var items0: Variant = s.get("items", null)
@@ -42,8 +42,10 @@ func _validate_schema(s: Dictionary) -> bool:
 			return false
 		return _validate_schema(items0 as Dictionary)
 
-	if t == "object":
+	if types.has("object"):
 		var props0: Variant = s.get("properties", {})
+		if props0 == null:
+			return true
 		if typeof(props0) != TYPE_DICTIONARY:
 			return false
 		var props: Dictionary = props0 as Dictionary
@@ -56,7 +58,19 @@ func _validate_schema(s: Dictionary) -> bool:
 		return true
 
 	# Primitive types are fine.
-	if t in ["string", "integer", "number", "boolean", "null"]:
-		return true
+	for t in types:
+		if t in ["string", "integer", "number", "boolean", "null"]:
+			continue
 	return true
 
+func _schema_types(s: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	var t0: Variant = s.get("type", null)
+	if typeof(t0) == TYPE_STRING:
+		out.append(String(t0))
+	elif typeof(t0) == TYPE_ARRAY:
+		for x0 in t0 as Array:
+			if typeof(x0) == TYPE_STRING:
+				out.append(String(x0))
+	# If "type" is missing, treat as "any" (valid for our minimal checks).
+	return out
