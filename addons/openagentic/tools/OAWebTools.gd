@@ -28,8 +28,8 @@ static func tools() -> Array:
 		"properties": {
 			"query": {"type": "string"},
 			"max_results": {"type": "integer"},
-			"allowed_domains": {"type": "array"},
-			"blocked_domains": {"type": "array"},
+			"allowed_domains": {"type": "array", "items": {"type": "string"}},
+			"blocked_domains": {"type": "array", "items": {"type": "string"}},
 		},
 		"required": ["query"],
 	}

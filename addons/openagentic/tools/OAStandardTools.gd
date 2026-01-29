@@ -369,7 +369,19 @@ static func tools() -> Array:
 
 	var todo_schema: Dictionary = {
 		"type": "object",
-		"properties": {"todos": {"type": "array"}},
+		"properties": {
+			"todos": {
+				"type": "array",
+				"items": {
+					"type": "object",
+					"properties": {
+						"content": {"type": "string"},
+						"status": {"type": "string", "enum": ["pending", "in_progress", "completed", "cancelled"]},
+					},
+					"required": ["content", "status"],
+				},
+			},
+		},
 		"required": ["todos"],
 	}
 	out.append(_OATool.new("TodoWrite", "Write or update a TODO list for this NPC (persisted in its private workspace).", todo_fn, todo_schema))
