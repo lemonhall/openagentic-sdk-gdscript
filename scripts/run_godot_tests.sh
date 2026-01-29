@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-DEFAULT_GODOT_DIR_LINUX="/mnt/e/Godot_v4.5.1-stable_win64.exe"
-DEFAULT_GODOT_EXE_LINUX="${DEFAULT_GODOT_DIR_LINUX}/Godot_v4.5.1-stable_win64_console.exe"
+DEFAULT_GODOT_DIR_LINUX="/mnt/e/Godot_v4.6-stable_win64.exe"
+DEFAULT_GODOT_EXE_LINUX="${DEFAULT_GODOT_DIR_LINUX}/Godot_v4.6-stable_win64_console.exe"
 
 usage() {
   cat <<'EOF'
@@ -15,7 +15,7 @@ Usage:
 
 Examples:
   scripts/run_godot_tests.sh
-  scripts/run_godot_tests.sh --exe "/mnt/e/Godot_v4.5.1-stable_win64.exe/Godot_v4.5.1-stable_win64_console.exe"
+  scripts/run_godot_tests.sh --exe "/mnt/e/Godot_v4.6-stable_win64.exe/Godot_v4.6-stable_win64_console.exe"
   scripts/run_godot_tests.sh --one tests/test_sse_parser.gd
 
 Notes:
