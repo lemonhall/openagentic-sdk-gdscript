@@ -34,6 +34,26 @@ func _init() -> void:
 	if not T.require_eq(self, bool(wander0), false, "Expected wander_enabled=false in dialogue"):
 		return
 
+	# NPC should face the camera while in dialogue.
+	if cam_rig.has_method("get_camera"):
+		var cam0: Variant = cam_rig.call("get_camera")
+		if cam0 is Camera3D and npc is Node3D:
+			var cam: Camera3D = cam0 as Camera3D
+			var npc3d: Node3D = npc as Node3D
+			# Kenney Mini Characters face +Z in this demo (we compensate with model_yaw_offset),
+			# so use +basis.z as an approximation of the visible forward direction.
+			var npc_forward := npc3d.global_transform.basis.z
+			npc_forward.y = 0.0
+			if npc_forward.length() > 0.001:
+				npc_forward = npc_forward.normalized()
+			var to_cam := cam.global_position - npc3d.global_position
+			to_cam.y = 0.0
+			if to_cam.length() > 0.001:
+				to_cam = to_cam.normalized()
+			var facing := npc_forward.dot(to_cam)
+			if not T.require_true(self, facing > 0.3, "Expected NPC to face camera (dot > 0.3)"):
+				return
+
 	# Camera controls disabled and distance should zoom in (smaller).
 	var controls0: Variant = cam_rig.get("controls_enabled") if cam_rig.has_method("get") else null
 	if not T.require_eq(self, bool(controls0), false, "Expected camera controls disabled in dialogue"):
@@ -55,4 +75,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

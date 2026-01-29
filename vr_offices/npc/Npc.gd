@@ -36,6 +36,8 @@ var _override_left := 0.0
 var _wander_enabled_before_override := true
 var _in_dialogue := false
 var _wander_enabled_before_dialogue := true
+var _dialogue_face_node: Node3D = null
+var _dialogue_face_pos: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	add_to_group("vr_offices_npc")
@@ -58,6 +60,11 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _process(delta: float) -> void:
+	if _in_dialogue:
+		var target := _dialogue_face_pos
+		if _dialogue_face_node != null and is_instance_valid(_dialogue_face_node):
+			target = _dialogue_face_node.global_position
+		_face_towards(target)
 	if selection_plumbob == null or not selection_plumbob.visible:
 		return
 	_select_time += delta
@@ -165,7 +172,7 @@ func _start_override_animation(anim: StringName, duration: float, lock_wander: b
 	_override_left = duration
 	_play_anim(_override_anim if _override_anim != &"" else _anim_idle)
 
-func enter_dialogue(face_target: Vector3) -> void:
+func enter_dialogue(face_target) -> void:
 	if _in_dialogue:
 		return
 	_in_dialogue = true
@@ -173,13 +180,24 @@ func enter_dialogue(face_target: Vector3) -> void:
 	wander_enabled = false
 	_wander_pause_left = 0.0
 	stop_override_animation()
-	_face_towards(face_target)
+	_dialogue_face_node = null
+	_dialogue_face_pos = Vector3.ZERO
+	var face_pos: Vector3 = Vector3.ZERO
+	if face_target is Node3D:
+		_dialogue_face_node = face_target as Node3D
+		face_pos = _dialogue_face_node.global_position
+	elif typeof(face_target) == TYPE_VECTOR3:
+		face_pos = face_target as Vector3
+		_dialogue_face_pos = face_pos
+	_face_towards(face_pos)
 	_play_anim(_anim_idle)
 
 func exit_dialogue() -> void:
 	if not _in_dialogue:
 		return
 	_in_dialogue = false
+	_dialogue_face_node = null
+	_dialogue_face_pos = Vector3.ZERO
 	stop_override_animation()
 	wander_enabled = _wander_enabled_before_dialogue
 	if wander_enabled:
@@ -188,14 +206,11 @@ func exit_dialogue() -> void:
 	_play_anim(_anim_idle)
 
 func _face_towards(target: Vector3) -> void:
-	var dx := target.x - global_position.x
-	var dz := target.z - global_position.z
-	var to_target := Vector2(dx, dz)
-	if to_target.length() < 0.001:
+	var flat := Vector3(target.x, global_position.y, target.z)
+	if flat.distance_to(global_position) < 0.001:
 		return
-	var dir := to_target.normalized()
-	var target_yaw := atan2(-dir.x, -dir.y) + model_yaw_offset
-	rotation.y = target_yaw
+	look_at(flat, Vector3.UP)
+	rotation.y = rotation.y + model_yaw_offset
 
 func _pick_animation(names: PackedStringArray) -> StringName:
 	var best_idle := ""

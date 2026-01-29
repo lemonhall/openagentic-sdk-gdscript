@@ -391,14 +391,10 @@ func _start_dialogue_camera_focus(npc: Node) -> void:
 		return
 	var head: Vector3 = npc3d.global_position + Vector3(0.0, 1.35, 0.0)
 
-	# Put the camera in front of where the NPC is currently facing (so we see the face).
-	var forward: Vector3 = npc3d.global_transform.basis.z
-	forward.y = 0.0
-	if forward.length() < 0.001:
-		forward = Vector3(0.0, 0.0, 1.0)
-	forward = forward.normalized()
-	var yaw := atan2(forward.x, forward.z)
-	var pitch := deg_to_rad(-25.0)
+	# Keep current orbit angles (prevents disorienting camera flips),
+	# but zoom in and move pivot to the NPC head.
+	var yaw := float(_camera_state_before_talk.get("yaw", deg_to_rad(45.0)))
+	var pitch := float(_camera_state_before_talk.get("pitch", deg_to_rad(-35.0)))
 	var dist := 4.0
 
 	var duration := 0.28
@@ -421,13 +417,16 @@ func _lock_npc_for_dialogue(npc: Node) -> void:
 	if npc == null or not is_instance_valid(npc):
 		return
 	# Face the camera (more natural than keeping the NPC walking away).
-	var cam_pos := Vector3.ZERO
+	var cam: Camera3D = null
 	if camera_rig != null and camera_rig.has_method("get_camera"):
 		var cam0: Variant = camera_rig.call("get_camera")
 		if cam0 is Camera3D:
-			cam_pos = (cam0 as Camera3D).global_position
+			cam = cam0 as Camera3D
 	if npc.has_method("enter_dialogue"):
-		npc.call("enter_dialogue", cam_pos)
+		if cam != null:
+			npc.call("enter_dialogue", cam)
+		else:
+			npc.call("enter_dialogue", Vector3.ZERO)
 
 func _unlock_npc_after_dialogue() -> void:
 	if _talk_npc == null or not is_instance_valid(_talk_npc):
