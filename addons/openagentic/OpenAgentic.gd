@@ -7,6 +7,7 @@ const _ToolRunnerScript := preload("res://addons/openagentic/core/OAToolRunner.g
 const _AgentRuntimeScript := preload("res://addons/openagentic/runtime/OAAgentRuntime.gd")
 const _OpenAIProviderScript := preload("res://addons/openagentic/providers/OAOpenAIResponsesProvider.gd")
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+const _HookEngineScript := preload("res://addons/openagentic/hooks/OAHookEngine.gd")
 
 var save_id: String = ""
 
@@ -15,6 +16,7 @@ var model: String = ""
 var system_prompt: String = ""
 var tools = _ToolRegistryScript.new()
 var permission_gate = _PermissionGateScript.new()
+var hooks = _HookEngineScript.new()
 
 func set_save_id(id: String) -> void:
 	save_id = id
@@ -42,6 +44,16 @@ func enable_npc_workspace_tools() -> void:
 
 func set_approver(approver: Callable) -> void:
 	permission_gate = _PermissionGateScript.new(approver)
+
+func add_pre_tool_hook(name: String, tool_name_pattern: String, hook: Callable, is_async: bool = false) -> void:
+	if hooks == null:
+		hooks = _HookEngineScript.new()
+	hooks.add_pre_tool_use(name, tool_name_pattern, hook, is_async)
+
+func add_post_tool_hook(name: String, tool_name_pattern: String, hook: Callable, is_async: bool = false) -> void:
+	if hooks == null:
+		hooks = _HookEngineScript.new()
+	hooks.add_post_tool_use(name, tool_name_pattern, hook, is_async)
 
 func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void:
 	if save_id.strip_edges() == "":
@@ -72,7 +84,7 @@ func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void
 			"tavily_api_key": tavily_key,
 			"allow_private_networks": false,
 		}
-	)
+	, hooks)
 	var rt = _AgentRuntimeScript.new(store, runner, tools, provider, model)
 	rt.set_system_prompt(system_prompt)
 	await rt.run_turn(npc_id, user_text, on_event, save_id)

@@ -38,6 +38,19 @@ await OpenAgentic.run_npc_turn("npc_blacksmith_001", "Hello", func(ev: Dictionar
 )
 ```
 
+## Hooks
+
+You can attach hooks to rewrite/block tool calls (or trigger gameplay like animations/VFX):
+
+```gdscript
+OpenAgentic.add_pre_tool_hook("rewrite-read", "Read", func(payload: Dictionary) -> Dictionary:
+	var ti: Dictionary = payload.get("tool_input", {})
+	return {"override_tool_input": ti, "action": "noop"}
+)
+```
+
+See `docs/plan/v5-hooks.md` for the full hook decision shape.
+
 ## Tests
 
 This repo includes headless test scripts under `tests/` intended to run locally:

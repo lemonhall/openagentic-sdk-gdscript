@@ -6,8 +6,7 @@ const _OATool := preload("res://addons/openagentic/core/OATool.gd")
 static func tools() -> Array:
 	var out: Array = []
 
-	# NOTE: Tool callables can be coroutines. The tool runner will `await` the returned function state.
-	# Avoid `await` inside lambdas for maximum compatibility with strict parsing modes.
+	# NOTE: Web tools are async (coroutines). They must be executed via the tool runner, which will `await`.
 	var webfetch_fn: Callable = Callable(OAWebTools, "_web_fetch")
 	var webfetch_schema: Dictionary = {
 		"type": "object",
@@ -20,7 +19,7 @@ static func tools() -> Array:
 		},
 		"required": ["url"],
 	}
-	out.append(_OATool.new("WebFetch", "Fetch a URL over HTTP(S). Blocks localhost/private networks by default.", webfetch_fn, webfetch_schema))
+	out.append(_OATool.new("WebFetch", "Fetch a URL over HTTP(S). Blocks localhost/private networks by default.", webfetch_fn, webfetch_schema, true))
 
 	var websearch_fn: Callable = Callable(OAWebTools, "_web_search")
 	var websearch_schema: Dictionary = {
@@ -33,7 +32,7 @@ static func tools() -> Array:
 		},
 		"required": ["query"],
 	}
-	out.append(_OATool.new("WebSearch", "Search the web (Tavily). Requires TAVILY_API_KEY (host-provided).", websearch_fn, websearch_schema))
+	out.append(_OATool.new("WebSearch", "Search the web (Tavily). Requires TAVILY_API_KEY (host-provided).", websearch_fn, websearch_schema, true))
 
 	return out
 

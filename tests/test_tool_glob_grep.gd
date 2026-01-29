@@ -24,18 +24,14 @@ func _init() -> void:
 	if not T.require_true(self, glob != null and grep != null, "Missing Glob/Grep tools"):
 		return
 
-	var g1 = glob.run({"pattern": "notes/*.txt"}, ctx)
-	if T.is_function_state(g1):
-		g1 = await g1
+	var g1 = await glob.run_async({"pattern": "notes/*.txt"}, ctx)
 	if not T.require_true(self, typeof(g1) == TYPE_DICTIONARY and bool((g1 as Dictionary).get("ok", false)), "Glob should succeed"):
 		return
 	var matches: Array = (g1 as Dictionary).get("matches", [])
 	if not T.require_true(self, matches.size() == 1 and String(matches[0]) == "notes/b.txt", "Glob should match notes/b.txt only"):
 		return
 
-	var gr = grep.run({"query": "TODO", "file_glob": "**/*.gd"}, ctx)
-	if T.is_function_state(gr):
-		gr = await gr
+	var gr = await grep.run_async({"query": "TODO", "file_glob": "**/*.gd"}, ctx)
 	if not T.require_true(self, typeof(gr) == TYPE_DICTIONARY and bool((gr as Dictionary).get("ok", false)), "Grep should succeed"):
 		return
 	var mm: Array = (gr as Dictionary).get("matches", [])

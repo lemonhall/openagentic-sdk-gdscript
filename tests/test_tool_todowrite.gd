@@ -25,9 +25,7 @@ func _init() -> void:
 		{"content": "B", "status": "in_progress", "id": "2"},
 		{"content": "C", "status": "completed", "id": "3"},
 	]
-	var out = todo.run({"todos": todos}, ctx)
-	if T.is_function_state(out):
-		out = await out
+	var out = await todo.run_async({"todos": todos}, ctx)
 	if not T.require_true(self, typeof(out) == TYPE_DICTIONARY, "TodoWrite should return dict"):
 		return
 	var stats: Dictionary = (out as Dictionary).get("stats", {})

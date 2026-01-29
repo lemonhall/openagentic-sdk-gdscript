@@ -15,9 +15,7 @@ func _init() -> void:
 		return {"status": 200, "headers": {"content-type": "text/plain"}, "body": "ok".to_utf8_buffer()}
 
 	var ctx := {"web_fetch_transport": transport, "allow_private_networks": true}
-	var out = webfetch.run({"url": "https://example.com/a", "max_redirects": 5}, ctx)
-	if T.is_function_state(out):
-		out = await out
+	var out = await webfetch.run_async({"url": "https://example.com/a", "max_redirects": 5}, ctx)
 	if not T.require_true(self, typeof(out) == TYPE_DICTIONARY, "WebFetch output must be dict"):
 		return
 	if not T.require_eq(self, int((out as Dictionary).get("status", 0)), 200, "Expected status=200"):
@@ -30,9 +28,7 @@ func _init() -> void:
 
 	# SSRF block: loopback should be rejected before transport.
 	var ctx2 := {"web_fetch_transport": transport, "allow_private_networks": false}
-	var out2 = webfetch.run({"url": "http://127.0.0.1/"}, ctx2)
-	if T.is_function_state(out2):
-		out2 = await out2
+	var out2 = await webfetch.run_async({"url": "http://127.0.0.1/"}, ctx2)
 	if not T.require_true(self, typeof(out2) == TYPE_DICTIONARY and String((out2 as Dictionary).get("error", "")) == "BlockedHost", "Expected BlockedHost"):
 		return
 

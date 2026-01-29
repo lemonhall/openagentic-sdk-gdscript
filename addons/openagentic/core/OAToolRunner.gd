@@ -5,12 +5,14 @@ var _tools
 var _gate
 var _store
 var _context_factory: Callable
+var _hooks = null
 
-func _init(tools, gate, store, context_factory: Callable = Callable()) -> void:
+func _init(tools, gate, store, context_factory: Callable = Callable(), hooks = null) -> void:
 	_tools = tools
 	_gate = gate
 	_store = store
 	_context_factory = context_factory
+	_hooks = hooks
 
 func _now_ms() -> int:
 	return int(Time.get_unix_time_from_system() * 1000.0)
@@ -35,6 +37,39 @@ func run(session_id: String, tool_call: Dictionary) -> void:
 	var ctx := extra.duplicate(true)
 	ctx["session_id"] = session_id
 	ctx["tool_use_id"] = tool_use_id
+
+	# Pre-tool hooks (rewrite/block tool input before approval + execution).
+	if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_pre_tool_use"):
+		var pre: Dictionary = await _hooks.run_pre_tool_use(name, input, ctx)
+		var hook_events0: Variant = pre.get("hook_events", [])
+		if typeof(hook_events0) == TYPE_ARRAY:
+			for he0 in hook_events0 as Array:
+				if typeof(he0) != TYPE_DICTIONARY:
+					continue
+				var he: Dictionary = he0 as Dictionary
+				he["type"] = "hook.event"
+				he["ts"] = _now_ms()
+				he["tool_use_id"] = tool_use_id
+				he["tool_name"] = name
+				_store.append_event(session_id, he)
+		if not bool(pre.get("ok", true)):
+			var decision0: Variant = pre.get("decision", {})
+			var decision: Dictionary = decision0 as Dictionary if typeof(decision0) == TYPE_DICTIONARY else {}
+			var reason := String(decision.get("block_reason", decision.get("reason", ""))).strip_edges()
+			_store.append_event(session_id, {
+				"type": "tool.result",
+				"tool_use_id": tool_use_id,
+				"output": null,
+				"is_error": true,
+				"error_type": "HookBlocked",
+				"error_message": reason if reason != "" else "tool use blocked by hook",
+				"ts": _now_ms(),
+			})
+			await _maybe_yield()
+			return
+		var new_input0: Variant = pre.get("tool_input", input)
+		if typeof(new_input0) == TYPE_DICTIONARY:
+			input = new_input0 as Dictionary
 
 	_store.append_event(session_id, {"type": "tool.use", "tool_use_id": tool_use_id, "name": name, "input": input, "ts": _now_ms()})
 
@@ -83,12 +118,39 @@ func run(session_id: String, tool_call: Dictionary) -> void:
 		return
 
 	var ok := true
-	var output = tool.run(input, ctx)
-	# Support async tool implementations (coroutines) by awaiting function state.
-	if typeof(output) == TYPE_OBJECT and output != null:
-		var o := output as Object
-		if o != null and o.get_class() == "GDScriptFunctionState":
-			output = await o
+	var output = await tool.run_async(input, ctx)
+
+	# Post-tool hooks (rewrite/block tool output).
+	if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_post_tool_use"):
+		var post: Dictionary = await _hooks.run_post_tool_use(name, output, ctx)
+		var hook_events1: Variant = post.get("hook_events", [])
+		if typeof(hook_events1) == TYPE_ARRAY:
+			for he1 in hook_events1 as Array:
+				if typeof(he1) != TYPE_DICTIONARY:
+					continue
+				var he2: Dictionary = he1 as Dictionary
+				he2["type"] = "hook.event"
+				he2["ts"] = _now_ms()
+				he2["tool_use_id"] = tool_use_id
+				he2["tool_name"] = name
+				_store.append_event(session_id, he2)
+		if not bool(post.get("ok", true)):
+			ok = false
+			var decision1: Variant = post.get("decision", {})
+			var decision2: Dictionary = decision1 as Dictionary if typeof(decision1) == TYPE_DICTIONARY else {}
+			var reason2 := String(decision2.get("block_reason", decision2.get("reason", ""))).strip_edges()
+			_store.append_event(session_id, {
+				"type": "tool.result",
+				"tool_use_id": tool_use_id,
+				"output": null,
+				"is_error": true,
+				"error_type": "HookBlocked",
+				"error_message": reason2 if reason2 != "" else "tool result blocked by hook",
+				"ts": _now_ms(),
+			})
+			await _maybe_yield()
+			return
+		output = post.get("tool_output", output)
 	_store.append_event(session_id, {
 		"type": "tool.result",
 		"tool_use_id": tool_use_id,

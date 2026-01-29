@@ -24,29 +24,21 @@ func _init() -> void:
 	if not T.require_true(self, write != null and read != null and edit != null, "Missing Read/Write/Edit tools"):
 		return
 
-	var w = write.run({"file_path": "notes/a.txt", "content": "hello\nworld\n"}, ctx)
-	if T.is_function_state(w):
-		w = await w
+	var w = await write.run_async({"file_path": "notes/a.txt", "content": "hello\nworld\n"}, ctx)
 	if not T.require_true(self, typeof(w) == TYPE_DICTIONARY and bool((w as Dictionary).get("ok", false)), "Write should succeed"):
 		return
 
-	var r = read.run({"file_path": "notes/a.txt"}, ctx)
-	if T.is_function_state(r):
-		r = await r
+	var r = await read.run_async({"file_path": "notes/a.txt"}, ctx)
 	if not T.require_true(self, typeof(r) == TYPE_DICTIONARY, "Read should return a dict"):
 		return
 	if not T.require_true(self, String((r as Dictionary).get("content", "")).find("world") != -1, "Read content should include 'world'"):
 		return
 
-	var e = edit.run({"file_path": "notes/a.txt", "old": "world", "new": "godot"}, ctx)
-	if T.is_function_state(e):
-		e = await e
+	var e = await edit.run_async({"file_path": "notes/a.txt", "old": "world", "new": "godot"}, ctx)
 	if not T.require_true(self, typeof(e) == TYPE_DICTIONARY and bool((e as Dictionary).get("ok", false)), "Edit should succeed"):
 		return
 
-	var r2 = read.run({"file_path": "notes/a.txt"}, ctx)
-	if T.is_function_state(r2):
-		r2 = await r2
+	var r2 = await read.run_async({"file_path": "notes/a.txt"}, ctx)
 	if not T.require_true(self, String((r2 as Dictionary).get("content", "")).find("godot") != -1, "Edited content should include 'godot'"):
 		return
 

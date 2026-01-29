@@ -16,9 +16,7 @@ func _init() -> void:
 		]}
 
 	var ctx := {"tavily_api_key": "k", "web_search_transport": transport}
-	var out = websearch.run({"query": "q", "max_results": 5, "allowed_domains": ["a.com"]}, ctx)
-	if T.is_function_state(out):
-		out = await out
+	var out = await websearch.run_async({"query": "q", "max_results": 5, "allowed_domains": ["a.com"]}, ctx)
 	if not T.require_true(self, typeof(out) == TYPE_DICTIONARY, "WebSearch output must be dict"):
 		return
 	var results: Array = (out as Dictionary).get("results", [])
@@ -28,9 +26,7 @@ func _init() -> void:
 		return
 
 	# Missing API key should error.
-	var out2 = websearch.run({"query": "q"}, {"web_search_transport": transport})
-	if T.is_function_state(out2):
-		out2 = await out2
+	var out2 = await websearch.run_async({"query": "q"}, {"web_search_transport": transport})
 	if not T.require_true(self, typeof(out2) == TYPE_DICTIONARY and String((out2 as Dictionary).get("error", "")) == "MissingApiKey", "Expected MissingApiKey"):
 		return
 

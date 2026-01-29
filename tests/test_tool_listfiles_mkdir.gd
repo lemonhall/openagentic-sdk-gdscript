@@ -25,21 +25,15 @@ func _init() -> void:
 	if not T.require_true(self, mkdir != null and listfiles != null and write != null, "Missing Mkdir/ListFiles/Write tools"):
 		return
 
-	var m1 = mkdir.run({"path": "a/b"}, ctx)
-	if T.is_function_state(m1):
-		m1 = await m1
+	var m1 = await mkdir.run_async({"path": "a/b"}, ctx)
 	if not T.require_true(self, typeof(m1) == TYPE_DICTIONARY and bool((m1 as Dictionary).get("ok", false)), "Mkdir should succeed"):
 		return
 
-	var w1 = write.run({"file_path": "a/b/hello.txt", "content": "hi\n"}, ctx)
-	if T.is_function_state(w1):
-		w1 = await w1
+	var w1 = await write.run_async({"file_path": "a/b/hello.txt", "content": "hi\n"}, ctx)
 	if not T.require_true(self, typeof(w1) == TYPE_DICTIONARY and bool((w1 as Dictionary).get("ok", false)), "Write should succeed"):
 		return
 
-	var lf = listfiles.run({"path": "a", "recursive": true, "include_dirs": true, "include_files": true}, ctx)
-	if T.is_function_state(lf):
-		lf = await lf
+	var lf = await listfiles.run_async({"path": "a", "recursive": true, "include_dirs": true, "include_files": true}, ctx)
 	if not T.require_true(self, typeof(lf) == TYPE_DICTIONARY and bool((lf as Dictionary).get("ok", false)), "ListFiles should succeed"):
 		return
 	var entries: Array = (lf as Dictionary).get("entries", [])
@@ -50,15 +44,11 @@ func _init() -> void:
 	if not T.require_true(self, paths.has("a/b") and paths.has("a/b/hello.txt"), "ListFiles should include created dir+file. Got: " + str(paths)):
 		return
 
-	var bad1 = mkdir.run({"path": "../escape"}, ctx)
-	if T.is_function_state(bad1):
-		bad1 = await bad1
+	var bad1 = await mkdir.run_async({"path": "../escape"}, ctx)
 	if not T.require_true(self, typeof(bad1) == TYPE_DICTIONARY and not bool((bad1 as Dictionary).get("ok", true)), "Mkdir should reject path traversal"):
 		return
 
-	var bad2 = listfiles.run({"path": "../"}, ctx)
-	if T.is_function_state(bad2):
-		bad2 = await bad2
+	var bad2 = await listfiles.run_async({"path": "../"}, ctx)
 	if not T.require_true(self, typeof(bad2) == TYPE_DICTIONARY and not bool((bad2 as Dictionary).get("ok", true)), "ListFiles should reject path traversal"):
 		return
 
@@ -69,4 +59,3 @@ func _find_tool(tools: Array, name: String):
 		if t != null and typeof(t) == TYPE_OBJECT and String(t.name) == name:
 			return t
 	return null
-

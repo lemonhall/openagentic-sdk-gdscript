@@ -23,9 +23,7 @@ func _init() -> void:
 		return
 
 	# Listing (name omitted).
-	var list_out = skill.run({}, ctx)
-	if T.is_function_state(list_out):
-		list_out = await list_out
+	var list_out = await skill.run_async({}, ctx)
 	if not T.require_true(self, typeof(list_out) == TYPE_DICTIONARY, "Skill list must be dict"):
 		return
 	var names: Array = (list_out as Dictionary).get("skills", [])
@@ -33,9 +31,7 @@ func _init() -> void:
 		return
 
 	# Load specific skill.
-	var load_out = skill.run({"name": "main-process"}, ctx)
-	if T.is_function_state(load_out):
-		load_out = await load_out
+	var load_out = await skill.run_async({"name": "main-process"}, ctx)
 	if not T.require_true(self, typeof(load_out) == TYPE_DICTIONARY, "Skill load must be dict"):
 		return
 	if not T.require_true(self, String((load_out as Dictionary).get("output", "")).find("Main Process") != -1, "Skill output should include body"):
