@@ -44,7 +44,7 @@ OpenAgentic.set_save_id("slot1")
 # Point to your own proxy that speaks OpenAI Responses API (SSE streaming).
 OpenAgentic.configure_proxy_openai_responses(
 	"https://your-proxy.example/v1",
-	"gpt-4.1-mini",
+	"gpt-5.2",
 	"authorization",
 	"<token>",
 	true
@@ -105,8 +105,27 @@ scripts/run_godot_tests.sh
 
 1. Start the proxy (above).
 2. Run the Godot project.
-   - Default main scene is the RPG-style demo: `res://demo_rpg/World.tscn`
+   - Default main scene is the 3D VR Offices demo: `res://vr_offices/VrOffices.tscn`
+   - The RPG-style demo remains at: `res://demo_rpg/World.tscn`
    - The older “chat UI” demo remains at `res://demo/Main.tscn`
+
+## VR Offices (3D demo)
+
+A separate 3D “office sim” prototype lives under `vr_offices/`.
+
+1. Extract assets (Kenney Mini Characters 1):
+
+```bash
+scripts/setup_kenney_mini_characters.sh
+```
+
+2. Open and run: `res://vr_offices/VrOffices.tscn`
+
+Controls:
+
+- Orbit: hold **Right Mouse** and drag
+- Zoom: mouse wheel
+- Add/remove NPC: UI panel (click NPC to select)
 
 ## Assets
 
@@ -118,22 +137,6 @@ scripts/import_kenney_roguelike_characters.sh
 ```
 
 See `assets/CREDITS.md`.
-
-## Collision masks (auto draft)
-
-For “painted background” maps, you can generate collisions from a PNG mask (opaque = obstacle):
-
-- Generator: `python3 scripts/generate_collision_mask.py <background.png> --out <mask.png>`
-- Runtime collider: `demo_rpg/collision/OACollisionFromMask.gd`
-
-Details: `docs/collision_masks/README.md`
-
-Demo can be configured via env vars:
-
-- `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
-- `OPENAGENTIC_MODEL` (default `gpt-5.2`)
-- `OPENAGENTIC_SAVE_ID` (default `slot1`)
-- `OPENAGENTIC_NPC_ID` (default `npc_1`)
 
 ## Collision masks (auto draft)
 
@@ -156,4 +159,6 @@ Optional environment variables for the demo:
 - `docs/plan/v1-index.md`
 - `docs/plan/v2-index.md`
 - `docs/plan/v2-rpg-demo.md`
+- `docs/plan/v3-index.md`
+- `docs/plan/v3-vr-offices.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`

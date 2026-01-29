@@ -1,0 +1,55 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://vr_offices/VrOffices.gd" id="1"]
+[ext_resource type="PackedScene" path="res://vr_offices/camera/OrbitCameraRig.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://vr_offices/ui/VrOfficesUi.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://vr_offices/npc/Npc.tscn" id="4"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(20, 20)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.72, 0.74, 0.78, 1)
+roughness = 1.0
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(20, 1, 20)
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 1
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.7
+
+[node name="VrOffices" type="Node3D"]
+script = ExtResource("1")
+npc_scene = ExtResource("4")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="FloorMesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("PlaneMesh_1")
+material_override = SubResource("StandardMaterial3D_1")
+
+[node name="FloorCollider" type="CollisionShape3D" parent="Floor"]
+position = Vector3(0, -0.5, 0)
+shape = SubResource("BoxShape3D_1")
+
+[node name="Light" type="OmniLight3D" parent="."]
+position = Vector3(0, 6, 0)
+light_energy = 3.0
+omni_range = 30.0
+shadow_enabled = false
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="CameraRig" parent="." instance=ExtResource("2")]
+position = Vector3(0, 0, 0)
+
+[node name="NpcRoot" type="Node3D" parent="."]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="VrOfficesUi" parent="UI" instance=ExtResource("3")]
+

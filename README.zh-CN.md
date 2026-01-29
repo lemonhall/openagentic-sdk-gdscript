@@ -44,7 +44,7 @@ OpenAgentic.set_save_id("slot1")
 # 指向你自己的代理（兼容 OpenAI Responses API，支持 SSE 流式）。
 OpenAgentic.configure_proxy_openai_responses(
 	"https://your-proxy.example/v1",
-	"gpt-4.1-mini",
+	"gpt-5.2",
 	"authorization",
 	"<token>",
 	true
@@ -105,8 +105,27 @@ scripts/run_godot_tests.sh
 
 1. 先启动上面的代理。
 2. 运行 Godot 工程。
-   - 默认主场景已切到 RPG 风格 demo：`res://demo_rpg/World.tscn`
+   - 默认主场景是 3D 的 VR Offices demo：`res://vr_offices/VrOffices.tscn`
+   - RPG 风格 demo 仍保留在：`res://demo_rpg/World.tscn`
    - 旧的“聊天 UI” demo 仍保留在：`res://demo/Main.tscn`
+
+## VR Offices（3D demo）
+
+一个单独的 3D “办公室模拟”原型在 `vr_offices/` 下。
+
+1. 解包素材（Kenney Mini Characters 1）：
+
+```bash
+scripts/setup_kenney_mini_characters.sh
+```
+
+2. 打开并运行：`res://vr_offices/VrOffices.tscn`
+
+操作：
+
+- 镜头环绕：按住鼠标右键拖动
+- 缩放：滚轮
+- 添加/移除 NPC：左上角 UI（点击 NPC 选中）
 
 ## 美术资源
 
@@ -140,4 +159,6 @@ Demo 可通过环境变量配置：
 - `docs/plan/v1-index.md`
 - `docs/plan/v2-index.md`
 - `docs/plan/v2-rpg-demo.md`
+- `docs/plan/v3-index.md`
+- `docs/plan/v3-vr-offices.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`

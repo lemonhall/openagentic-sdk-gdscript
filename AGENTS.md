@@ -24,3 +24,14 @@ Notes:
 - The script uses `wslpath` to convert Linux paths to Windows paths.
 - This runs a Windows `.exe` via WSL interop; some environments may require elevated permissions.
 
+## VR Offices (3D demo)
+
+Kenney Mini Characters setup:
+
+```bash
+scripts/setup_kenney_mini_characters.sh
+```
+
+Main scene:
+
+- `res://vr_offices/VrOffices.tscn`
