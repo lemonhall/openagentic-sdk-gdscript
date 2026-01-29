@@ -10,7 +10,7 @@ Let the player create named rectangular “workspaces” on the office floor via
 2. **Core:** data model + persistence for workspaces, with unit tests. (done)
 3. **UI:** create-confirm dialog + right-click context menu (delete), with tests where feasible. (done)
 4. **Input/Preview:** LMB drag-create + preview (cyan glow), and RMB on workspace opens menu; keep existing NPC controls. (done)
-5. **Verify:** run full headless test suite (Linux/WSL and/or Windows). (pending)
+5. **Verify:** run full headless test suite (Linux/WSL and/or Windows). (done)
 
 ## Plans (v10)
 
@@ -36,3 +36,11 @@ Let the player create named rectangular “workspaces” on the office floor via
   - `powershell -ExecutionPolicy Bypass -File scripts\\run_godot_tests.ps1`
 - WSL2 + Linux Godot:
   - Follow `AGENTS.md` “Running tests (WSL2 + Linux Godot)”.
+
+## Evidence
+
+- Tests added:
+  - `tests/test_vr_offices_workspaces_model.gd`
+  - `tests/test_vr_offices_workspaces_persistence.gd`
+  - `tests/test_vr_offices_workspaces_nodes.gd`
+  - `tests/test_vr_offices_workspace_overlay.gd`
