@@ -91,10 +91,8 @@ func _add_message(is_user: bool, text: String) -> RichTextLabel:
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 10)
 
-	var spacer_left := Control.new()
-	spacer_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var spacer_right := Control.new()
-	spacer_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var bubble := PanelContainer.new()
 	bubble.size_flags_horizontal = Control.SIZE_SHRINK_END if is_user else Control.SIZE_SHRINK_BEGIN
@@ -128,11 +126,11 @@ func _add_message(is_user: bool, text: String) -> RichTextLabel:
 	bubble.add_child(rtl)
 
 	if is_user:
-		row.add_child(spacer_left)
+		row.add_child(spacer)
 		row.add_child(bubble)
 	else:
 		row.add_child(bubble)
-		row.add_child(spacer_right)
+		row.add_child(spacer)
 
 	messages.add_child(row)
 	_scroll_to_bottom_deferred()
