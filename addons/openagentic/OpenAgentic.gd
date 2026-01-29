@@ -55,6 +55,16 @@ func add_post_tool_hook(name: String, tool_name_pattern: String, hook: Callable,
 		hooks = _HookEngineScript.new()
 	hooks.add_post_tool_use(name, tool_name_pattern, hook, is_async)
 
+func add_before_turn_hook(name: String, npc_id_pattern: String, hook: Callable, is_async: bool = false) -> void:
+	if hooks == null:
+		hooks = _HookEngineScript.new()
+	hooks.add_before_turn(name, npc_id_pattern, hook, is_async)
+
+func add_after_turn_hook(name: String, npc_id_pattern: String, hook: Callable, is_async: bool = false) -> void:
+	if hooks == null:
+		hooks = _HookEngineScript.new()
+	hooks.add_after_turn(name, npc_id_pattern, hook, is_async)
+
 func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void:
 	if save_id.strip_edges() == "":
 		push_error("OpenAgentic.save_id is required")
@@ -85,6 +95,6 @@ func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void
 			"allow_private_networks": false,
 		}
 	, hooks)
-	var rt = _AgentRuntimeScript.new(store, runner, tools, provider, model)
+	var rt = _AgentRuntimeScript.new(store, runner, tools, provider, model, hooks)
 	rt.set_system_prompt(system_prompt)
 	await rt.run_turn(npc_id, user_text, on_event, save_id)

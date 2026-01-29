@@ -12,13 +12,15 @@ var _provider
 var _model: String
 var _system_prompt: String = ""
 var _max_steps: int = 50
+var _hooks = null
 
-func _init(store, tool_runner, tools, provider, model: String) -> void:
+func _init(store, tool_runner, tools, provider, model: String, hooks = null) -> void:
 	_store = store
 	_tool_runner = tool_runner
 	_tools = tools
 	_provider = provider
 	_model = model
+	_hooks = hooks
 
 func set_system_prompt(prompt: String) -> void:
 	_system_prompt = prompt
@@ -28,6 +30,28 @@ func set_max_steps(max_steps: int) -> void:
 
 func _now_ms() -> int:
 	return int(Time.get_unix_time_from_system() * 1000.0)
+
+func _emit_hook_events(session_id: String, tool_use_id: String, tool_name: String, hook_events0: Variant) -> void:
+	if typeof(hook_events0) != TYPE_ARRAY:
+		return
+	for he0 in hook_events0 as Array:
+		if typeof(he0) != TYPE_DICTIONARY:
+			continue
+		var he: Dictionary = he0 as Dictionary
+		he["type"] = "hook.event"
+		he["ts"] = _now_ms()
+		if tool_use_id != "":
+			he["tool_use_id"] = tool_use_id
+		if tool_name != "":
+			he["tool_name"] = tool_name
+		_store.append_event(session_id, he)
+
+func _turn_context(save_id: String, npc_id: String) -> Dictionary:
+	var ctx: Dictionary = {}
+	ctx["save_id"] = save_id
+	ctx["npc_id"] = npc_id
+	ctx["workspace_root"] = _OAPaths.npc_workspace_dir(save_id, npc_id)
+	return ctx
 
 func _tool_schemas() -> Array:
 	var out: Array = []
@@ -100,6 +124,7 @@ func _build_system_preamble(save_id: String, npc_id: String) -> String:
 func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: String = "") -> void:
 	if user_text == null or typeof(user_text) != TYPE_STRING:
 		return
+	var ctx := _turn_context(save_id, npc_id)
 	var existing: Array = _store.read_events(npc_id)
 	if not existing.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "system.init"):
 		var init := {"type": "system.init", "npc_id": npc_id, "ts": _now_ms()}
@@ -112,11 +137,44 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 	if on_event != null and not on_event.is_null():
 		on_event.call(user_ev)
 
+	# Turn hooks: BeforeTurn (after user message is recorded, before provider request).
+	var override_user_text := ""
+	if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_before_turn"):
+		var before0: Dictionary = await _hooks.run_before_turn(npc_id, user_text, ctx)
+		_emit_hook_events(npc_id, "", "", before0.get("hook_events", []))
+		var ot0: Variant = before0.get("override_user_text", "")
+		if typeof(ot0) == TYPE_STRING:
+			override_user_text = String(ot0)
+		if not bool(before0.get("ok", true)):
+			var decision0: Variant = before0.get("decision", {})
+			var decision: Dictionary = decision0 as Dictionary if typeof(decision0) == TYPE_DICTIONARY else {}
+			var reason := String(decision.get("block_reason", decision.get("reason", ""))).strip_edges()
+			var final_block := {"type": "result", "final_text": "", "stop_reason": "hook_blocked", "ts": _now_ms()}
+			if reason != "":
+				final_block["error"] = reason
+			_store.append_event(npc_id, final_block)
+			if on_event != null and not on_event.is_null():
+				on_event.call(final_block)
+			# AfterTurn hook still runs on blocked turns.
+			if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_after_turn"):
+				var after_block: Dictionary = await _hooks.run_after_turn(npc_id, "", "hook_blocked", ctx)
+				_emit_hook_events(npc_id, "", "", after_block.get("hook_events", []))
+			return
+
 	var steps := 0
 	while steps < _max_steps:
 		steps += 1
 		var events: Array = _store.read_events(npc_id)
 		var input_items: Array = _OAReplay.rebuild_responses_input(events)
+		if override_user_text.strip_edges() != "":
+			for i in range(input_items.size() - 1, -1, -1):
+				if typeof(input_items[i]) != TYPE_DICTIONARY:
+					continue
+				var it: Dictionary = input_items[i] as Dictionary
+				if String(it.get("role", "")) == "user" and typeof(it.get("content", null)) == TYPE_STRING:
+					it["content"] = override_user_text
+					input_items[i] = it
+					break
 
 		# Optional system preamble (used when save_id is passed in).
 		# For OpenAI Responses API, system guidance should be passed via `instructions`,
@@ -167,6 +225,9 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 			_store.append_event(npc_id, final0)
 			if on_event != null and not on_event.is_null():
 				on_event.call(final0)
+			if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_after_turn"):
+				var after0: Dictionary = await _hooks.run_after_turn(npc_id, "", stop, ctx)
+				_emit_hook_events(npc_id, "", "", after0.get("hook_events", []))
 			return
 
 		var assistant_text := _join_strings("", parts)
@@ -179,9 +240,15 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 		_store.append_event(npc_id, final)
 		if on_event != null and not on_event.is_null():
 			on_event.call(final)
+		if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_after_turn"):
+			var after1: Dictionary = await _hooks.run_after_turn(npc_id, assistant_text, "end", ctx)
+			_emit_hook_events(npc_id, "", "", after1.get("hook_events", []))
 		return
 
 	var final2 := {"type": "result", "final_text": "", "stop_reason": "max_steps", "ts": _now_ms()}
 	_store.append_event(npc_id, final2)
 	if on_event != null and not on_event.is_null():
 		on_event.call(final2)
+	if _hooks != null and typeof(_hooks) == TYPE_OBJECT and _hooks.has_method("run_after_turn"):
+		var after2: Dictionary = await _hooks.run_after_turn(npc_id, "", "max_steps", ctx)
+		_emit_hook_events(npc_id, "", "", after2.get("hook_events", []))
