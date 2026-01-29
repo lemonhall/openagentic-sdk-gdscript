@@ -108,7 +108,7 @@ func _configure_openagentic() -> void:
 func _configure_bgm() -> void:
 	if bgm == null:
 		return
-	if OS.has_feature("headless"):
+	if _is_headless():
 		bgm.stop()
 		bgm.stream = null
 		return
@@ -130,6 +130,11 @@ func _configure_bgm() -> void:
 
 	if not bgm.playing:
 		bgm.play()
+
+func _is_headless() -> bool:
+	# `OS.has_feature("headless")` is not reliable across Godot builds; prefer DisplayServer.
+	# When launched with `--headless`, DisplayServer name is typically "headless".
+	return DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless")
 
 func _object_has_property(obj: Object, property_name: String) -> bool:
 	for p in obj.get_property_list():
@@ -197,7 +202,7 @@ func add_npc() -> Node:
 	npc.set("model_path", MODEL_PATHS[profile_index])
 	npc.set("display_name", _name_for_profile(profile_index))
 	npc.set("wander_bounds", Rect2(Vector2(-spawn_extent.x, -spawn_extent.y), Vector2(spawn_extent.x * 2.0, spawn_extent.y * 2.0)))
-	npc.set("load_model_on_ready", not OS.has_feature("headless"))
+	npc.set("load_model_on_ready", not _is_headless())
 
 	npc_root.add_child(npc)
 	select_npc(npc)
