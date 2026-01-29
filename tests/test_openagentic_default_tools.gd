@@ -3,10 +3,17 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var oa := get_node_or_null("/root/OpenAgentic")
-	if oa == null:
-		T.fail_and_quit(self, "Missing autoload: OpenAgentic")
+	var root: Node = get_root()
+
+	# Don't rely on ProjectSettings autoload behavior in `--script` runs.
+	# Create a Node instance of OpenAgentic and mount it under the root to mimic an autoload.
+	var OAScript := load("res://addons/openagentic/OpenAgentic.gd")
+	if OAScript == null:
+		T.fail_and_quit(self, "Missing OpenAgentic.gd")
 		return
+	var oa: Node = (OAScript as Script).new()
+	oa.name = "OpenAgentic"
+	root.add_child(oa)
 
 	# Reset tool registry to simulate a host game that forgot to enable tools.
 	var RegistryScript := load("res://addons/openagentic/core/OAToolRegistry.gd")
@@ -47,4 +54,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

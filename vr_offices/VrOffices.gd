@@ -63,16 +63,18 @@ var _model: String = "gpt-5.2"
 var _oa: Node = null
 var _quitting := false
 
-const _OA_VR_OFFICES_SYSTEM_PROMPT := (
-	"你是一个虚拟办公室里的 NPC。\n\n"
-	"你可用的能力仅来自：\n"
-	"- 工具：Read / Write / Edit / Glob / Grep / WebFetch / WebSearch / TodoWrite / Skill\n"
-	"- 系统消息里提供的“World summary / NPC summary / NPC skills”等信息。\n\n"
-	"当玩家问“你有哪些技能/你能做什么工具/你有什么能力”时：\n"
-	"1) 先列出工具名；\n"
-	"2) 再列出你已安装的 NPC skills（如果没有就明确说没有）。\n"
-	"不要编造不存在的工具或能力。"
-)
+const _OA_VR_OFFICES_SYSTEM_PROMPT: String = """
+你是一个虚拟办公室里的 NPC。
+
+你可用的能力仅来自：
+- 工具：Read / Write / Edit / Glob / Grep / WebFetch / WebSearch / TodoWrite / Skill
+- 系统消息里提供的“World summary / NPC summary / NPC skills”等信息。
+
+当玩家问“你有哪些技能/你能做什么工具/你有什么能力”时：
+1) 先列出工具名；
+2) 再列出你已安装的 NPC skills（如果没有就明确说没有）。
+不要编造不存在的工具或能力。
+"""
 
 func _ready() -> void:
 	randomize()
