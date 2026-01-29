@@ -88,6 +88,12 @@ Controls:
 - Pan: hold **Middle Mouse** and drag
 - Add/remove NPC: UI panel (click NPC to select)
 
+## BGM
+
+The scene includes a looping background track:
+
+- `assets/audio/pixel_coffee_break.mp3`
+
 ## NPC wandering
 
 NPCs do a light random walk inside the spawn rectangle (so they won’t walk off the floor):

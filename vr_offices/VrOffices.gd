@@ -7,6 +7,7 @@ extends Node3D
 @onready var npc_root: Node3D = $NpcRoot
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
+@onready var bgm: AudioStreamPlayer = $Bgm
 
 var _npc_counter := 0
 var _selected_npc: Node = null
@@ -33,6 +34,19 @@ func _ready() -> void:
 
 	ui.add_npc_pressed.connect(add_npc)
 	ui.remove_selected_pressed.connect(remove_selected)
+	_configure_bgm()
+
+func _configure_bgm() -> void:
+	if bgm == null or bgm.stream == null:
+		return
+
+	# Ensure loop for BGM even if import settings change.
+	if bgm.stream.has_property("loop"):
+		bgm.stream.set("loop", true)
+	else:
+		bgm.finished.connect(func() -> void:
+			bgm.play()
+		)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
