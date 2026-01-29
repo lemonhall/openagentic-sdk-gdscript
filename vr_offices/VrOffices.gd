@@ -271,7 +271,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			_try_select_from_click(mb.position)
+			var clicked := _try_select_from_click(mb.position)
+			if mb.double_click and clicked != null:
+				_enter_talk(clicked)
 			return
 
 	if _selected_npc != null and event is InputEventKey:
@@ -537,7 +539,7 @@ func _update_all_npc_names() -> void:
 	if _selected_npc != null and is_instance_valid(_selected_npc):
 		select_npc(_selected_npc)
 
-func _try_select_from_click(screen_pos: Vector2) -> void:
+func _try_select_from_click(screen_pos: Vector2) -> Node:
 	var cam: Camera3D = null
 	if camera_rig != null and camera_rig.has_method("get_camera"):
 		cam = camera_rig.call("get_camera") as Camera3D
@@ -545,7 +547,7 @@ func _try_select_from_click(screen_pos: Vector2) -> void:
 		cam = get_viewport().get_camera_3d()
 
 	if cam == null:
-		return
+		return null
 
 	var from := cam.project_ray_origin(screen_pos)
 	var to := from + cam.project_ray_normal(screen_pos) * 200.0
@@ -558,11 +560,12 @@ func _try_select_from_click(screen_pos: Vector2) -> void:
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		select_npc(null)
-		return
+		return null
 
 	var collider: Object = hit.get("collider") as Object
 	var npc := _find_npc_owner(collider)
 	select_npc(npc)
+	return npc
 
 func _find_npc_owner(node: Object) -> Node:
 	var cur := node
