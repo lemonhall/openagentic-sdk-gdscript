@@ -25,7 +25,7 @@ mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
 for t in tests/test_*.gd; do
   echo "--- RUN $t"
-  /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
+  timeout 120s /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
 done
 ```
 
@@ -37,7 +37,7 @@ export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-/tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_sse_parser.gd
+timeout 120s /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_sse_parser.gd
 ```
 
 ## Running tests (WSL2 + Windows Godot)
@@ -58,6 +58,12 @@ Run a single test:
 
 ```bash
 scripts/run_godot_tests.sh --one tests/test_sse_parser.gd
+```
+
+Avoid hung tests (per-test timeout):
+
+```bash
+GODOT_TEST_TIMEOUT_SEC=120 scripts/run_godot_tests.sh
 ```
 
 Notes:
@@ -83,6 +89,13 @@ Pass extra Godot args (e.g. to debug shutdown leaks):
 
 ```powershell
 scripts\\run_godot_tests.ps1 -One tests\\test_vr_offices_smoke.gd -ExtraArgs --verbose
+```
+
+Avoid hung tests (per-test timeout):
+
+```powershell
+$env:GODOT_TEST_TIMEOUT_SEC = "120"
+scripts\\run_godot_tests.ps1
 ```
 
 ## VR Offices (3D demo)
