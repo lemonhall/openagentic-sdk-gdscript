@@ -93,7 +93,6 @@ func _init() -> void:
 	overlay.queue_free()
 	await process_frame
 	await process_frame
-	RenderingServer.sync()
 
 	# UI regression: Add/Remove buttons should not be activatable via Enter.
 	var ui_scene := load("res://vr_offices/ui/VrOfficesUi.tscn")
@@ -119,7 +118,6 @@ func _init() -> void:
 	ui.queue_free()
 	await process_frame
 	await process_frame
-	RenderingServer.sync()
 
 	T.pass_and_quit(self)
 
