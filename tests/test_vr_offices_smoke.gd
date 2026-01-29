@@ -13,6 +13,10 @@ func _init() -> void:
 		T.fail_and_quit(self, "Failed to instantiate VrOffices.tscn")
 		return
 
+	# Add to the tree so @onready vars and _ready() run (Godot 4.6 strict mode expects this).
+	get_root().add_child(world)
+	await process_frame
+
 	if not T.require_true(self, world.name == "VrOffices", "VrOffices.tscn root must be named 'VrOffices'"):
 		return
 	if not T.require_true(self, world.get_node_or_null("Floor") != null, "Missing node VrOffices/Floor"):
@@ -55,7 +59,6 @@ func _init() -> void:
 	world.call("remove_selected")
 
 	# Simulate a frame so queued frees can run in real execution environments.
-	get_root().add_child(world)
 	await process_frame
 
 	if not T.require_eq(self, npc_root.get_child_count(), 11, "Expected 11 NPC after remove_selected()"):
@@ -66,4 +69,5 @@ func _init() -> void:
 		return
 
 	world.queue_free()
+	await process_frame
 	T.pass_and_quit(self)
