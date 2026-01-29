@@ -38,11 +38,13 @@ layout_mode = 2
 [node name="AddNpcButton" type="Button" parent="Panel/VBox/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
 text = "Add NPC"
 
 [node name="RemoveSelectedButton" type="Button" parent="Panel/VBox/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
 text = "Remove Selected"
 
 [node name="CultureRow" type="HBoxContainer" parent="Panel/VBox"]

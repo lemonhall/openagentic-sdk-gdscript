@@ -87,6 +87,7 @@ Controls:
 - Zoom: mouse wheel
 - Pan: hold **Middle Mouse** and drag
 - Add/remove NPC: UI panel (click NPC to select)
+- Talk: select an NPC, press **E** to open a modern chat overlay (Esc to close)
 
 ## BGM
 
@@ -116,3 +117,13 @@ Culture selection:
 
 - Use the UI dropdown to switch between `zh-CN`, `en-US`, and `ja-JP`.
 - Switching culture updates existing NPC display names.
+
+## Dialogue (OpenAgentic)
+
+This scene reuses the same OpenAgentic runtime (streaming SSE) as the other demos, but with a more modern overlay UI.
+
+Defaults (override via env vars):
+
+- `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
+- `OPENAGENTIC_MODEL` (default `gpt-5.2`)
+- `OPENAGENTIC_SAVE_ID` (default `slot1`)

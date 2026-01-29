@@ -43,6 +43,7 @@ const CULTURE_NAMES := {
 @onready var npc_root: Node3D = $NpcRoot
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
+@onready var dialogue: Control = $UI/DialogueOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _npc_counter := 0
@@ -51,8 +52,17 @@ var _selected_npc: Node = null
 var _available_profile_indices: Array[int] = []
 var _profile_index_by_model_path: Dictionary = {}
 
+var _busy := false
+var _save_id: String = "slot1"
+var _proxy_base_url: String = "http://127.0.0.1:8787/v1"
+var _model: String = "gpt-5.2"
+var _oa: Node = null
+
 func _ready() -> void:
 	randomize()
+	_ensure_input_actions()
+	_load_env_defaults()
+	_configure_openagentic()
 	if npc_scene == null:
 		npc_scene = preload("res://vr_offices/npc/Npc.tscn")
 
@@ -61,11 +71,47 @@ func _ready() -> void:
 	if ui.has_signal("culture_changed"):
 		ui.connect("culture_changed", Callable(self, "set_culture"))
 
+	if dialogue != null:
+		if dialogue.has_signal("message_submitted"):
+			dialogue.connect("message_submitted", Callable(self, "_on_dialogue_message_submitted"))
+		if dialogue.has_signal("closed"):
+			dialogue.connect("closed", Callable(self, "_exit_talk"))
+
 	_configure_bgm()
 	_init_profiles()
 	_apply_ui_state()
 	if ui.has_method("set_culture"):
 		ui.call("set_culture", culture_code)
+
+func _ensure_input_actions() -> void:
+	if InputMap.has_action("talk"):
+		return
+	InputMap.add_action("talk")
+	var ev := InputEventKey.new()
+	ev.physical_keycode = KEY_E
+	InputMap.action_add_event("talk", ev)
+
+func _load_env_defaults() -> void:
+	var v := OS.get_environment("OPENAGENTIC_PROXY_BASE_URL")
+	if v.strip_edges() != "":
+		_proxy_base_url = v.strip_edges()
+	v = OS.get_environment("OPENAGENTIC_MODEL")
+	if v.strip_edges() != "":
+		_model = v.strip_edges()
+	v = OS.get_environment("OPENAGENTIC_SAVE_ID")
+	if v.strip_edges() != "":
+		_save_id = v.strip_edges()
+
+func _configure_openagentic() -> void:
+	_oa = get_node_or_null("/root/OpenAgentic")
+	if _oa == null:
+		push_warning("Missing autoload: OpenAgentic (dialogue will not work)")
+		return
+	_oa.set_save_id(_save_id)
+	_oa.configure_proxy_openai_responses(_proxy_base_url, _model)
+	_oa.set_approver(func(_q: Dictionary, _ctx: Dictionary) -> bool:
+		return true
+	)
 
 func _configure_bgm() -> void:
 	if bgm == null or bgm.stream == null:
@@ -101,10 +147,19 @@ func _apply_ui_state() -> void:
 		ui.call("set_status_text", "")
 
 func _unhandled_input(event: InputEvent) -> void:
+	if dialogue != null and dialogue.visible:
+		if Input.is_action_just_pressed("ui_cancel") and dialogue.has_method("close"):
+			dialogue.close()
+		return
+
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_try_select_from_click(mb.position)
+			return
+
+	if _selected_npc != null and Input.is_action_just_pressed("talk"):
+		_enter_talk(_selected_npc)
 
 func add_npc() -> Node:
 	if _available_profile_indices.is_empty():
@@ -172,6 +227,68 @@ func select_npc(npc: Node) -> void:
 		ui.call("set_selected_text", label)
 	if ui.has_method("set_status_text"):
 		ui.call("set_status_text", "")
+
+func _enter_talk(npc: Node) -> void:
+	if dialogue == null or not dialogue.has_method("open"):
+		return
+	var npc_id := ""
+	var npc_name := ""
+	if npc.has_method("get"):
+		npc_id = String(npc.get("npc_id"))
+	if npc.has_method("get_display_name"):
+		npc_name = String(npc.call("get_display_name"))
+	if npc_id.strip_edges() == "":
+		npc_id = npc.name
+	dialogue.open(npc_id, npc_name)
+
+func _exit_talk() -> void:
+	if _busy:
+		return
+	if dialogue != null and dialogue.visible and dialogue.has_method("close"):
+		dialogue.close()
+
+func _on_dialogue_message_submitted(text: String) -> void:
+	if dialogue == null or _busy:
+		return
+	var npc_id := ""
+	if dialogue.has_method("get_npc_id"):
+		npc_id = String(dialogue.call("get_npc_id"))
+	if npc_id.strip_edges() == "":
+		return
+	_start_turn(npc_id, text)
+
+func _start_turn(npc_id: String, text: String) -> void:
+	_busy = true
+	if dialogue != null and dialogue.has_method("set_busy"):
+		dialogue.call("set_busy", true)
+	if dialogue != null and dialogue.has_method("begin_assistant"):
+		dialogue.call("begin_assistant")
+
+	if _oa == null:
+		push_warning("OpenAgentic not configured")
+		_busy = false
+		if dialogue != null and dialogue.has_method("set_busy"):
+			dialogue.call("set_busy", false)
+		return
+
+	await _oa.run_npc_turn(npc_id, text, Callable(self, "_on_agent_event"))
+
+	_busy = false
+	if dialogue != null and dialogue.has_method("set_busy"):
+		dialogue.call("set_busy", false)
+
+func _on_agent_event(ev: Dictionary) -> void:
+	if dialogue == null:
+		return
+	var t := String(ev.get("type", ""))
+	if t == "assistant.delta":
+		if dialogue.has_method("append_assistant_delta"):
+			dialogue.call("append_assistant_delta", String(ev.get("text_delta", "")))
+		return
+	if t == "result":
+		if dialogue.has_method("end_assistant"):
+			dialogue.call("end_assistant")
+		return
 
 func set_culture(code: String) -> void:
 	if not CULTURE_NAMES.has(code):
