@@ -1,5 +1,45 @@
 # Agent Notes (OpenAgentic Godot)
 
+## Running tests (WSL2 + Linux Godot) — recommended
+
+If WSL interop to a Windows `.exe` is flaky (or prompts too much), run tests using a **Linux** Godot binary.
+
+Important: this environment may not allow writing to your real `$HOME`, so set `HOME`/`XDG_*` to a writable temp dir (otherwise Godot may crash when creating `user://`).
+
+One-time setup (example uses the zip you placed at `/home/lemonhall/Godot_v4.6-stable_linux.x86_64.zip`):
+
+```bash
+mkdir -p /tmp/godot-4.6
+unzip -o /home/lemonhall/Godot_v4.6-stable_linux.x86_64.zip -d /tmp/godot-4.6
+chmod +x /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64
+/tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --version
+```
+
+Run the full test suite:
+
+```bash
+export HOME=/tmp/oa-home
+export XDG_DATA_HOME=/tmp/oa-xdg-data
+export XDG_CONFIG_HOME=/tmp/oa-xdg-config
+mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
+
+for t in tests/test_*.gd; do
+  echo "--- RUN $t"
+  /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
+done
+```
+
+Run a single test:
+
+```bash
+export HOME=/tmp/oa-home
+export XDG_DATA_HOME=/tmp/oa-xdg-data
+export XDG_CONFIG_HOME=/tmp/oa-xdg-config
+mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
+
+/tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_sse_parser.gd
+```
+
 ## Running tests (WSL2 + Windows Godot)
 
 If you are working inside WSL2 but have a Windows Godot executable, use the wrapper script:
