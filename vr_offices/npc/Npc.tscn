@@ -27,6 +27,7 @@ position = Vector3(0, 0.8, 0)
 shape = SubResource("CapsuleShape3D_1")
 
 [node name="ModelRoot" type="Node3D" parent="."]
+position = Vector3(0, 0.55, 0)
 
 [node name="SelectionRing" type="MeshInstance3D" parent="."]
 visible = false
