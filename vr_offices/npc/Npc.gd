@@ -89,7 +89,7 @@ func set_selected(is_selected: bool) -> void:
 func get_display_name() -> String:
 	if display_name.strip_edges() != "":
 		return display_name
-	return npc_id if npc_id.strip_edges() != "" else name
+	return npc_id if npc_id.strip_edges() != "" else String(name)
 
 func set_wander_bounds(bounds: Rect2) -> void:
 	wander_bounds = bounds
@@ -148,15 +148,15 @@ func _autoplay_animation(root: Node) -> void:
 	var chosen := _anim_idle if _anim_idle != &"" else _pick_animation(anims)
 	_play_anim(chosen)
 
-func play_animation_once(name: String, duration: float = 0.7, lock_wander: bool = true) -> void:
-	if name.strip_edges() == "":
+func play_animation_once(clip: String, duration: float = 0.7, lock_wander: bool = true) -> void:
+	if clip.strip_edges() == "":
 		return
 	if duration <= 0.0:
 		duration = 0.1
-	var anim_name := _pick_named_animation(_anim_player.get_animation_list(), name.to_lower()) if _anim_player != null else &""
+	var anim_name := _pick_named_animation(_anim_player.get_animation_list(), clip.to_lower()) if _anim_player != null else &""
 	if anim_name == &"":
 		# Fallback: the caller may have passed an exact name with different casing.
-		anim_name = StringName(name)
+		anim_name = StringName(clip)
 	_start_override_animation(anim_name, duration, lock_wander)
 
 func stop_override_animation() -> void:
@@ -257,19 +257,19 @@ func _pick_named_animation(names: PackedStringArray, contains: String) -> String
 			return StringName(n)
 	return &""
 
-func _play_anim(name: StringName) -> void:
-	if _anim_player == null or name == &"":
+func _play_anim(anim_name: StringName) -> void:
+	if _anim_player == null or anim_name == &"":
 		return
-	_ensure_loop(name)
-	if _anim_current == name:
+	_ensure_loop(anim_name)
+	if _anim_current == anim_name:
 		return
-	_anim_current = name
-	_anim_player.play(name)
+	_anim_current = anim_name
+	_anim_player.play(anim_name)
 
-func _ensure_loop(name: StringName) -> void:
-	if _anim_player == null or name == &"":
+func _ensure_loop(anim_name: StringName) -> void:
+	if _anim_player == null or anim_name == &"":
 		return
-	var anim := _anim_player.get_animation(name)
+	var anim := _anim_player.get_animation(anim_name)
 	if anim == null:
 		return
 	# Imported Kenney animations may not be set to loop by default; ensure idle/walk loop.
@@ -299,9 +299,9 @@ func _update_wander(delta: float) -> void:
 		# Only walk when standing on the floor (keeps behavior predictable with gravity).
 		if not is_on_floor():
 			return
-		var pos_xz := Vector2(global_position.x, global_position.z)
-		var to_target := _goto_target_xz - pos_xz
-		if to_target.length() <= maxf(0.05, wander_target_radius * 0.75):
+		var cmd_pos_xz := Vector2(global_position.x, global_position.z)
+		var cmd_to_target := _goto_target_xz - cmd_pos_xz
+		if cmd_to_target.length() <= maxf(0.05, wander_target_radius * 0.75):
 			_goto_active = false
 			_waiting_for_work_left = maxf(0.0, waiting_for_work_seconds)
 			velocity.x = 0.0
@@ -310,15 +310,15 @@ func _update_wander(delta: float) -> void:
 			move_target_reached.emit(npc_id, Vector3(_goto_target_xz.x, 0.0, _goto_target_xz.y))
 			return
 
-		var dir := to_target.normalized()
-		velocity.x = dir.x * command_speed
-		velocity.z = dir.y * command_speed
+		var cmd_dir := cmd_to_target.normalized()
+		velocity.x = cmd_dir.x * command_speed
+		velocity.z = cmd_dir.y * command_speed
 		if _anim_sprint != &"":
 			_play_anim(_anim_sprint)
 		else:
 			_play_anim(_anim_walk if _anim_walk != &"" else _anim_idle)
 		if turn_speed > 0.0:
-			var target_yaw := atan2(-dir.x, -dir.y) + model_yaw_offset
+			var target_yaw := atan2(-cmd_dir.x, -cmd_dir.y) + model_yaw_offset
 			rotation.y = lerp_angle(rotation.y, target_yaw, clampf(turn_speed * delta, 0.0, 1.0))
 		return
 

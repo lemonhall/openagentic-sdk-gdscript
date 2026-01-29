@@ -58,12 +58,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _pan(delta_pixels: Vector2) -> void:
 	# Screen-space pan mapped onto XZ plane.
-	var scale := _distance * 0.002
+	var pan_scale := _distance * 0.002
 	var right := -pivot.global_transform.basis.x
 	var forward := -pivot.global_transform.basis.z
 	forward.y = 0.0
 	forward = forward.normalized()
-	global_position += (right * delta_pixels.x + forward * delta_pixels.y) * scale
+	global_position += (right * delta_pixels.x + forward * delta_pixels.y) * pan_scale
 
 func _apply_transform() -> void:
 	pivot.rotation = Vector3(_pitch, _yaw, 0.0)

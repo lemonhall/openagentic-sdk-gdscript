@@ -18,7 +18,7 @@ const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 @export var spawn_extent := Vector2(6.0, 4.0) # X,Z half extents
 @export var culture_code := "zh-CN"
 
-@onready var floor: StaticBody3D = $Floor
+@onready var floor_body: StaticBody3D = $Floor
 @onready var npc_root: Node3D = $NpcRoot
 @onready var move_indicators: Node3D = $MoveIndicators
 @onready var camera_rig: Node3D = $CameraRig
@@ -43,7 +43,7 @@ func _ready() -> void:
 	if get_tree() != null:
 		# Give ourselves a chance to autosave before quitting.
 		get_tree().auto_accept_quit = false
-	_move_ctrl = _MoveControllerScript.new(self, floor, move_indicators, camera_rig, _MoveIndicatorScene)
+	_move_ctrl = _MoveControllerScript.new(self, floor_body, move_indicators, camera_rig, _MoveIndicatorScene)
 	_agent = _AgentBridgeScript.new(self, Callable(self, "_find_npc_by_id"))
 	_agent.call("configure_from_environment")
 	var oa: Node = _agent.call("configure_openagentic") as Node

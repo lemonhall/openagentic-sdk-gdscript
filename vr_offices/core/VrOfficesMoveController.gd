@@ -1,7 +1,7 @@
 extends RefCounted
 
 var owner: Node = null
-var floor: StaticBody3D = null
+var floor_body: StaticBody3D = null
 var move_indicators: Node3D = null
 var camera_rig: Node = null
 var indicator_scene: PackedScene = null
@@ -17,7 +17,7 @@ func _init(
 	indicator_scene_in: PackedScene
 ) -> void:
 	owner = owner_in
-	floor = floor_in
+	floor_body = floor_in
 	move_indicators = move_indicators_in
 	camera_rig = camera_rig_in
 	indicator_scene = indicator_scene_in
@@ -108,8 +108,8 @@ func _show_move_indicator_for_node(npc: Node, target: Vector3) -> void:
 
 func _compute_floor_bounds_xz() -> Rect2:
 	# Prefer collider dimensions to avoid depending on mesh settings.
-	if floor != null:
-		var cs := floor.get_node_or_null("FloorCollider") as CollisionShape3D
+	if floor_body != null:
+		var cs := floor_body.get_node_or_null("FloorCollider") as CollisionShape3D
 		if cs != null and cs.shape is BoxShape3D:
 			var box := cs.shape as BoxShape3D
 			var sx := float(box.size.x)
