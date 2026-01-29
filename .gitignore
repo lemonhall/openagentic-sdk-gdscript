@@ -14,3 +14,6 @@ kenney_*.zip
 # Node proxy
 proxy/node_modules/
 proxy/.env
+
+# Local tools (e.g., Linux Godot binary)
+tools/
