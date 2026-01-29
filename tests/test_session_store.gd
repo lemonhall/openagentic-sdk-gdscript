@@ -8,7 +8,9 @@ func _init() -> void:
 		T.fail_and_quit(self, "Missing OAJsonlNpcSessionStore.gd")
 		return
 
-	var save_id := "slot_test_1_%s" % str(Time.get_ticks_msec())
+	# Use a truly unique save id per test process.
+	# `Time.get_ticks_msec()` is relative to process start and can collide across separate headless runs.
+	var save_id: String = "slot_test_1_%s_%s" % [str(OS.get_process_id()), str(Time.get_unix_time_from_system())]
 	var store = StoreScript.new(save_id)
 	var npc_id := "npc_1"
 
