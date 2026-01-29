@@ -165,7 +165,8 @@ func load_from_state_dict(st: Dictionary) -> void:
 	if st.is_empty() or _npc_root == null or _npc_scene == null:
 		return
 	var v := int(st.get("version", 1))
-	if v != 1:
+	# v2 extends v1 with additional fields (e.g. workspaces). NPC load logic is compatible.
+	if v < 1 or v > 2:
 		return
 
 	var cc := String(st.get("culture_code", _culture_code)).strip_edges()
@@ -284,4 +285,3 @@ func _apply_ui_state() -> void:
 func _try_autosave() -> void:
 	if _autosave.is_valid():
 		_autosave.call()
-

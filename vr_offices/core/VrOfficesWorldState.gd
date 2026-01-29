@@ -26,7 +26,14 @@ func write_state(save_id: String, state: Dictionary) -> void:
 	f.store_string(JSON.stringify(state) + "\n")
 	f.close()
 
-func build_state(save_id: String, culture_code: String, npc_counter: int, npc_root: Node) -> Dictionary:
+func build_state(
+	save_id: String,
+	culture_code: String,
+	npc_counter: int,
+	npc_root: Node,
+	workspaces: Array = [],
+	workspace_counter: int = 0
+) -> Dictionary:
 	var npcs: Array = []
 	if npc_root != null:
 		for child0 in npc_root.get_children():
@@ -52,10 +59,11 @@ func build_state(save_id: String, culture_code: String, npc_counter: int, npc_ro
 				"yaw": yaw,
 			})
 	return {
-		"version": 1,
+		"version": 2,
 		"save_id": save_id,
 		"culture_code": culture_code,
 		"npc_counter": npc_counter,
 		"npcs": npcs,
+		"workspace_counter": workspace_counter,
+		"workspaces": workspaces,
 	}
-

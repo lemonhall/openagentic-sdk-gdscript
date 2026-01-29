@@ -7,7 +7,7 @@ Let the player create named rectangular “workspaces” on the office floor via
 ## Milestones (facts panel)
 
 1. **Plan:** write an executable v10 plan with modular architecture + tests. (done)
-2. **Core:** data model + persistence for workspaces, with unit tests. (pending)
+2. **Core:** data model + persistence for workspaces, with unit tests. (done)
 3. **UI:** create-confirm dialog + right-click context menu (delete), with tests where feasible. (pending)
 4. **Input/Preview:** LMB drag-create + preview (cyan glow), and RMB on workspace opens menu; keep existing NPC controls. (pending)
 5. **Verify:** run full headless test suite (Linux/WSL and/or Windows). (pending)
@@ -36,4 +36,3 @@ Let the player create named rectangular “workspaces” on the office floor via
   - `powershell -ExecutionPolicy Bypass -File scripts\\run_godot_tests.ps1`
 - WSL2 + Linux Godot:
   - Follow `AGENTS.md` “Running tests (WSL2 + Linux Godot)”.
-

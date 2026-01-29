@@ -10,6 +10,7 @@ const _WorldStateScript := preload("res://vr_offices/core/VrOfficesWorldState.gd
 const _DialogueControllerScript := preload("res://vr_offices/core/VrOfficesDialogueController.gd")
 const _InputControllerScript := preload("res://vr_offices/core/VrOfficesInputController.gd")
 const _MoveControllerScript := preload("res://vr_offices/core/VrOfficesMoveController.gd")
+const _WorkspaceManagerScript := preload("res://vr_offices/core/VrOfficesWorkspaceManager.gd")
 const _BgmScript := preload("res://vr_offices/core/VrOfficesBgm.gd")
 const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 
@@ -36,6 +37,7 @@ var _save_ctrl: RefCounted = null
 var _dialogue_ctrl: RefCounted = null
 var _input_ctrl: RefCounted = null
 var _move_ctrl: RefCounted = null
+var _workspace_manager: RefCounted = null
 var _quitting := false
 
 func _ready() -> void:
@@ -72,7 +74,13 @@ func _ready() -> void:
 
 	_chat_history = _ChatHistoryScript.new()
 	_world_state = _WorldStateScript.new()
-	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"))
+	var bounds := Rect2(Vector2(-10.0, -10.0), Vector2(20.0, 20.0))
+	if _move_ctrl != null:
+		var b0: Variant = _move_ctrl.get("floor_bounds_xz")
+		if b0 is Rect2:
+			bounds = b0 as Rect2
+	_workspace_manager = _WorkspaceManagerScript.new(bounds)
+	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager)
 	_dialogue_ctrl = _DialogueControllerScript.new(
 		self,
 		camera_rig,
