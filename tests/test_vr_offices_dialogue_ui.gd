@@ -90,8 +90,8 @@ func _init() -> void:
 	if not T.require_true(self, _closed_called, "DialogueOverlay should emit closed"):
 		return
 
-	overlay.queue_free()
-	await process_frame
+	# Free explicitly to avoid headless shutdown leak noise.
+	overlay.free()
 	await process_frame
 
 	# UI regression: Add/Remove buttons should not be activatable via Enter.
@@ -115,8 +115,7 @@ func _init() -> void:
 	if not T.require_eq(self, rm_btn.focus_mode, Control.FOCUS_NONE, "Remove button should not capture focus (prevents Enter activation)"):
 		return
 
-	ui.queue_free()
-	await process_frame
+	ui.free()
 	await process_frame
 
 	T.pass_and_quit(self)

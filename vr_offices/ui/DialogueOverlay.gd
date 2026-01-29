@@ -18,11 +18,18 @@ var _assistant_rtl: RichTextLabel = null
 
 func _ready() -> void:
 	visible = false
-	send_button.pressed.connect(_submit)
-	close_button.pressed.connect(close)
-	input.text_submitted.connect(func(_t: String) -> void:
-		_submit()
-	)
+	send_button.pressed.connect(_on_send_pressed)
+	close_button.pressed.connect(_on_close_pressed)
+	input.text_submitted.connect(_on_input_submitted)
+
+func _on_send_pressed() -> void:
+	_submit()
+
+func _on_close_pressed() -> void:
+	close()
+
+func _on_input_submitted(_t: String) -> void:
+	_submit()
 
 func open(npc_id: String, npc_name: String) -> void:
 	_npc_id = npc_id
@@ -140,4 +147,3 @@ func _scroll_to_bottom() -> void:
 	var bar := scroll.get_v_scroll_bar()
 	if bar != null:
 		scroll.scroll_vertical = int(bar.max_value)
-
