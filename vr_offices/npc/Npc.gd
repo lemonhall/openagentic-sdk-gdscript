@@ -32,6 +32,7 @@ func _load_model() -> void:
 			var inst := (res as PackedScene).instantiate()
 			if inst != null:
 				model_root.add_child(inst)
+				_autoplay_animation(inst)
 				return
 
 	# Fallback: a simple capsule mesh so the scene still works without imported assets.
@@ -41,3 +42,33 @@ func _load_model() -> void:
 	mesh.height = 1.1
 	mi.mesh = mesh
 	model_root.add_child(mi)
+
+func _autoplay_animation(root: Node) -> void:
+	# Kenney Mini Characters 1 includes animations embedded in the model files.
+	# Imported scenes usually contain an AnimationPlayer, but nothing plays by default.
+	var players := root.find_children("*", "AnimationPlayer", true, false)
+	if players.is_empty():
+		return
+
+	var ap := players[0] as AnimationPlayer
+	var anims := ap.get_animation_list()
+	if anims.is_empty():
+		return
+
+	var chosen := _pick_animation(anims)
+	ap.play(chosen)
+
+func _pick_animation(names: PackedStringArray) -> StringName:
+	var best_idle := ""
+	var best_walk := ""
+	for n in names:
+		var lower := String(n).to_lower()
+		if best_idle == "" and lower.find("idle") != -1:
+			best_idle = String(n)
+		if best_walk == "" and lower.find("walk") != -1:
+			best_walk = String(n)
+	if best_idle != "":
+		return StringName(best_idle)
+	if best_walk != "":
+		return StringName(best_walk)
+	return StringName(names[0])

@@ -29,7 +29,8 @@ Texture note:
 
 Animation note:
 
-- Kenney Mini Characters 1 ships as **rigged models without animations** (so a T-pose/rest-pose is expected until you add your own animations).
+- Kenney Mini Characters 1 includes **embedded animations** in the model files.
+- If you see a T-pose, it usually means the imported `AnimationPlayer` exists but nothing is playing; this demo auto-plays an `idle` animation when present.
 
 ## Run
 
