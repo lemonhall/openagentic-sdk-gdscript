@@ -41,12 +41,18 @@ func _configure_bgm() -> void:
 		return
 
 	# Ensure loop for BGM even if import settings change.
-	if bgm.stream.has_property("loop"):
+	if _object_has_property(bgm.stream, "loop"):
 		bgm.stream.set("loop", true)
 	else:
 		bgm.finished.connect(func() -> void:
 			bgm.play()
 		)
+
+func _object_has_property(obj: Object, property_name: String) -> bool:
+	for p in obj.get_property_list():
+		if p.has("name") and String(p["name"]) == property_name:
+			return true
+	return false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
