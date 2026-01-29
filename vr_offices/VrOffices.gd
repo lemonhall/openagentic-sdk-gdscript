@@ -85,7 +85,7 @@ func select_npc(npc: Node) -> void:
 func _try_select_from_click(screen_pos: Vector2) -> void:
 	var cam: Camera3D = null
 	if camera_rig != null and camera_rig.has_method("get_camera"):
-		cam = camera_rig.call("get_camera")
+		cam = camera_rig.call("get_camera") as Camera3D
 	else:
 		cam = get_viewport().get_camera_3d()
 
@@ -100,12 +100,12 @@ func _try_select_from_click(screen_pos: Vector2) -> void:
 	query.collide_with_bodies = true
 	query.collision_mask = 2
 
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		select_npc(null)
 		return
 
-	var collider := hit.get("collider")
+	var collider: Object = hit.get("collider") as Object
 	var npc := _find_npc_owner(collider)
 	select_npc(npc)
 
