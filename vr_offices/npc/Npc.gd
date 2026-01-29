@@ -10,6 +10,7 @@ extends CharacterBody3D
 @export_range(0.1, 5.0, 0.1) var wander_target_radius := 0.35
 @export var wander_pause_range := Vector2(0.5, 2.0) # seconds
 @export_range(0.0, 20.0, 0.1) var turn_speed := 8.0
+@export_range(-PI, PI, 0.01) var model_yaw_offset := PI
 
 # X = world X, Y = world Z.
 @export var wander_bounds := Rect2(Vector2(-6.0, -4.0), Vector2(12.0, 8.0))
@@ -145,7 +146,9 @@ func _update_wander(delta: float) -> void:
 	_play_anim(_anim_walk if _anim_walk != &"" else _anim_idle)
 
 	if turn_speed > 0.0:
-		var target_yaw := atan2(-dir.x, -dir.y) # faces -Z by default
+		# Godot faces -Z by default, but many imported models visually face +Z.
+		# `model_yaw_offset` corrects that (Kenney Mini Characters look correct with PI).
+		var target_yaw := atan2(-dir.x, -dir.y) + model_yaw_offset
 		rotation.y = lerp_angle(rotation.y, target_yaw, clampf(turn_speed * delta, 0.0, 1.0))
 
 func _pick_new_wander_target() -> void:
