@@ -32,8 +32,8 @@ func _setup_culture_options() -> void:
 	culture_option.set_item_metadata(2, "ja-JP")
 
 	culture_option.item_selected.connect(func(idx: int) -> void:
-		var meta := culture_option.get_item_metadata(idx)
-		var code := String(meta) if meta != null else ""
+		var meta: Variant = culture_option.get_item_metadata(idx)
+		var code: String = String(meta) if meta != null else ""
 		if code.strip_edges() != "":
 			culture_changed.emit(code)
 	)
@@ -52,7 +52,7 @@ func set_can_add(can_add: bool) -> void:
 
 func set_culture(code: String) -> void:
 	for i in range(culture_option.item_count):
-		var meta := culture_option.get_item_metadata(i)
+		var meta: Variant = culture_option.get_item_metadata(i)
 		if String(meta) == code:
 			culture_option.select(i)
 			return
