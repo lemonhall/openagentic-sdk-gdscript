@@ -53,6 +53,12 @@ func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void
 	if model.strip_edges() == "":
 		push_error("OpenAgentic.model is required")
 		return
+	# Make the default tool suite available unless the host game overrides it.
+	# This keeps NPCs consistent across scenes and avoids "tools are missing" surprises.
+	if typeof(tools) == TYPE_OBJECT and tools != null and tools.has_method("names"):
+		var names0: Array = tools.names()
+		if names0.is_empty():
+			enable_default_tools()
 
 	var store = _SessionStoreScript.new(save_id)
 	var tavily_key := OS.get_environment("TAVILY_API_KEY").strip_edges()

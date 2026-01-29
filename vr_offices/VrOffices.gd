@@ -63,6 +63,17 @@ var _model: String = "gpt-5.2"
 var _oa: Node = null
 var _quitting := false
 
+const _OA_VR_OFFICES_SYSTEM_PROMPT := (
+	"你是一个虚拟办公室里的 NPC。\n\n"
+	"你可用的能力仅来自：\n"
+	"- 工具：Read / Write / Edit / Glob / Grep / WebFetch / WebSearch / TodoWrite / Skill\n"
+	"- 系统消息里提供的“World summary / NPC summary / NPC skills”等信息。\n\n"
+	"当玩家问“你有哪些技能/你能做什么工具/你有什么能力”时：\n"
+	"1) 先列出工具名；\n"
+	"2) 再列出你已安装的 NPC skills（如果没有就明确说没有）。\n"
+	"不要编造不存在的工具或能力。"
+)
+
 func _ready() -> void:
 	randomize()
 	if get_tree() != null:
@@ -131,6 +142,14 @@ func _configure_openagentic() -> void:
 			_oa.set_save_id(_save_id)
 
 	_oa.configure_proxy_openai_responses(_proxy_base_url, _model)
+	# Ensure tools are registered and set a sensible NPC system prompt for this demo.
+	if _oa.has_method("enable_default_tools"):
+		_oa.call("enable_default_tools")
+	if _oa.has_method("get"):
+		var sp0: Variant = _oa.get("system_prompt")
+		var sp: String = String(sp0) if sp0 != null else ""
+		if sp.strip_edges() == "":
+			_oa.set("system_prompt", _OA_VR_OFFICES_SYSTEM_PROMPT)
 	_oa.set_approver(func(_q: Dictionary, _ctx: Dictionary) -> bool:
 		return true
 	)
