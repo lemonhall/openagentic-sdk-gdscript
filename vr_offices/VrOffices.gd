@@ -27,6 +27,7 @@ var _model_paths: Array[String] = [
 ]
 
 func _ready() -> void:
+	randomize()
 	if npc_scene == null:
 		npc_scene = preload("res://vr_offices/npc/Npc.tscn")
 
@@ -56,6 +57,7 @@ func add_npc() -> Node:
 	# Default NPC scene supports these properties.
 	npc.set("npc_id", npc_id)
 	npc.set("model_path", _model_paths[(_npc_counter - 1) % _model_paths.size()])
+	npc.set("wander_bounds", Rect2(Vector2(-spawn_extent.x, -spawn_extent.y), Vector2(spawn_extent.x * 2.0, spawn_extent.y * 2.0)))
 
 	npc_root.add_child(npc)
 	select_npc(npc)

@@ -32,6 +32,49 @@ Animation note:
 - Kenney Mini Characters 1 includes **embedded animations** in the model files.
 - If you see a T-pose, it usually means the imported `AnimationPlayer` exists but nothing is playing; this demo auto-plays an `idle` animation when present.
 
+### Animation list (Kenney Mini Characters 1)
+
+These are the **32** embedded animation names found in `character-male-a.glb`:
+
+- `static`
+- `idle`
+- `walk`
+- `sprint`
+- `jump`
+- `fall`
+- `crouch`
+- `sit`
+- `drive`
+- `die`
+- `pick-up`
+- `emote-yes`
+- `emote-no`
+- `holding-right`
+- `holding-left`
+- `holding-both`
+- `holding-right-shoot`
+- `holding-left-shoot`
+- `holding-both-shoot`
+- `attack-melee-right`
+- `attack-melee-left`
+- `attack-kick-right`
+- `attack-kick-left`
+- `interact-right`
+- `interact-left`
+- `wheelchair-sit`
+- `wheelchair-look-left`
+- `wheelchair-look-right`
+- `wheelchair-move-forward`
+- `wheelchair-move-back`
+- `wheelchair-move-left`
+- `wheelchair-move-right`
+
+To list animations without Godot (reads the `.glb` JSON chunk):
+
+```bash
+scripts/list_glb_animations.py assets/kenney/mini-characters-1/character-male-a.glb
+```
+
 ## Run
 
 Open and run:
@@ -44,3 +87,10 @@ Controls:
 - Zoom: mouse wheel
 - Pan: hold **Middle Mouse** and drag
 - Add/remove NPC: UI panel (click NPC to select)
+
+## NPC wandering
+
+NPCs do a light random walk inside the spawn rectangle (so they won’t walk off the floor):
+
+- Bounds are derived from `VrOffices.gd` `spawn_extent` and set on each NPC via `wander_bounds`.
+- The NPC script switches between `idle` and `walk` animations based on whether it’s moving.
