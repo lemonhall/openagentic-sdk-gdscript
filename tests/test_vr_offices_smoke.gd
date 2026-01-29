@@ -36,21 +36,22 @@ func _init() -> void:
 		return
 
 	# Add up to the max unique NPCs (12).
-	var last_npc := null
+	var last_npc: Node = null
 	for _i in range(12):
-		last_npc = world.call("add_npc")
+		last_npc = world.call("add_npc") as Node
 		if not T.require_true(self, last_npc != null, "add_npc() must return the NPC instance"):
 			return
 	if not T.require_eq(self, npc_root.get_child_count(), 12, "Expected 12 NPCs after filling unique profiles"):
 		return
 
 	# 13th add should fail (no more unique profiles).
-	var extra := world.call("add_npc")
+	var extra: Node = world.call("add_npc") as Node
 	if not T.require_true(self, extra == null, "Expected add_npc() to return null when at max profiles"):
 		return
 
 	# Remove one, then add again should succeed.
-	world.call("select_npc", npc_root.get_child(0))
+	var first_npc: Node = npc_root.get_child(0) as Node
+	world.call("select_npc", first_npc)
 	world.call("remove_selected")
 
 	# Simulate a frame so queued frees can run in real execution environments.
@@ -60,7 +61,7 @@ func _init() -> void:
 	if not T.require_eq(self, npc_root.get_child_count(), 11, "Expected 11 NPC after remove_selected()"):
 		return
 
-	var again := world.call("add_npc")
+	var again: Node = world.call("add_npc") as Node
 	if not T.require_true(self, again != null, "Expected add_npc() to succeed after removing one"):
 		return
 
