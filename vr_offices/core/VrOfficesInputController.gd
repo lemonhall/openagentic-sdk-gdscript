@@ -7,6 +7,7 @@ var dialogue_ctrl: RefCounted = null
 
 var command_move_to_click: Callable
 var select_npc: Callable
+var workspace_ctrl: RefCounted = null
 
 var _rmb_down := false
 var _rmb_dragged := false
@@ -18,7 +19,8 @@ func _init(
 	camera_rig_in: Node,
 	dialogue_ctrl_in: RefCounted,
 	command_move_to_click_in: Callable,
-	select_npc_in: Callable
+	select_npc_in: Callable,
+	workspace_ctrl_in: RefCounted = null
 ) -> void:
 	owner = owner_in
 	dialogue = dialogue_in
@@ -26,6 +28,7 @@ func _init(
 	dialogue_ctrl = dialogue_ctrl_in
 	command_move_to_click = command_move_to_click_in
 	select_npc = select_npc_in
+	workspace_ctrl = workspace_ctrl_in
 
 func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 	if owner == null:
@@ -45,6 +48,11 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 		owner.get_viewport().set_input_as_handled()
 		return
 
+	if workspace_ctrl != null and workspace_ctrl.has_method("handle_lmb_event"):
+		var consumed := bool(workspace_ctrl.call("handle_lmb_event", event, select_npc))
+		if consumed:
+			return
+
 	if event is InputEventMouseMotion and _rmb_down:
 		var mm := event as InputEventMouseMotion
 		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT != 0:
@@ -59,8 +67,13 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				_rmb_dragged = false
 				_rmb_down_pos = mb.position
 			else:
-				if _rmb_down and not _rmb_dragged and command_move_to_click.is_valid():
-					command_move_to_click.call(mb.position)
+				if _rmb_down and not _rmb_dragged:
+					if workspace_ctrl != null and workspace_ctrl.has_method("try_open_context_menu"):
+						if bool(workspace_ctrl.call("try_open_context_menu", mb.position)):
+							_rmb_down = false
+							return
+					if command_move_to_click.is_valid():
+						command_move_to_click.call(mb.position)
 				_rmb_down = false
 			return
 
