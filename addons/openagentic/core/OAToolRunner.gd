@@ -84,6 +84,11 @@ func run(session_id: String, tool_call: Dictionary) -> void:
 
 	var ok := true
 	var output = tool.run(input, ctx)
+	# Support async tool implementations (coroutines) by awaiting function state.
+	if typeof(output) == TYPE_OBJECT and output != null:
+		var o := output as Object
+		if o != null and o.get_class() == "GDScriptFunctionState":
+			output = await o
 	_store.append_event(session_id, {
 		"type": "tool.result",
 		"tool_use_id": tool_use_id,

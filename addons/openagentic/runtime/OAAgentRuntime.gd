@@ -3,6 +3,7 @@ class_name OAAgentRuntime
 
 const _OAReplay := preload("res://addons/openagentic/runtime/OAReplay.gd")
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+const _OASkills := preload("res://addons/openagentic/core/OASkills.gd")
 
 var _store
 var _tool_runner
@@ -45,23 +46,34 @@ func _provider_stream(req: Dictionary, on_model_event: Callable) -> void:
 	# Support either an object with .stream(req, cb) or a Dictionary with key "stream" as Callable.
 	if _provider == null:
 		return
-	if typeof(_provider) == TYPE_DICTIONARY and (_provider as Dictionary).has("stream"):
-		var c: Callable = (_provider as Dictionary).stream
-		c.call(req, on_model_event)
-		return
+	if typeof(_provider) == TYPE_DICTIONARY:
+		var d: Dictionary = _provider as Dictionary
+		var c0: Variant = d.get("stream", null)
+		if typeof(c0) == TYPE_CALLABLE and not (c0 as Callable).is_null():
+			(c0 as Callable).call(req, on_model_event)
+			return
 	if typeof(_provider) == TYPE_OBJECT and _provider.has_method("stream"):
 		await _provider.stream(req, on_model_event)
 		return
 
 func _load_optional_text(path: String) -> String:
-	if not FileAccess.file_exists(path):
+	var abs := ProjectSettings.globalize_path(path)
+	if not FileAccess.file_exists(path) and not FileAccess.file_exists(abs):
 		return ""
 	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		f = FileAccess.open(abs, FileAccess.READ)
 	if f == null:
 		return ""
 	var txt := f.get_as_text()
 	f.close()
 	return txt.strip_edges()
+
+func _join_strings(sep: String, items: Array[String]) -> String:
+	var psa := PackedStringArray()
+	for s in items:
+		psa.append(s)
+	return sep.join(psa)
 
 func _build_system_preamble(save_id: String, npc_id: String) -> String:
 	var parts: Array[String] = []
@@ -73,7 +85,17 @@ func _build_system_preamble(save_id: String, npc_id: String) -> String:
 	var npc_sum := _load_optional_text(_OAPaths.npc_summary_path(save_id, npc_id))
 	if npc_sum != "":
 		parts.append("NPC summary:\n" + npc_sum)
-	return "\n\n---\n\n".join(parts)
+	var skill_names: Array[String] = _OASkills.list_skill_names(save_id, npc_id)
+	if skill_names.size() > 0:
+		var blocks: Array[String] = []
+		for name in skill_names:
+			var body := _OASkills.read_skill_md(save_id, npc_id, name, 128 * 1024)
+			if body == "":
+				continue
+			blocks.append("## Skill: %s\n\n%s" % [name, body])
+		if blocks.size() > 0:
+			parts.append("NPC skills (workspace/skills/*/SKILL.md):\n\n" + _join_strings("\n\n---\n\n", blocks))
+	return _join_strings("\n\n---\n\n", parts)
 
 func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: String = "") -> void:
 	if user_text == null or typeof(user_text) != TYPE_STRING:
@@ -120,9 +142,9 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 					if on_event != null and not on_event.is_null():
 						on_event.call(de)
 			elif t == "tool_call":
-				var tc := mev.get("tool_call", {})
-				if typeof(tc) == TYPE_DICTIONARY:
-					tool_calls.append(tc)
+				var tc0: Variant = mev.get("tool_call", {})
+				if typeof(tc0) == TYPE_DICTIONARY:
+					tool_calls.append(tc0)
 			elif t == "done" and typeof(mev.get("error", null)) == TYPE_STRING:
 				provider_error = String(mev.error)
 		)
@@ -142,7 +164,7 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 				on_event.call(final0)
 			return
 
-		var assistant_text := "".join(parts)
+		var assistant_text := _join_strings("", parts)
 		var msg := {"type": "assistant.message", "text": assistant_text, "ts": _now_ms()}
 		_store.append_event(npc_id, msg)
 		if on_event != null and not on_event.is_null():

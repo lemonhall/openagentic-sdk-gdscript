@@ -17,16 +17,16 @@ func _ensure_dir(path: String) -> void:
 func _read_json(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
-	var f := FileAccess.open(path, FileAccess.READ)
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if f == null:
 		return {}
 	var txt := f.get_as_text()
 	f.close()
-	var parsed := JSON.parse_string(txt)
+	var parsed: Variant = JSON.parse_string(txt)
 	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
 
 func _write_text(path: String, text: String) -> void:
-	var f := FileAccess.open(path, FileAccess.WRITE)
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
 		return
 	f.store_string(text)
@@ -38,7 +38,7 @@ func _append_line(path: String, line: String) -> void:
 	if not FileAccess.file_exists(path):
 		_write_text(path, line)
 		return
-	var rf := FileAccess.open(path, FileAccess.READ)
+	var rf: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if rf == null:
 		return
 	var existing := rf.get_as_text()
@@ -47,7 +47,7 @@ func _append_line(path: String, line: String) -> void:
 
 func _load_next_seq(npc_id: String) -> int:
 	var st := _read_json(_OAPaths.npc_state_path(_save_id, npc_id))
-	var ns = st.get("next_seq", 1)
+	var ns: Variant = st.get("next_seq", 1)
 	return int(ns) if (typeof(ns) == TYPE_INT or typeof(ns) == TYPE_FLOAT) else 1
 
 func _store_next_seq(npc_id: String, next_seq: int) -> void:
@@ -56,6 +56,8 @@ func _store_next_seq(npc_id: String, next_seq: int) -> void:
 
 func _ensure_session(npc_id: String) -> void:
 	_ensure_dir(_OAPaths.npc_session_dir(_save_id, npc_id))
+	_ensure_dir(_OAPaths.npc_workspace_dir(_save_id, npc_id))
+	_ensure_dir(_OAPaths.npc_skills_dir(_save_id, npc_id))
 	var meta_path := _OAPaths.npc_meta_path(_save_id, npc_id)
 	if not FileAccess.file_exists(meta_path):
 		_write_text(meta_path, JSON.stringify({"npc_id": npc_id, "created_at": _now_ms()}) + "\n")
@@ -65,7 +67,7 @@ func _ensure_session(npc_id: String) -> void:
 
 func append_event(npc_id: String, event: Dictionary) -> void:
 	_ensure_session(npc_id)
-	var seq := event.get("seq", null)
+	var seq: Variant = event.get("seq", null)
 	if typeof(seq) != TYPE_INT:
 		seq = _load_next_seq(npc_id)
 		_store_next_seq(npc_id, int(seq) + 1)
@@ -83,7 +85,7 @@ func read_events(npc_id: String) -> Array:
 	var path := _OAPaths.npc_events_path(_save_id, npc_id)
 	if not FileAccess.file_exists(path):
 		return []
-	var f := FileAccess.open(path, FileAccess.READ)
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if f == null:
 		return []
 	var out: Array = []
@@ -92,7 +94,7 @@ func read_events(npc_id: String) -> Array:
 		var trimmed := String(line).strip_edges()
 		if trimmed == "":
 			continue
-		var obj := JSON.parse_string(trimmed)
+		var obj: Variant = JSON.parse_string(trimmed)
 		if typeof(obj) == TYPE_DICTIONARY:
 			out.append(obj)
 	f.close()

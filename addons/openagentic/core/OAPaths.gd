@@ -25,3 +25,14 @@ static func shared_world_summary_path(save_id: String) -> String:
 static func npc_summary_path(save_id: String, npc_id: String) -> String:
 	return "%s/memory/summary.txt" % npc_root(save_id, npc_id)
 
+static func npc_workspace_dir(save_id: String, npc_id: String) -> String:
+	return "%s/workspace" % npc_root(save_id, npc_id)
+
+static func npc_skills_dir(save_id: String, npc_id: String) -> String:
+	return "%s/skills" % npc_workspace_dir(save_id, npc_id)
+
+static func npc_skill_dir(save_id: String, npc_id: String, skill_name: String) -> String:
+	return "%s/%s" % [npc_skills_dir(save_id, npc_id), skill_name]
+
+static func npc_skill_md_path(save_id: String, npc_id: String, skill_name: String) -> String:
+	return "%s/SKILL.md" % npc_skill_dir(save_id, npc_id, skill_name)

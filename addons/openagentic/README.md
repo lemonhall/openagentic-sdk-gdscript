@@ -14,6 +14,8 @@ Everything is scoped under `user://openagentic/` (per-save â€œshadow workspaceâ€
 - `user://openagentic/saves/<save_id>/npcs/<npc_id>/session/events.jsonl`
 - `user://openagentic/saves/<save_id>/shared/world_summary.txt` (optional)
 - `user://openagentic/saves/<save_id>/npcs/<npc_id>/memory/summary.txt` (optional)
+- `user://openagentic/saves/<save_id>/npcs/<npc_id>/workspace/` (per-NPC private workspace)
+  - `skills/<skill-name>/SKILL.md` (optional; injected into the system preamble when present)
 
 ## Quick start (runtime)
 
@@ -25,6 +27,7 @@ OpenAgentic.set_save_id("slot1")
 OpenAgentic.configure_proxy_openai_responses("https://your-proxy.example/v1", "gpt-4.1-mini", "authorization", "<token>", true)
 OpenAgentic.set_approver(func(_q, _ctx): return true) # or implement your own policy/UI
 OpenAgentic.register_tool(OATool.new("echo", "echo input", func(input, _ctx): return input))
+OpenAgentic.enable_default_tools() # optional: Read/Write/Edit/Glob/Grep/WebFetch/WebSearch/TodoWrite/Skill (no Bash)
 ```
 
 3. Run a turn (stream events):

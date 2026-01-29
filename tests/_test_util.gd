@@ -1,5 +1,8 @@
 extends RefCounted
 
+static func is_function_state(v: Variant) -> bool:
+	return typeof(v) == TYPE_OBJECT and v != null and (v as Object).get_class() == "GDScriptFunctionState"
+
 static func require_true(tree: SceneTree, cond: bool, msg: String) -> bool:
 	if not cond:
 		fail_and_quit(tree, msg)
