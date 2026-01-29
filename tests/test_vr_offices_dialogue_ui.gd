@@ -2,6 +2,8 @@ extends SceneTree
 
 const T := preload("res://tests/_test_util.gd")
 
+var _closed_called := false
+
 func _init() -> void:
 	# Unit-test the modern dialogue overlay UI (no network calls).
 	var overlay_scene := load("res://vr_offices/ui/DialogueOverlay.tscn")
@@ -20,11 +22,8 @@ func _init() -> void:
 	if not T.require_true(self, overlay.visible == false, "DialogueOverlay should start hidden"):
 		return
 
-	var closed_called := false
 	if overlay.has_signal("closed"):
-		overlay.connect("closed", func() -> void:
-			closed_called = true
-		)
+		overlay.connect("closed", Callable(self, "_on_overlay_closed"))
 
 	if not T.require_true(self, overlay.has_method("open"), "DialogueOverlay must have open()"):
 		return
@@ -88,7 +87,7 @@ func _init() -> void:
 	overlay.call("close")
 	if not T.require_true(self, overlay.visible == false, "DialogueOverlay.close() should hide overlay"):
 		return
-	if not T.require_true(self, closed_called, "DialogueOverlay should emit closed"):
+	if not T.require_true(self, _closed_called, "DialogueOverlay should emit closed"):
 		return
 
 	get_root().remove_child(overlay)
@@ -122,3 +121,5 @@ func _init() -> void:
 
 	T.pass_and_quit(self)
 
+func _on_overlay_closed() -> void:
+	_closed_called = true
