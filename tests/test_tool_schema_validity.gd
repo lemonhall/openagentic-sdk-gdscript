@@ -15,10 +15,10 @@ func _init() -> void:
 	for t2 in (Web as Script).call("tools"):
 		tools.append(t2)
 
-		for tool0 in tools:
-			if tool0 == null:
-				continue
-			var name := str(tool0.name)
+	for tool0 in tools:
+		if tool0 == null:
+			continue
+		var name := str(tool0.name)
 		var schema0: Variant = tool0.input_schema
 		if typeof(schema0) != TYPE_DICTIONARY:
 			T.fail_and_quit(self, "Tool '%s' missing input_schema dictionary" % name)
@@ -67,10 +67,10 @@ func _schema_types(s: Dictionary) -> Array[String]:
 	var out: Array[String] = []
 	var t0: Variant = s.get("type", null)
 	if typeof(t0) == TYPE_STRING:
-		out.append(String(t0))
+		out.append(str(t0))
 	elif typeof(t0) == TYPE_ARRAY:
 		for x0 in t0 as Array:
 			if typeof(x0) == TYPE_STRING:
-				out.append(String(x0))
+				out.append(str(x0))
 	# If "type" is missing, treat as "any" (valid for our minimal checks).
 	return out
