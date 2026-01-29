@@ -39,6 +39,12 @@ $env:GODOT_WIN_EXE = "E:\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_c
 scripts\\run_godot_tests.ps1
 ```
 
+Pass extra Godot args (e.g. to debug shutdown leaks):
+
+```powershell
+scripts\\run_godot_tests.ps1 -One tests\\test_vr_offices_smoke.gd -ExtraArgs --verbose
+```
+
 ## VR Offices (3D demo)
 
 Kenney Mini Characters setup:

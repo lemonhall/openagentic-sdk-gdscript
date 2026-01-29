@@ -1,6 +1,7 @@
 Param(
   [string]$GodotExe = $env:GODOT_WIN_EXE,
-  [string]$One = ""
+  [string]$One = "",
+  [string[]]$ExtraArgs = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,12 +11,13 @@ function Usage {
 Run Godot headless test scripts from Windows (PowerShell).
 
 Usage:
-  scripts/run_godot_tests.ps1 [-GodotExe <path-to-godot-console-exe>] [-One <test_script.gd>]
+  scripts/run_godot_tests.ps1 [-GodotExe <path-to-godot-console-exe>] [-One <test_script.gd>] [-ExtraArgs <args...>]
 
 Examples:
   scripts/run_godot_tests.ps1
   scripts/run_godot_tests.ps1 -GodotExe "E:\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe"
   scripts/run_godot_tests.ps1 -One tests\test_sse_parser.gd
+  scripts/run_godot_tests.ps1 -One tests\test_vr_offices_smoke.gd -ExtraArgs --verbose
 
 Notes:
   - Use the *console* exe for reliable headless output.
@@ -66,11 +68,10 @@ foreach ($t in $tests) {
   }
 
   Write-Host "--- RUN $t"
-  & $GodotExe --headless --path $RootDir --script $scriptPath
+  & $GodotExe @ExtraArgs --headless --path $RootDir --script $scriptPath
   if ($LASTEXITCODE -ne 0) {
     $status = 1
   }
 }
 
 exit $status
-
