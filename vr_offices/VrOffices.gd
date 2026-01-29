@@ -155,6 +155,56 @@ func _configure_openagentic() -> void:
 	_oa.set_approver(func(_q: Dictionary, _ctx: Dictionary) -> bool:
 		return true
 	)
+	_install_openagentic_turn_hooks()
+
+func _install_openagentic_turn_hooks() -> void:
+	if _oa == null:
+		return
+	if _oa.has_meta("vr_offices_turn_hooks_installed"):
+		return
+	if not _oa.has_method("add_before_turn_hook") or not _oa.has_method("add_after_turn_hook"):
+		return
+	_oa.call("add_before_turn_hook", "vr_offices.before_turn", "*", Callable(self, "_oa_before_turn_hook"))
+	_oa.call("add_after_turn_hook", "vr_offices.after_turn", "*", Callable(self, "_oa_after_turn_hook"))
+	_oa.set_meta("vr_offices_turn_hooks_installed", true)
+
+func _find_npc_by_id(npc_id: String) -> Node:
+	if npc_id.strip_edges() == "" or get_tree() == null:
+		return null
+	var nodes: Array = get_tree().get_nodes_in_group("vr_offices_npc")
+	for n0 in nodes:
+		if typeof(n0) != TYPE_OBJECT:
+			continue
+		var n: Node = n0 as Node
+		if n == null:
+			continue
+		if n.has_method("get"):
+			var id0: Variant = n.get("npc_id")
+			if id0 != null and String(id0) == npc_id:
+				return n
+	return null
+
+func _oa_before_turn_hook(payload: Dictionary) -> Dictionary:
+	var npc_id := String(payload.get("npc_id", "")).strip_edges()
+	var npc := _find_npc_by_id(npc_id)
+	if npc != null and npc.has_method("play_turn_start_animation"):
+		npc.call("play_turn_start_animation")
+		return {"action": "npc_turn_start_anim"}
+	if npc != null and npc.has_method("play_animation_once"):
+		npc.call("play_animation_once", "interact-right", 0.7)
+		return {"action": "npc_anim:interact-right"}
+	return {}
+
+func _oa_after_turn_hook(payload: Dictionary) -> Dictionary:
+	var npc_id := String(payload.get("npc_id", "")).strip_edges()
+	var npc := _find_npc_by_id(npc_id)
+	if npc != null and npc.has_method("play_turn_end_animation"):
+		npc.call("play_turn_end_animation")
+		return {"action": "npc_turn_end_anim"}
+	if npc != null and npc.has_method("stop_override_animation"):
+		npc.call("stop_override_animation")
+		return {"action": "npc_anim:stop_override"}
+	return {}
 
 func _configure_bgm() -> void:
 	if bgm == null:

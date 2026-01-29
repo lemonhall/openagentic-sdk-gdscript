@@ -31,6 +31,9 @@ var _anim_player: AnimationPlayer = null
 var _anim_idle: StringName = &""
 var _anim_walk: StringName = &""
 var _anim_current: StringName = &""
+var _override_anim: StringName = &""
+var _override_left := 0.0
+var _wander_enabled_before_override := true
 
 func _ready() -> void:
 	add_to_group("vr_offices_npc")
@@ -124,6 +127,42 @@ func _autoplay_animation(root: Node) -> void:
 	var chosen := _anim_idle if _anim_idle != &"" else _pick_animation(anims)
 	_play_anim(chosen)
 
+func play_animation_once(name: String, duration: float = 0.7, lock_wander: bool = true) -> void:
+	if name.strip_edges() == "":
+		return
+	if duration <= 0.0:
+		duration = 0.1
+	var anim_name := _pick_named_animation(_anim_player.get_animation_list(), name.to_lower()) if _anim_player != null else &""
+	if anim_name == &"":
+		# Fallback: the caller may have passed an exact name with different casing.
+		anim_name = StringName(name)
+	_start_override_animation(anim_name, duration, lock_wander)
+
+func stop_override_animation() -> void:
+	if _override_left <= 0.0 and _override_anim == &"":
+		return
+	_override_left = 0.0
+	_override_anim = &""
+	wander_enabled = _wander_enabled_before_override
+	_play_anim(_anim_idle)
+
+func play_turn_start_animation() -> void:
+	# A simple default "talk" gesture for the office prototype.
+	play_animation_once("interact-right", 0.7, true)
+
+func play_turn_end_animation() -> void:
+	stop_override_animation()
+
+func _start_override_animation(anim: StringName, duration: float, lock_wander: bool) -> void:
+	if _anim_player == null:
+		return
+	if lock_wander and _override_left <= 0.0:
+		_wander_enabled_before_override = wander_enabled
+		wander_enabled = false
+	_override_anim = anim
+	_override_left = duration
+	_play_anim(_override_anim if _override_anim != &"" else _anim_idle)
+
 func _pick_animation(names: PackedStringArray) -> StringName:
 	var best_idle := ""
 	var best_walk := ""
@@ -165,6 +204,16 @@ func _ensure_loop(name: StringName) -> void:
 		anim.loop_mode = Animation.LOOP_LINEAR
 
 func _update_wander(delta: float) -> void:
+	# Override animation: keep the NPC still and play the requested clip.
+	if _override_left > 0.0:
+		_override_left = maxf(0.0, _override_left - delta)
+		velocity.x = move_toward(velocity.x, 0.0, wander_speed * 3.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, wander_speed * 3.0 * delta)
+		_play_anim(_override_anim if _override_anim != &"" else _anim_idle)
+		if _override_left <= 0.0:
+			stop_override_animation()
+		return
+
 	if not wander_enabled:
 		velocity.x = 0.0
 		velocity.z = 0.0

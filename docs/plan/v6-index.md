@@ -12,9 +12,9 @@ This v6 focuses on the simplest useful slice: **turn-level hooks**.
 
 ## Milestones (facts panel)
 
-1. **Design:** document hook points and payload shapes. (todo)
-2. **Turn hooks:** implement `BeforeTurn` / `AfterTurn` hooks and expose on `OpenAgentic`. (todo)
-3. **Tests:** coverage for turn hooks + persistence to session events. (todo)
+1. **Design:** document hook points and payload shapes. (done)
+2. **Turn hooks:** implement `BeforeTurn` / `AfterTurn` hooks and expose on `OpenAgentic`. (done)
+3. **Tests:** coverage for turn hooks + persistence to session events. (done)
 
 ## Plans (v6)
 
@@ -28,4 +28,3 @@ This v6 focuses on the simplest useful slice: **turn-level hooks**.
 - Headless tests cover the behavior and run with:
   - `scripts/run_godot_tests.ps1`
   - `scripts/run_godot_tests.sh`
-
