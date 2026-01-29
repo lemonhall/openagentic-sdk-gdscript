@@ -61,7 +61,6 @@ var _oa: Node = null
 
 func _ready() -> void:
 	randomize()
-	_ensure_input_actions()
 	_load_env_defaults()
 	_configure_openagentic()
 	if npc_scene == null:
@@ -83,14 +82,6 @@ func _ready() -> void:
 	_apply_ui_state()
 	if ui.has_method("set_culture"):
 		ui.call("set_culture", culture_code)
-
-func _ensure_input_actions() -> void:
-	if InputMap.has_action("talk"):
-		return
-	InputMap.add_action("talk")
-	var ev := InputEventKey.new()
-	ev.physical_keycode = KEY_E
-	InputMap.action_add_event("talk", ev)
 
 func _load_env_defaults() -> void:
 	var v := OS.get_environment("OPENAGENTIC_PROXY_BASE_URL")
@@ -173,8 +164,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_select_from_click(mb.position)
 			return
 
-	if _selected_npc != null and Input.is_action_just_pressed("talk"):
-		_enter_talk(_selected_npc)
+	if _selected_npc != null and event is InputEventKey:
+		var k := event as InputEventKey
+		if k.pressed and not k.echo and k.physical_keycode == KEY_E:
+			_enter_talk(_selected_npc)
 
 func add_npc() -> Node:
 	if _available_profile_indices.is_empty():
