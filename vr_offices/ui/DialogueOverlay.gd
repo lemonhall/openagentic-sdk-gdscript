@@ -10,6 +10,7 @@ signal closed
 @onready var send_button: Button = %SendButton
 @onready var close_button: Button = %CloseButton
 @onready var panel: Control = $Panel
+@onready var backdrop: ColorRect = $Backdrop
 
 var _npc_id: String = ""
 var _npc_name: String = ""
@@ -26,6 +27,8 @@ func _ready() -> void:
 	send_button.pressed.connect(_on_send_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 	input.text_submitted.connect(_on_input_submitted)
+	if backdrop != null:
+		backdrop.gui_input.connect(_on_backdrop_gui_input)
 
 func _gui_input(event: InputEvent) -> void:
 	# When the overlay is visible, it should "own" mouse interactions so that the
@@ -34,6 +37,30 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton or event is InputEventMouseMotion:
 		accept_event()
+
+func _on_backdrop_gui_input(event: InputEvent) -> void:
+	# Close the dialogue when the player clicks outside the panel:
+	# - Right-click single
+	# - Left double-click
+	#
+	# Also mark mouse events as handled so the 3D camera doesn't orbit/zoom while the
+	# overlay is open.
+	if not visible:
+		return
+
+	if backdrop != null and (event is InputEventMouseButton or event is InputEventMouseMotion):
+		backdrop.accept_event()
+
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if not mb.pressed:
+			return
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			close()
+			return
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.double_click:
+			close()
+			return
 
 func _on_send_pressed() -> void:
 	_submit()

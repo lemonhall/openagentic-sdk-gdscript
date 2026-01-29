@@ -3,6 +3,23 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
+	# Run against an isolated save slot so auto-loaded NPCs/history don't affect this test.
+	var save_id: String = "slot_test_vr_offices_focus_%s_%s" % [str(OS.get_process_id()), str(Time.get_unix_time_from_system())]
+	var oa := get_root().get_node_or_null("OpenAgentic") as Node
+	if oa == null:
+		var OAScript := load("res://addons/openagentic/OpenAgentic.gd")
+		if OAScript == null:
+			T.fail_and_quit(self, "Missing res://addons/openagentic/OpenAgentic.gd")
+			return
+		oa = (OAScript as Script).new() as Node
+		if oa == null:
+			T.fail_and_quit(self, "Failed to instantiate OpenAgentic.gd")
+			return
+		oa.name = "OpenAgentic"
+		get_root().add_child(oa)
+		await process_frame
+	oa.call("set_save_id", save_id)
+
 	var VrScene := load("res://vr_offices/VrOffices.tscn")
 	if VrScene == null:
 		T.fail_and_quit(self, "Missing VrOffices scene")

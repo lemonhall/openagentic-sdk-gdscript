@@ -262,8 +262,15 @@ func _apply_ui_state() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if dialogue != null and dialogue.visible:
+		# In dialogue: Esc is a 2-step exit (helps avoid accidental close while typing).
+		# 1st Esc: release LineEdit focus (stop typing)
+		# 2nd Esc: close the overlay
 		if Input.is_action_just_pressed("ui_cancel") and dialogue.has_method("close"):
-			dialogue.close()
+			var input_node := dialogue.get_node_or_null("Panel/VBox/Footer/Input") as Control
+			if input_node != null and input_node.has_focus():
+				get_viewport().gui_release_focus()
+			else:
+				dialogue.close()
 		# Prevent camera rig / world from handling mouse input while the dialogue UI is open.
 		get_viewport().set_input_as_handled()
 		return

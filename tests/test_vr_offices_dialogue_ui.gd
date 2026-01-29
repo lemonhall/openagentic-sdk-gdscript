@@ -81,13 +81,32 @@ func _init() -> void:
 	if not T.require_true(self, input.editable == true and send.disabled == false, "Unbusy should enable input/send"):
 		return
 
-	# Close.
-	if not T.require_true(self, overlay.has_method("close"), "DialogueOverlay must have close()"):
+	# Close by interacting with the backdrop (outside panel):
+	# - Right-click single
+	# - Left double-click
+	_closed_called = false
+	var ev_right := InputEventMouseButton.new()
+	ev_right.button_index = MOUSE_BUTTON_RIGHT
+	ev_right.pressed = true
+	overlay.call("_on_backdrop_gui_input", ev_right)
+	await process_frame
+	if not T.require_true(self, overlay.visible == false, "Backdrop right-click should close overlay"):
 		return
-	overlay.call("close")
-	if not T.require_true(self, overlay.visible == false, "DialogueOverlay.close() should hide overlay"):
+	if not T.require_true(self, _closed_called, "Backdrop close should emit closed"):
 		return
-	if not T.require_true(self, _closed_called, "DialogueOverlay should emit closed"):
+
+	_closed_called = false
+	overlay.call("open", "npc_1", "林晓")
+	await process_frame
+	var ev_dbl := InputEventMouseButton.new()
+	ev_dbl.button_index = MOUSE_BUTTON_LEFT
+	ev_dbl.pressed = true
+	ev_dbl.double_click = true
+	overlay.call("_on_backdrop_gui_input", ev_dbl)
+	await process_frame
+	if not T.require_true(self, overlay.visible == false, "Backdrop double-click should close overlay"):
+		return
+	if not T.require_true(self, _closed_called, "Backdrop double-click should emit closed"):
 		return
 
 	# Free explicitly to avoid headless shutdown leak noise.
