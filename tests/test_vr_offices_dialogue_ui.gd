@@ -90,9 +90,10 @@ func _init() -> void:
 	if not T.require_true(self, _closed_called, "DialogueOverlay should emit closed"):
 		return
 
-	get_root().remove_child(overlay)
-	overlay.free()
+	overlay.queue_free()
 	await process_frame
+	await process_frame
+	RenderingServer.sync()
 
 	# UI regression: Add/Remove buttons should not be activatable via Enter.
 	var ui_scene := load("res://vr_offices/ui/VrOfficesUi.tscn")
@@ -115,9 +116,10 @@ func _init() -> void:
 	if not T.require_eq(self, rm_btn.focus_mode, Control.FOCUS_NONE, "Remove button should not capture focus (prevents Enter activation)"):
 		return
 
-	get_root().remove_child(ui)
-	ui.free()
+	ui.queue_free()
 	await process_frame
+	await process_frame
+	RenderingServer.sync()
 
 	T.pass_and_quit(self)
 
