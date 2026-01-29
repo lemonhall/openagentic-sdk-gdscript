@@ -24,6 +24,21 @@ Notes:
 - The script uses `wslpath` to convert Linux paths to Windows paths.
 - This runs a Windows `.exe` via WSL interop; some environments may require elevated permissions.
 
+## Running tests (Windows PowerShell)
+
+If WSL interop is flaky, run tests from Windows directly:
+
+```powershell
+scripts\\run_godot_tests.ps1
+```
+
+Override the executable path if needed:
+
+```powershell
+$env:GODOT_WIN_EXE = "E:\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe"
+scripts\\run_godot_tests.ps1
+```
+
 ## VR Offices (3D demo)
 
 Kenney Mini Characters setup:
