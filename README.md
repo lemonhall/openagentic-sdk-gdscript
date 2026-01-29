@@ -101,6 +101,23 @@ WSL2 + Windows Godot helper script:
 scripts/run_godot_tests.sh
 ```
 
+WSL2 + Linux Godot (recommended):
+
+If you have a Linux Godot 4.6 binary available, you can run all tests without WSL interop.
+In some sandboxed setups, Godot may not be able to write to your real `$HOME`, so point `HOME`/`XDG_*` to a writable temp dir (otherwise `user://` init can crash).
+
+```bash
+export HOME=/tmp/oa-home
+export XDG_DATA_HOME=/tmp/oa-xdg-data
+export XDG_CONFIG_HOME=/tmp/oa-xdg-config
+mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
+
+for t in tests/test_*.gd; do
+  echo "--- RUN $t"
+  /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
+done
+```
+
 ## Demo (talk to the first NPC)
 
 1. Start the proxy (above).
