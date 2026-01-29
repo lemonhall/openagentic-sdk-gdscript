@@ -34,6 +34,8 @@ var _anim_current: StringName = &""
 var _override_anim: StringName = &""
 var _override_left := 0.0
 var _wander_enabled_before_override := true
+var _in_dialogue := false
+var _wander_enabled_before_dialogue := true
 
 func _ready() -> void:
 	add_to_group("vr_offices_npc")
@@ -162,6 +164,38 @@ func _start_override_animation(anim: StringName, duration: float, lock_wander: b
 	_override_anim = anim
 	_override_left = duration
 	_play_anim(_override_anim if _override_anim != &"" else _anim_idle)
+
+func enter_dialogue(face_target: Vector3) -> void:
+	if _in_dialogue:
+		return
+	_in_dialogue = true
+	_wander_enabled_before_dialogue = wander_enabled
+	wander_enabled = false
+	_wander_pause_left = 0.0
+	stop_override_animation()
+	_face_towards(face_target)
+	_play_anim(_anim_idle)
+
+func exit_dialogue() -> void:
+	if not _in_dialogue:
+		return
+	_in_dialogue = false
+	stop_override_animation()
+	wander_enabled = _wander_enabled_before_dialogue
+	if wander_enabled:
+		_wander_pause_left = 0.0
+		_pick_new_wander_target()
+	_play_anim(_anim_idle)
+
+func _face_towards(target: Vector3) -> void:
+	var dx := target.x - global_position.x
+	var dz := target.z - global_position.z
+	var to_target := Vector2(dx, dz)
+	if to_target.length() < 0.001:
+		return
+	var dir := to_target.normalized()
+	var target_yaw := atan2(-dir.x, -dir.y) + model_yaw_offset
+	rotation.y = target_yaw
 
 func _pick_animation(names: PackedStringArray) -> StringName:
 	var best_idle := ""
