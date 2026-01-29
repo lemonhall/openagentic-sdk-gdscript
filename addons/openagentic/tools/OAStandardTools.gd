@@ -227,6 +227,109 @@ static func tools() -> Array:
 	}
 	out.append(_OATool.new("Glob", "Find files by glob pattern in the NPC private workspace.", glob_fn, glob_schema))
 
+	var list_files_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:
+		var chk := _require_workspace_root(ctx)
+		if not bool(chk.ok):
+			return {"ok": false, "error": "MissingWorkspace"}
+		var fs := _workspace_fs(ctx)
+
+		var path := String(input.get("path", "")).strip_edges()
+		var recursive := bool(input.get("recursive", false))
+		var include_dirs := bool(input.get("include_dirs", true))
+		var include_files := bool(input.get("include_files", true))
+		var max_entries := int(input.get("max_entries", 2000))
+		max_entries = clampi(max_entries, 1, 10000)
+
+		var entries: Array = []
+
+		if not recursive:
+			var lst: Dictionary = fs.list_dir(path)
+			if not bool(lst.get("ok", false)):
+				return lst
+			var raw0: Variant = lst.get("entries", [])
+			if typeof(raw0) != TYPE_ARRAY:
+				return {"ok": false, "error": "IOError"}
+			for e0 in raw0 as Array:
+				if typeof(e0) != TYPE_DICTIONARY:
+					continue
+				var e: Dictionary = e0 as Dictionary
+				var name := String(e.get("name", ""))
+				if name == "":
+					continue
+				var is_dir := bool(e.get("is_dir", false))
+				if is_dir and not include_dirs:
+					continue
+				if (not is_dir) and not include_files:
+					continue
+				var full := name if path == "" else ("%s/%s" % [path.rstrip("/"), name])
+				entries.append({"path": full, "is_dir": is_dir})
+				if entries.size() >= max_entries:
+					break
+			return {"ok": true, "path": path, "recursive": false, "entries": entries, "truncated": entries.size() >= max_entries}
+
+		# Recursive BFS.
+		var queue: Array[String] = []
+		queue.append(path.rstrip("/"))
+		while not queue.is_empty() and entries.size() < max_entries:
+			var cur := String(queue.pop_front())
+			var lst2: Dictionary = fs.list_dir(cur)
+			if not bool(lst2.get("ok", false)):
+				return lst2
+			var raw1: Variant = lst2.get("entries", [])
+			if typeof(raw1) != TYPE_ARRAY:
+				return {"ok": false, "error": "IOError"}
+			for e1 in raw1 as Array:
+				if typeof(e1) != TYPE_DICTIONARY:
+					continue
+				var e: Dictionary = e1 as Dictionary
+				var name := String(e.get("name", ""))
+				if name == "":
+					continue
+				var is_dir := bool(e.get("is_dir", false))
+				var full := name if cur == "" else ("%s/%s" % [cur, name])
+				if is_dir:
+					queue.append(full)
+					if include_dirs:
+						entries.append({"path": full, "is_dir": true})
+				else:
+					if include_files:
+						entries.append({"path": full, "is_dir": false})
+				if entries.size() >= max_entries:
+					break
+		return {"ok": true, "path": path, "recursive": true, "entries": entries, "truncated": entries.size() >= max_entries}
+
+	var list_files_schema: Dictionary = {
+		"type": "object",
+		"properties": {
+			"path": {"type": "string"},
+			"recursive": {"type": "boolean"},
+			"include_dirs": {"type": "boolean"},
+			"include_files": {"type": "boolean"},
+			"max_entries": {"type": "integer"},
+		},
+	}
+	out.append(_OATool.new("ListFiles", "List files and directories under a path in the NPC private workspace.", list_files_fn, list_files_schema))
+
+	var mkdir_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:
+		var chk := _require_workspace_root(ctx)
+		if not bool(chk.ok):
+			return {"ok": false, "error": "MissingWorkspace"}
+		var fs := _workspace_fs(ctx)
+		var path := String(input.get("path", "")).strip_edges()
+		if path == "":
+			return {"ok": false, "error": "InvalidInput", "message": "Mkdir: 'path' must be non-empty"}
+		var res: Dictionary = fs.ensure_dir(path)
+		if not bool(res.get("ok", false)):
+			return res
+		return {"ok": true, "path": path}
+
+	var mkdir_schema: Dictionary = {
+		"type": "object",
+		"properties": {"path": {"type": "string"}},
+		"required": ["path"],
+	}
+	out.append(_OATool.new("Mkdir", "Create a directory (and parents) in the NPC private workspace.", mkdir_fn, mkdir_schema))
+
 	var grep_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:
 		var chk := _require_workspace_root(ctx)
 		if not bool(chk.ok):
