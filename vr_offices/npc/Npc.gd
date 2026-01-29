@@ -82,6 +82,8 @@ func _autoplay_animation(root: Node) -> void:
 
 	_anim_idle = _pick_named_animation(anims, "idle")
 	_anim_walk = _pick_named_animation(anims, "walk")
+	_ensure_loop(_anim_idle)
+	_ensure_loop(_anim_walk)
 
 	var chosen := _anim_idle if _anim_idle != &"" else _pick_animation(anims)
 	_play_anim(chosen)
@@ -110,10 +112,21 @@ func _pick_named_animation(names: PackedStringArray, contains: String) -> String
 func _play_anim(name: StringName) -> void:
 	if _anim_player == null or name == &"":
 		return
+	_ensure_loop(name)
 	if _anim_current == name:
 		return
 	_anim_current = name
 	_anim_player.play(name)
+
+func _ensure_loop(name: StringName) -> void:
+	if _anim_player == null or name == &"":
+		return
+	var anim := _anim_player.get_animation(name)
+	if anim == null:
+		return
+	# Imported Kenney animations may not be set to loop by default; ensure idle/walk loop.
+	if anim.loop_mode == Animation.LOOP_NONE:
+		anim.loop_mode = Animation.LOOP_LINEAR
 
 func _update_wander(delta: float) -> void:
 	if not wander_enabled:

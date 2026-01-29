@@ -95,3 +95,4 @@ NPCs do a light random walk inside the spawn rectangle (so they won’t walk off
 - Bounds are derived from `VrOffices.gd` `spawn_extent` and set on each NPC via `wander_bounds`.
 - The NPC script switches between `idle` and `walk` animations based on whether it’s moving.
 - If the character appears to “walk backwards”, tweak `Npc.gd` `model_yaw_offset` (Kenney Mini Characters default is `PI`).
+- If the character starts “sliding” after a few seconds, it usually means `walk` wasn’t looping; this demo forces `idle`/`walk` to loop at runtime.
