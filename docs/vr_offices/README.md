@@ -88,6 +88,7 @@ Controls:
 - Zoom: mouse wheel
 - Pan: hold **Middle Mouse** and drag
 - Add/remove NPC: UI panel (click NPC to select)
+- Move selected NPC: **Right Click** on the floor
 - Talk: select an NPC, press **E** to open a modern chat overlay (**Esc twice** to close while typing)
 - Full control reference: `docs/vr_offices/controls.md` (English) / `docs/vr_offices/controls.zh-CN.md` (中文)
 

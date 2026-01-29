@@ -11,6 +11,7 @@ This document lists the current keyboard/mouse bindings in `vr_offices/`.
 ## NPC interaction (when dialogue is closed)
 
 - Select NPC: **Left Click** on an NPC
+- Move selected NPC: **Right Click** on the floor
 - Talk: **Double Left Click** on an NPC (same as pressing **E**)
 - Talk (keyboard): select an NPC, press **E**
 
@@ -27,3 +28,8 @@ Input notes:
 
 - While the dialogue overlay is open, mouse interactions are captured by the UI so the 3D camera won’t orbit/zoom/pan.
 
+NPC behavior notes:
+
+- A right-click move command temporarily disables wandering.
+- When the NPC reaches the clicked point, it switches to `idle` and starts a “waiting for work” countdown (~60s).
+- If nothing else happens during the countdown, the NPC resumes wandering.

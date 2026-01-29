@@ -43,6 +43,7 @@ const CULTURE_NAMES := {
 @export var spawn_extent := Vector2(6.0, 4.0) # X,Z half extents
 @export var culture_code := "zh-CN"
 
+@onready var floor: StaticBody3D = $Floor
 @onready var npc_root: Node3D = $NpcRoot
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
@@ -64,6 +65,11 @@ var _oa: Node = null
 var _quitting := false
 var _camera_state_before_talk: Dictionary = {}
 var _talk_npc: Node = null
+var _floor_bounds_xz := Rect2(Vector2(-10.0, -10.0), Vector2(20.0, 20.0))
+
+var _rmb_down := false
+var _rmb_dragged := false
+var _rmb_down_pos := Vector2.ZERO
 
 const _OA_VR_OFFICES_SYSTEM_PROMPT: String = """
 你是一个虚拟办公室里的 NPC。
@@ -83,6 +89,7 @@ func _ready() -> void:
 	if get_tree() != null:
 		# Give ourselves a chance to autosave before quitting.
 		get_tree().auto_accept_quit = false
+	_floor_bounds_xz = _compute_floor_bounds_xz()
 	_load_env_defaults()
 	_configure_openagentic()
 	if npc_scene == null:
@@ -275,8 +282,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	if event is InputEventMouseMotion and _rmb_down:
+		var mm := event as InputEventMouseMotion
+		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT != 0:
+			if (mm.position - _rmb_down_pos).length() > 6.0:
+				_rmb_dragged = true
+
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			if mb.pressed:
+				_rmb_down = true
+				_rmb_dragged = false
+				_rmb_down_pos = mb.position
+			else:
+				if _rmb_down and not _rmb_dragged:
+					_command_selected_move_to_click(mb.position)
+				_rmb_down = false
+			return
+
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			var clicked := _try_select_from_click(mb.position)
 			if mb.double_click and clicked != null:
@@ -287,6 +311,59 @@ func _unhandled_input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if k.pressed and not k.echo and k.physical_keycode == KEY_E:
 			_enter_talk(_selected_npc)
+
+func _compute_floor_bounds_xz() -> Rect2:
+	# Prefer collider dimensions to avoid depending on mesh settings.
+	if floor != null:
+		var cs := floor.get_node_or_null("FloorCollider") as CollisionShape3D
+		if cs != null and cs.shape is BoxShape3D:
+			var box := cs.shape as BoxShape3D
+			var sx := float(box.size.x)
+			var sz := float(box.size.z)
+			var hx := sx * 0.5
+			var hz := sz * 0.5
+			return Rect2(Vector2(-hx, -hz), Vector2(sx, sz))
+	# Fallback: match the default scene values.
+	return Rect2(Vector2(-10.0, -10.0), Vector2(20.0, 20.0))
+
+func _raycast_floor_point(screen_pos: Vector2) -> Dictionary:
+	if camera_rig == null or not camera_rig.has_method("get_camera"):
+		return {"ok": false}
+	var cam0: Variant = camera_rig.call("get_camera")
+	if not (cam0 is Camera3D):
+		return {"ok": false}
+	var cam := cam0 as Camera3D
+	var from := cam.project_ray_origin(screen_pos)
+	var dir := cam.project_ray_normal(screen_pos)
+	var to := from + dir * 200.0
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	q.collision_mask = 1 # floor default layer
+	q.collide_with_areas = false
+	var hit: Dictionary = space.intersect_ray(q)
+	if hit.is_empty() or not hit.has("position"):
+		return {"ok": false}
+	return {"ok": true, "pos": hit.get("position")}
+
+func _command_selected_move_to_click(screen_pos: Vector2) -> void:
+	if _selected_npc == null or not is_instance_valid(_selected_npc):
+		return
+	if not _selected_npc.has_method("command_move_to"):
+		return
+	var hit := _raycast_floor_point(screen_pos)
+	if not bool(hit.get("ok", false)):
+		return
+	var p0: Variant = hit.get("pos")
+	if not (p0 is Vector3):
+		return
+	var p := p0 as Vector3
+	var min_x := _floor_bounds_xz.position.x
+	var max_x := _floor_bounds_xz.position.x + _floor_bounds_xz.size.x
+	var min_z := _floor_bounds_xz.position.y
+	var max_z := _floor_bounds_xz.position.y + _floor_bounds_xz.size.y
+	p.x = clampf(p.x, min_x, max_x)
+	p.z = clampf(p.z, min_z, max_z)
+	_selected_npc.call("command_move_to", p)
 
 func add_npc() -> Node:
 	if _available_profile_indices.is_empty():

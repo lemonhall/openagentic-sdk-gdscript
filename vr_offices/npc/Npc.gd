@@ -11,6 +11,7 @@ extends CharacterBody3D
 @export_range(0.0, 5.0, 0.05) var wander_speed := 0.9
 @export_range(0.1, 5.0, 0.1) var wander_target_radius := 0.35
 @export var wander_pause_range := Vector2(0.5, 2.0) # seconds
+@export_range(1.0, 600.0, 1.0) var waiting_for_work_seconds := 60.0
 @export_range(0.0, 20.0, 0.1) var turn_speed := 8.0
 @export_range(-PI, PI, 0.01) var model_yaw_offset := PI
 
@@ -38,6 +39,11 @@ var _in_dialogue := false
 var _wander_enabled_before_dialogue := true
 var _dialogue_face_node: Node3D = null
 var _dialogue_face_pos: Vector3 = Vector3.ZERO
+
+# Right-click move command:
+var _goto_target_xz := Vector2.ZERO
+var _goto_active := false
+var _waiting_for_work_left := 0.0 # “等待工作中倒计时”
 
 func _ready() -> void:
 	add_to_group("vr_offices_npc")
@@ -205,6 +211,18 @@ func exit_dialogue() -> void:
 		_pick_new_wander_target()
 	_play_anim(_anim_idle)
 
+func command_move_to(target_world_pos: Vector3) -> void:
+	# Move to a specific point on the floor, then wait in idle. If no other actions
+	# occur, resume wandering after `waiting_for_work_seconds`.
+	if _in_dialogue:
+		return
+	_goto_target_xz = Vector2(target_world_pos.x, target_world_pos.z)
+	_goto_active = true
+	_waiting_for_work_left = 0.0
+	_wander_pause_left = 0.0
+	stop_override_animation()
+	wander_enabled = false
+
 func _face_towards(target: Vector3) -> void:
 	var flat := Vector3(target.x, global_position.y, target.z)
 	if flat.distance_to(global_position) < 0.001:
@@ -261,6 +279,48 @@ func _update_wander(delta: float) -> void:
 		_play_anim(_override_anim if _override_anim != &"" else _anim_idle)
 		if _override_left <= 0.0:
 			stop_override_animation()
+		return
+
+	# Dialogue: stand still (camera/look-at handled in _process).
+	if _in_dialogue:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		_play_anim(_anim_idle)
+		return
+
+	# Move-to command: walk toward a clicked point, then idle and "wait for work".
+	if _goto_active:
+		# Only walk when standing on the floor (keeps behavior predictable with gravity).
+		if not is_on_floor():
+			return
+		var pos_xz := Vector2(global_position.x, global_position.z)
+		var to_target := _goto_target_xz - pos_xz
+		if to_target.length() <= maxf(0.05, wander_target_radius * 0.75):
+			_goto_active = false
+			_waiting_for_work_left = maxf(0.0, waiting_for_work_seconds)
+			velocity.x = 0.0
+			velocity.z = 0.0
+			_play_anim(_anim_idle)
+			return
+
+		var dir := to_target.normalized()
+		velocity.x = dir.x * wander_speed
+		velocity.z = dir.y * wander_speed
+		_play_anim(_anim_walk if _anim_walk != &"" else _anim_idle)
+		if turn_speed > 0.0:
+			var target_yaw := atan2(-dir.x, -dir.y) + model_yaw_offset
+			rotation.y = lerp_angle(rotation.y, target_yaw, clampf(turn_speed * delta, 0.0, 1.0))
+		return
+
+	# Waiting-for-work idle countdown: keep still until the timer completes, then resume wandering.
+	if _waiting_for_work_left > 0.0:
+		_waiting_for_work_left = maxf(0.0, _waiting_for_work_left - delta)
+		velocity.x = move_toward(velocity.x, 0.0, wander_speed * 3.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, wander_speed * 3.0 * delta)
+		_play_anim(_anim_idle)
+		if _waiting_for_work_left <= 0.0:
+			wander_enabled = true
+			_pick_new_wander_target()
 		return
 
 	if not wander_enabled:
