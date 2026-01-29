@@ -2,6 +2,7 @@ extends Node3D
 
 @export var rotate_button: MouseButton = MOUSE_BUTTON_RIGHT
 @export var pan_button: MouseButton = MOUSE_BUTTON_MIDDLE
+@export var controls_enabled := true
 
 @export_range(0.001, 0.05, 0.001) var rotate_sensitivity := 0.01
 @export_range(0.1, 5.0, 0.1) var zoom_step := 0.75
@@ -26,6 +27,11 @@ func _ready() -> void:
 	camera.current = true
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not controls_enabled:
+		_rotating = false
+		_panning = false
+		return
+
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == rotate_button:
@@ -65,3 +71,8 @@ func _apply_transform() -> void:
 func get_camera() -> Camera3D:
 	return camera
 
+func set_controls_enabled(enabled: bool) -> void:
+	controls_enabled = enabled
+	if not enabled:
+		_rotating = false
+		_panning = false

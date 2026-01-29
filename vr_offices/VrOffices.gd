@@ -2,6 +2,8 @@ extends Node3D
 
 const MAX_NPCS := 12
 const BGM_PATH := "res://assets/audio/pixel_coffee_break.mp3"
+const _SessionStoreScript := preload("res://addons/openagentic/core/OAJsonlNpcSessionStore.gd")
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 
 const MODEL_PATHS: Array[String] = [
 	"res://assets/kenney/mini-characters-1/character-female-a.glb",
@@ -45,6 +47,7 @@ const CULTURE_NAMES := {
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
 @onready var dialogue: Control = $UI/DialogueOverlay
+@onready var saving_overlay: Control = $UI/SavingOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _npc_counter := 0
@@ -58,9 +61,13 @@ var _save_id: String = "slot1"
 var _proxy_base_url: String = "http://127.0.0.1:8787/v1"
 var _model: String = "gpt-5.2"
 var _oa: Node = null
+var _quitting := false
 
 func _ready() -> void:
 	randomize()
+	if get_tree() != null:
+		# Give ourselves a chance to autosave before quitting.
+		get_tree().auto_accept_quit = false
 	_load_env_defaults()
 	_configure_openagentic()
 	if npc_scene == null:
@@ -79,9 +86,14 @@ func _ready() -> void:
 
 	_configure_bgm()
 	_init_profiles()
+	_load_world_state()
 	_apply_ui_state()
 	if ui.has_method("set_culture"):
 		ui.call("set_culture", culture_code)
+	if get_tree() != null and get_tree().has_signal("about_to_quit"):
+		get_tree().about_to_quit.connect(func() -> void:
+			autosave()
+		)
 
 func _load_env_defaults() -> void:
 	var v := OS.get_environment("OPENAGENTIC_PROXY_BASE_URL")
@@ -99,7 +111,25 @@ func _configure_openagentic() -> void:
 	if _oa == null:
 		push_warning("Missing autoload: OpenAgentic (dialogue will not work)")
 		return
-	_oa.set_save_id(_save_id)
+
+	# Respect a save_id already set on the OpenAgentic autoload, unless an explicit
+	# environment override is provided. This makes tests and host games able to
+	# control save isolation without scenes clobbering it.
+	var env_save: String = OS.get_environment("OPENAGENTIC_SAVE_ID").strip_edges()
+	if env_save != "":
+		_save_id = env_save
+		_oa.set_save_id(_save_id)
+	else:
+		var existing: String = ""
+		if _oa.has_method("get"):
+			var v: Variant = _oa.get("save_id")
+			if v != null:
+				existing = String(v).strip_edges()
+		if existing != "":
+			_save_id = existing
+		else:
+			_oa.set_save_id(_save_id)
+
 	_oa.configure_proxy_openai_responses(_proxy_base_url, _model)
 	_oa.set_approver(func(_q: Dictionary, _ctx: Dictionary) -> bool:
 		return true
@@ -161,6 +191,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if dialogue != null and dialogue.visible:
 		if Input.is_action_just_pressed("ui_cancel") and dialogue.has_method("close"):
 			dialogue.close()
+		# Prevent camera rig / world from handling mouse input while the dialogue UI is open.
+		get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseButton:
@@ -207,6 +239,7 @@ func add_npc() -> Node:
 	npc_root.add_child(npc)
 	select_npc(npc)
 	_apply_ui_state()
+	autosave()
 	return npc
 
 func remove_selected() -> void:
@@ -222,6 +255,7 @@ func remove_selected() -> void:
 	select_npc(null)
 	to_remove.queue_free()
 	_apply_ui_state()
+	autosave()
 
 func select_npc(npc: Node) -> void:
 	if _selected_npc != null and is_instance_valid(_selected_npc) and _selected_npc.has_method("set_selected"):
@@ -253,9 +287,15 @@ func _enter_talk(npc: Node) -> void:
 		npc_name = String(npc.call("get_display_name"))
 	if npc_id.strip_edges() == "":
 		npc_id = npc.name
+	if camera_rig != null and camera_rig.has_method("set_controls_enabled"):
+		camera_rig.call("set_controls_enabled", false)
 	dialogue.open(npc_id, npc_name)
+	if dialogue.has_method("set_history"):
+		dialogue.call("set_history", _read_chat_history(npc_id))
 
 func _exit_talk() -> void:
+	if camera_rig != null and camera_rig.has_method("set_controls_enabled"):
+		camera_rig.call("set_controls_enabled", true)
 	if _busy:
 		return
 	if dialogue != null and dialogue.visible and dialogue.has_method("close"):
@@ -304,6 +344,40 @@ func _on_agent_event(ev: Dictionary) -> void:
 			dialogue.call("end_assistant")
 		return
 
+func _read_chat_history(npc_id: String) -> Array:
+	# Translate the persisted per-NPC JSONL event log into a simple UI chat history.
+	# Only include final user/assistant messages (ignore deltas/tool events).
+	var out: Array = []
+	if npc_id.strip_edges() == "":
+		return out
+
+	var sid := ""
+	if _oa != null and _oa.has_method("get"):
+		var v: Variant = _oa.get("save_id")
+		if v != null:
+			sid = String(v)
+	if sid.strip_edges() == "":
+		sid = _save_id
+	if sid.strip_edges() == "":
+		return out
+
+	var store = _SessionStoreScript.new(sid)
+	var events: Array = store.read_events(npc_id)
+	for e0 in events:
+		if typeof(e0) != TYPE_DICTIONARY:
+			continue
+		var e: Dictionary = e0 as Dictionary
+		var typ := String(e.get("type", ""))
+		if typ == "user.message":
+			var tx0: Variant = e.get("text", null)
+			if typeof(tx0) == TYPE_STRING:
+				out.append({"role": "user", "text": String(tx0)})
+		elif typ == "assistant.message":
+			var tx1: Variant = e.get("text", null)
+			if typeof(tx1) == TYPE_STRING:
+				out.append({"role": "assistant", "text": String(tx1)})
+	return out
+
 func set_culture(code: String) -> void:
 	if not CULTURE_NAMES.has(code):
 		return
@@ -311,6 +385,7 @@ func set_culture(code: String) -> void:
 	_update_all_npc_names()
 	if ui.has_method("set_status_text"):
 		ui.call("set_status_text", "")
+	autosave()
 
 func _update_all_npc_names() -> void:
 	for n in get_tree().get_nodes_in_group("vr_offices_npc"):
@@ -389,3 +464,171 @@ func _name_for_profile(profile_index: int) -> String:
 	if profile_index >= 0 and profile_index < names.size():
 		return String(names[profile_index])
 	return "NPC %d" % (profile_index + 1)
+
+func autosave() -> void:
+	_save_world_state()
+
+func _state_path(save_id: String) -> String:
+	return "%s/vr_offices/state.json" % _OAPaths.save_root(save_id)
+
+func _ensure_dir(path: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path))
+
+func _write_text(path: String, text: String) -> void:
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(text)
+	f.close()
+
+func _read_json(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return {}
+	var txt := f.get_as_text()
+	f.close()
+	var parsed: Variant = JSON.parse_string(txt)
+	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
+
+func _save_world_state() -> void:
+	if _save_id.strip_edges() == "":
+		return
+	if npc_root == null:
+		return
+
+	var npcs: Array = []
+	for child0 in npc_root.get_children():
+		var child := child0 as Node
+		if child == null:
+			continue
+		if not child.has_method("get"):
+			continue
+		var npc_id := String(child.get("npc_id")).strip_edges()
+		if npc_id == "":
+			npc_id = child.name
+		var model_path := String(child.get("model_path")).strip_edges()
+		var pos := Vector3.ZERO
+		var yaw := 0.0
+		if child is Node3D:
+			var n3 := child as Node3D
+			pos = n3.position
+			yaw = n3.rotation.y
+		npcs.append({
+			"npc_id": npc_id,
+			"model_path": model_path,
+			"pos": [pos.x, pos.y, pos.z],
+			"yaw": yaw,
+		})
+
+	var state := {
+		"version": 1,
+		"save_id": _save_id,
+		"culture_code": culture_code,
+		"npc_counter": _npc_counter,
+		"npcs": npcs,
+	}
+	var path := _state_path(_save_id)
+	_ensure_dir(path.get_base_dir())
+	_write_text(path, JSON.stringify(state) + "\n")
+
+func _load_world_state() -> void:
+	if _save_id.strip_edges() == "":
+		return
+	if npc_root == null:
+		return
+	var path := _state_path(_save_id)
+	var st := _read_json(path)
+	if st.is_empty():
+		return
+
+	var v := int(st.get("version", 1))
+	if v != 1:
+		return
+
+	var cc := String(st.get("culture_code", culture_code)).strip_edges()
+	if cc != "" and CULTURE_NAMES.has(cc):
+		culture_code = cc
+
+	var counter := int(st.get("npc_counter", _npc_counter))
+	_npc_counter = max(_npc_counter, counter)
+
+	var list0: Variant = st.get("npcs", [])
+	if typeof(list0) != TYPE_ARRAY:
+		return
+	var list: Array = list0 as Array
+
+	# Reserve any profiles used by saved NPCs.
+	var seen_models: Dictionary = {}
+	var max_num := _npc_counter
+	for it0 in list:
+		if typeof(it0) != TYPE_DICTIONARY:
+			continue
+		var it: Dictionary = it0 as Dictionary
+		var model_path := String(it.get("model_path", "")).strip_edges()
+		if model_path == "":
+			continue
+		if seen_models.has(model_path):
+			continue
+		seen_models[model_path] = true
+
+		var idx := _profile_index_for_model(model_path)
+		if idx < 0:
+			continue
+		if _available_profile_indices.has(idx):
+			_available_profile_indices.erase(idx)
+
+		var npc := npc_scene.instantiate()
+		if npc == null:
+			continue
+
+		var npc_id := String(it.get("npc_id", "")).strip_edges()
+		if npc_id == "":
+			_npc_counter += 1
+			npc_id = "npc_%d" % _npc_counter
+
+		# Track numeric suffix for future ids.
+		if npc_id.begins_with("npc_"):
+			var suffix := npc_id.substr(4)
+			var maybe := int(suffix)
+			if maybe > max_num:
+				max_num = maybe
+
+		npc.name = npc_id
+		npc.set("npc_id", npc_id)
+		npc.set("model_path", model_path)
+		npc.set("display_name", _name_for_profile(idx))
+		npc.set("wander_bounds", Rect2(Vector2(-spawn_extent.x, -spawn_extent.y), Vector2(spawn_extent.x * 2.0, spawn_extent.y * 2.0)))
+		npc.set("load_model_on_ready", not _is_headless())
+
+		var pos0: Variant = it.get("pos", [])
+		var yaw := float(it.get("yaw", 0.0))
+		if npc is Node3D:
+			var n3 := npc as Node3D
+			if typeof(pos0) == TYPE_ARRAY and (pos0 as Array).size() >= 3:
+				var arr := pos0 as Array
+				n3.position = Vector3(float(arr[0]), float(arr[1]), float(arr[2]))
+			else:
+				n3.position = Vector3(randf_range(-spawn_extent.x, spawn_extent.x), npc_spawn_y, randf_range(-spawn_extent.y, spawn_extent.y))
+			n3.rotation.y = yaw
+
+		npc_root.add_child(npc)
+
+	_npc_counter = max(_npc_counter, max_num)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if not _quitting:
+			_quitting = true
+			call_deferred("_autosave_and_quit")
+
+func _autosave_and_quit() -> void:
+	if saving_overlay != null and saving_overlay.has_method("show_saving"):
+		saving_overlay.call("show_saving", "Saving…")
+	if get_tree() != null:
+		await get_tree().process_frame
+	autosave()
+	if get_tree() != null:
+		await get_tree().process_frame
+	get_tree().quit()
