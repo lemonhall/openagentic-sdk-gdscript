@@ -4,6 +4,7 @@ const MAX_NPCS := 12
 const BGM_PATH := "res://assets/audio/pixel_coffee_break.mp3"
 const _SessionStoreScript := preload("res://addons/openagentic/core/OAJsonlNpcSessionStore.gd")
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 
 const MODEL_PATHS: Array[String] = [
 	"res://assets/kenney/mini-characters-1/character-female-a.glb",
@@ -45,6 +46,7 @@ const CULTURE_NAMES := {
 
 @onready var floor: StaticBody3D = $Floor
 @onready var npc_root: Node3D = $NpcRoot
+@onready var move_indicators: Node3D = $MoveIndicators
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
 @onready var dialogue: Control = $UI/DialogueOverlay
@@ -70,6 +72,7 @@ var _floor_bounds_xz := Rect2(Vector2(-10.0, -10.0), Vector2(20.0, 20.0))
 var _rmb_down := false
 var _rmb_dragged := false
 var _rmb_down_pos := Vector2.ZERO
+var _move_indicator_by_npc_id: Dictionary = {}
 
 const _OA_VR_OFFICES_SYSTEM_PROMPT: String = """
 你是一个虚拟办公室里的 NPC。
@@ -364,6 +367,66 @@ func _command_selected_move_to_click(screen_pos: Vector2) -> void:
 	p.x = clampf(p.x, min_x, max_x)
 	p.z = clampf(p.z, min_z, max_z)
 	_selected_npc.call("command_move_to", p)
+	_show_move_indicator_for_node(_selected_npc, p)
+
+func _connect_npc_signals(npc: Node) -> void:
+	if npc == null:
+		return
+	if npc.has_signal("move_target_reached"):
+		var cb := Callable(self, "_on_npc_move_target_reached")
+		if not npc.is_connected("move_target_reached", cb):
+			npc.connect("move_target_reached", cb)
+
+func _on_npc_move_target_reached(npc_id: String, _target: Vector3) -> void:
+	_clear_move_indicator_for_id(npc_id)
+
+func _show_move_indicator_for_node(npc: Node, target: Vector3) -> void:
+	if npc == null or not is_instance_valid(npc):
+		return
+	var npc_id := ""
+	if npc.has_method("get"):
+		var v: Variant = npc.get("npc_id")
+		if v != null:
+			npc_id = String(v)
+	if npc_id.strip_edges() == "":
+		npc_id = npc.name
+	_clear_move_indicator_for_id(npc_id)
+
+	if move_indicators == null:
+		return
+	var node0 := (_MoveIndicatorScene as PackedScene).instantiate()
+	var ind := node0 as Node3D
+	if ind == null:
+		return
+	move_indicators.add_child(ind)
+	ind.position = Vector3(target.x, 0.02, target.z)
+	_move_indicator_by_npc_id[npc_id] = ind
+
+func _clear_move_indicator_for_node(npc: Node) -> void:
+	if npc == null:
+		return
+	var npc_id := ""
+	if npc.has_method("get"):
+		var v: Variant = npc.get("npc_id")
+		if v != null:
+			npc_id = String(v)
+	if npc_id.strip_edges() == "":
+		npc_id = npc.name
+	_clear_move_indicator_for_id(npc_id)
+
+func _clear_move_indicator_for_id(npc_id: String) -> void:
+	var key := npc_id.strip_edges()
+	if key == "":
+		return
+	if not _move_indicator_by_npc_id.has(key):
+		return
+	var n0: Variant = _move_indicator_by_npc_id.get(key)
+	_move_indicator_by_npc_id.erase(key)
+	if typeof(n0) != TYPE_OBJECT:
+		return
+	var n := n0 as Node
+	if n != null and is_instance_valid(n):
+		n.queue_free()
 
 func add_npc() -> Node:
 	if _available_profile_indices.is_empty():
@@ -396,6 +459,7 @@ func add_npc() -> Node:
 	npc.set("load_model_on_ready", not _is_headless())
 
 	npc_root.add_child(npc)
+	_connect_npc_signals(npc)
 	select_npc(npc)
 	_apply_ui_state()
 	autosave()
@@ -406,6 +470,7 @@ func remove_selected() -> void:
 		return
 
 	var to_remove := _selected_npc
+	_clear_move_indicator_for_node(to_remove)
 	var model_path := ""
 	if to_remove.has_method("get") and to_remove.get("model_path") != null:
 		model_path = String(to_remove.get("model_path"))
@@ -835,7 +900,8 @@ func _load_world_state() -> void:
 				n3.position = Vector3(randf_range(-spawn_extent.x, spawn_extent.x), npc_spawn_y, randf_range(-spawn_extent.y, spawn_extent.y))
 			n3.rotation.y = yaw
 
-		npc_root.add_child(npc)
+			npc_root.add_child(npc)
+			_connect_npc_signals(npc)
 
 	_npc_counter = max(_npc_counter, max_num)
 

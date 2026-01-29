@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/VrOffices.gd" id="1"]
 [ext_resource type="PackedScene" path="res://vr_offices/camera/OrbitCameraRig.tscn" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://vr_offices/npc/Npc.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/DialogueOverlay.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/SavingOverlay.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://vr_offices/fx/MoveIndicator.tscn" id="8"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20, 20)
@@ -50,6 +51,8 @@ environment = SubResource("Environment_1")
 position = Vector3(0, 0, 0)
 
 [node name="NpcRoot" type="Node3D" parent="."]
+
+[node name="MoveIndicators" type="Node3D" parent="."]
 
 [node name="UI" type="CanvasLayer" parent="."]
 

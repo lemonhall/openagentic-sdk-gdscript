@@ -31,5 +31,7 @@ Input notes:
 NPC behavior notes:
 
 - A right-click move command temporarily disables wandering.
+- The NPC uses a faster `sprint` movement (and `sprint` animation when available) while executing the command.
 - When the NPC reaches the clicked point, it switches to `idle` and starts a “waiting for work” countdown (~60s).
 - If nothing else happens during the countdown, the NPC resumes wandering.
+- A yellow ring indicator appears at the clicked point and disappears once the NPC arrives.

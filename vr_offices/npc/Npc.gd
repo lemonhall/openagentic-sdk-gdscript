@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+signal move_target_reached(npc_id: String, target: Vector3)
+
 @export var npc_id: String = ""
 @export var display_name: String = ""
 @export_file("*.glb") var model_path: String = ""
@@ -9,6 +11,7 @@ extends CharacterBody3D
 
 @export var wander_enabled := true
 @export_range(0.0, 5.0, 0.05) var wander_speed := 0.9
+@export_range(0.0, 10.0, 0.05) var command_speed := 2.2
 @export_range(0.1, 5.0, 0.1) var wander_target_radius := 0.35
 @export var wander_pause_range := Vector2(0.5, 2.0) # seconds
 @export_range(1.0, 600.0, 1.0) var waiting_for_work_seconds := 60.0
@@ -31,6 +34,7 @@ var _plumbob_base_rot_y := 0.0
 var _anim_player: AnimationPlayer = null
 var _anim_idle: StringName = &""
 var _anim_walk: StringName = &""
+var _anim_sprint: StringName = &""
 var _anim_current: StringName = &""
 var _override_anim: StringName = &""
 var _override_left := 0.0
@@ -136,8 +140,10 @@ func _autoplay_animation(root: Node) -> void:
 
 	_anim_idle = _pick_named_animation(anims, "idle")
 	_anim_walk = _pick_named_animation(anims, "walk")
+	_anim_sprint = _pick_named_animation(anims, "sprint")
 	_ensure_loop(_anim_idle)
 	_ensure_loop(_anim_walk)
+	_ensure_loop(_anim_sprint)
 
 	var chosen := _anim_idle if _anim_idle != &"" else _pick_animation(anims)
 	_play_anim(chosen)
@@ -301,12 +307,16 @@ func _update_wander(delta: float) -> void:
 			velocity.x = 0.0
 			velocity.z = 0.0
 			_play_anim(_anim_idle)
+			move_target_reached.emit(npc_id, Vector3(_goto_target_xz.x, 0.0, _goto_target_xz.y))
 			return
 
 		var dir := to_target.normalized()
-		velocity.x = dir.x * wander_speed
-		velocity.z = dir.y * wander_speed
-		_play_anim(_anim_walk if _anim_walk != &"" else _anim_idle)
+		velocity.x = dir.x * command_speed
+		velocity.z = dir.y * command_speed
+		if _anim_sprint != &"":
+			_play_anim(_anim_sprint)
+		else:
+			_play_anim(_anim_walk if _anim_walk != &"" else _anim_idle)
 		if turn_speed > 0.0:
 			var target_yaw := atan2(-dir.x, -dir.y) + model_yaw_offset
 			rotation.y = lerp_angle(rotation.y, target_yaw, clampf(turn_speed * delta, 0.0, 1.0))

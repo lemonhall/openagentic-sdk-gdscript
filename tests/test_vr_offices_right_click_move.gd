@@ -62,6 +62,12 @@ func _init() -> void:
 	var floor_point := Vector3(npc3d.global_position.x, 0.0, npc3d.global_position.z)
 	var screen_pos := cam.unproject_position(floor_point)
 
+	var indicators := world.get_node_or_null("MoveIndicators") as Node
+	if not T.require_true(self, indicators != null, "Missing MoveIndicators root"):
+		return
+	if not T.require_eq(self, indicators.get_child_count(), 0, "Expected no move indicators initially"):
+		return
+
 	var down := InputEventMouseButton.new()
 	down.button_index = MOUSE_BUTTON_RIGHT
 	down.pressed = true
@@ -74,10 +80,21 @@ func _init() -> void:
 	up.position = screen_pos
 	world.call("_unhandled_input", up)
 
+	if not T.require_eq(self, indicators.get_child_count(), 1, "Expected 1 move indicator after right-click"):
+		return
+
 	await physics_frame
 
 	var wander0: Variant = npc.get("wander_enabled") if npc.has_method("get") else null
 	if not T.require_eq(self, bool(wander0), false, "Expected wander_enabled=false after right-click move command"):
+		return
+
+	# Should disappear once the NPC reaches the target.
+	for _i in range(30):
+		await physics_frame
+		if indicators.get_child_count() == 0:
+			break
+	if not T.require_eq(self, indicators.get_child_count(), 0, "Expected move indicator to clear after arrival"):
 		return
 
 	# Wait long enough for the shortened countdown to complete.
