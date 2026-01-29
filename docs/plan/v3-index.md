@@ -19,7 +19,7 @@ Non-goals (v3):
 
 Milestone 1 tag:
 
-- `v3-m1` (`d8c5a5994f2ace9ea6ddb934c70b4caf6d99aece`)
+- `vr-offices-m1` (`d8c5a5994f2ace9ea6ddb934c70b4caf6d99aece`)
 
 1. **Scene baseline:** 3D world with floor, gravity, light, orbit camera. (done)
 2. **NPC spawn/remove UI:** Add NPC, remove selected NPC. (done)
