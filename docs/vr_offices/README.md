@@ -31,6 +31,7 @@ Animation note:
 
 - Kenney Mini Characters 1 includes **embedded animations** in the model files.
 - If you see a T-pose, it usually means the imported `AnimationPlayer` exists but nothing is playing; this demo auto-plays an `idle` animation when present.
+- Full list: `docs/vr_offices/animations.md`
 
 ### Animation list (Kenney Mini Characters 1)
 
