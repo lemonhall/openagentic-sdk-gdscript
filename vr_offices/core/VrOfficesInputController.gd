@@ -1,0 +1,120 @@
+extends RefCounted
+
+var owner: Node = null
+var dialogue: Control = null
+var camera_rig: Node = null
+var dialogue_ctrl: RefCounted = null
+
+var command_move_to_click: Callable
+var select_npc: Callable
+
+var _rmb_down := false
+var _rmb_dragged := false
+var _rmb_down_pos := Vector2.ZERO
+
+func _init(
+	owner_in: Node,
+	dialogue_in: Control,
+	camera_rig_in: Node,
+	dialogue_ctrl_in: RefCounted,
+	command_move_to_click_in: Callable,
+	select_npc_in: Callable
+) -> void:
+	owner = owner_in
+	dialogue = dialogue_in
+	camera_rig = camera_rig_in
+	dialogue_ctrl = dialogue_ctrl_in
+	command_move_to_click = command_move_to_click_in
+	select_npc = select_npc_in
+
+func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
+	if owner == null:
+		return
+
+	if dialogue != null and dialogue.visible:
+		# In dialogue: Esc is a 2-step exit (helps avoid accidental close while typing).
+		# 1st Esc: release LineEdit focus (stop typing)
+		# 2nd Esc: close the overlay
+		if Input.is_action_just_pressed("ui_cancel") and dialogue.has_method("close"):
+			var input_node := dialogue.get_node_or_null("Panel/VBox/Footer/Input") as Control
+			if input_node != null and input_node.has_focus():
+				owner.get_viewport().gui_release_focus()
+			else:
+				dialogue.close()
+		# Prevent camera rig / world from handling mouse input while the dialogue UI is open.
+		owner.get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventMouseMotion and _rmb_down:
+		var mm := event as InputEventMouseMotion
+		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT != 0:
+			if (mm.position - _rmb_down_pos).length() > 6.0:
+				_rmb_dragged = true
+
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			if mb.pressed:
+				_rmb_down = true
+				_rmb_dragged = false
+				_rmb_down_pos = mb.position
+			else:
+				if _rmb_down and not _rmb_dragged and command_move_to_click.is_valid():
+					command_move_to_click.call(mb.position)
+				_rmb_down = false
+			return
+
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			var clicked := _try_select_from_click(mb.position)
+			if mb.double_click and clicked != null and dialogue_ctrl != null:
+				dialogue_ctrl.call("enter_talk", clicked)
+			return
+
+	if selected_npc != null and event is InputEventKey:
+		var k := event as InputEventKey
+		if k.pressed and not k.echo and k.physical_keycode == KEY_E and dialogue_ctrl != null:
+			dialogue_ctrl.call("enter_talk", selected_npc)
+
+func _try_select_from_click(screen_pos: Vector2) -> Node:
+	if owner == null:
+		return null
+
+	var cam: Camera3D = null
+	if camera_rig != null and camera_rig.has_method("get_camera"):
+		cam = camera_rig.call("get_camera") as Camera3D
+	else:
+		cam = owner.get_viewport().get_camera_3d()
+	if cam == null:
+		return null
+
+	var from := cam.project_ray_origin(screen_pos)
+	var to := from + cam.project_ray_normal(screen_pos) * 200.0
+
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.collision_mask = 2
+
+	var world: World3D = owner.get_world_3d()
+	if world == null:
+		return null
+	var hit: Dictionary = world.direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		if select_npc.is_valid():
+			select_npc.call(null)
+		return null
+
+	var collider: Object = hit.get("collider") as Object
+	var npc := _find_npc_owner(collider)
+	if select_npc.is_valid():
+		select_npc.call(npc)
+	return npc
+
+func _find_npc_owner(node: Object) -> Node:
+	var cur := node
+	while cur != null and cur is Node:
+		var n := cur as Node
+		if n.is_in_group("vr_offices_npc"):
+			return n
+		cur = n.get_parent()
+	return null
