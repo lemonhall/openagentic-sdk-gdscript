@@ -103,3 +103,16 @@ NPCs do a light random walk inside the spawn rectangle (so they won’t walk off
 - If the character appears to “walk backwards”, tweak `Npc.gd` `model_yaw_offset` (Kenney Mini Characters default is `PI`).
 - If the character starts “sliding” after a few seconds, it usually means `walk` wasn’t looping; this demo forces `idle`/`walk` to loop at runtime.
 - Selected NPCs show a Sims-style “plumbob” above the head; its size/height are configurable in `Npc.tscn` and the bobbing amount is in `Npc.gd`.
+
+## NPC rules (unique profiles + names)
+
+This demo enforces simple rules when adding NPCs:
+
+- The Kenney pack provides **12** character models in this demo, so you can have at most **12 NPCs** at once.
+- Each NPC uses a **unique** `.glb` (no duplicates while all 12 are present).
+- Each `.glb` is mapped to a fixed **display name** based on the selected culture (default: `zh-CN`).
+
+Culture selection:
+
+- Use the UI dropdown to switch between `zh-CN`, `en-US`, and `ja-JP`.
+- Switching culture updates existing NPC display names.

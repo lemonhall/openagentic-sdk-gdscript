@@ -15,7 +15,7 @@ layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 320.0
-offset_bottom = 110.0
+offset_bottom = 158.0
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 1
@@ -44,3 +44,20 @@ text = "Add NPC"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Remove Selected"
+
+[node name="CultureRow" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="CultureLabel" type="Label" parent="Panel/VBox/CultureRow"]
+layout_mode = 2
+text = "Culture"
+
+[node name="CultureOption" type="OptionButton" parent="Panel/VBox/CultureRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatusLabel" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""

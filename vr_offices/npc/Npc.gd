@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 @export var npc_id: String = ""
+@export var display_name: String = ""
 @export_file("*.glb") var model_path: String = ""
 
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity") as float
@@ -58,6 +59,11 @@ func set_selected(is_selected: bool) -> void:
 	selection_plumbob.visible = is_selected
 	if is_selected:
 		_select_time = 0.0
+
+func get_display_name() -> String:
+	if display_name.strip_edges() != "":
+		return display_name
+	return npc_id if npc_id.strip_edges() != "" else name
 
 func set_wander_bounds(bounds: Rect2) -> void:
 	wander_bounds = bounds

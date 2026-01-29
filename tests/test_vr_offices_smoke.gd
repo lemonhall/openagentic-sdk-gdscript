@@ -35,24 +35,34 @@ func _init() -> void:
 	if not T.require_eq(self, npc_root.get_child_count(), 0, "Expected empty NpcRoot before spawning"):
 		return
 
-	var npc := world.call("add_npc")
-	if not T.require_true(self, npc != null, "add_npc() must return the NPC instance"):
-		return
-	if not T.require_eq(self, npc_root.get_child_count(), 1, "Expected 1 NPC after add_npc()"):
+	# Add up to the max unique NPCs (12).
+	var last_npc := null
+	for _i in range(12):
+		last_npc = world.call("add_npc")
+		if not T.require_true(self, last_npc != null, "add_npc() must return the NPC instance"):
+			return
+	if not T.require_eq(self, npc_root.get_child_count(), 12, "Expected 12 NPCs after filling unique profiles"):
 		return
 
+	# 13th add should fail (no more unique profiles).
+	var extra := world.call("add_npc")
+	if not T.require_true(self, extra == null, "Expected add_npc() to return null when at max profiles"):
+		return
+
+	# Remove one, then add again should succeed.
 	world.call("select_npc", npc_root.get_child(0))
 	world.call("remove_selected")
-	if not T.require_eq(self, npc_root.get_child_count(), 1, "Expected NPC queued for free (still present before processing)"):
-		return
 
 	# Simulate a frame so queued frees can run in real execution environments.
 	get_root().add_child(world)
 	await process_frame
 
-	if not T.require_eq(self, npc_root.get_child_count(), 0, "Expected 0 NPC after remove_selected()"):
+	if not T.require_eq(self, npc_root.get_child_count(), 11, "Expected 11 NPC after remove_selected()"):
+		return
+
+	var again := world.call("add_npc")
+	if not T.require_true(self, again != null, "Expected add_npc() to succeed after removing one"):
 		return
 
 	world.queue_free()
 	T.pass_and_quit(self)
-
