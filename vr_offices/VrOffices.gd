@@ -1,6 +1,7 @@
 extends Node3D
 
 const MAX_NPCS := 12
+const BGM_PATH := "res://assets/audio/pixel_coffee_break.mp3"
 
 const MODEL_PATHS: Array[String] = [
 	"res://assets/kenney/mini-characters-1/character-female-a.glb",
@@ -114,16 +115,30 @@ func _configure_openagentic() -> void:
 	)
 
 func _configure_bgm() -> void:
-	if bgm == null or bgm.stream == null:
+	if bgm == null:
+		return
+	if OS.has_feature("headless"):
+		bgm.stop()
+		bgm.stream = null
 		return
 
+	if bgm.stream == null:
+		var s := load(BGM_PATH)
+		if s is AudioStream:
+			bgm.stream = s as AudioStream
+
 	# Ensure loop for BGM even if import settings change.
+	if bgm.stream == null:
+		return
 	if _object_has_property(bgm.stream, "loop"):
 		bgm.stream.set("loop", true)
 	else:
 		bgm.finished.connect(func() -> void:
 			bgm.play()
 		)
+
+	if not bgm.playing:
+		bgm.play()
 
 func _object_has_property(obj: Object, property_name: String) -> bool:
 	for p in obj.get_property_list():
@@ -189,6 +204,7 @@ func add_npc() -> Node:
 	npc.set("model_path", MODEL_PATHS[profile_index])
 	npc.set("display_name", _name_for_profile(profile_index))
 	npc.set("wander_bounds", Rect2(Vector2(-spawn_extent.x, -spawn_extent.y), Vector2(spawn_extent.x * 2.0, spawn_extent.y * 2.0)))
+	npc.set("load_model_on_ready", not OS.has_feature("headless"))
 
 	npc_root.add_child(npc)
 	select_npc(npc)

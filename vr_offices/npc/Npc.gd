@@ -3,6 +3,7 @@ extends CharacterBody3D
 @export var npc_id: String = ""
 @export var display_name: String = ""
 @export_file("*.glb") var model_path: String = ""
+@export var load_model_on_ready := true
 
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity") as float
 
@@ -33,7 +34,10 @@ var _anim_current: StringName = &""
 
 func _ready() -> void:
 	add_to_group("vr_offices_npc")
-	_load_model()
+	if load_model_on_ready:
+		_load_model()
+	else:
+		_load_placeholder()
 	_pick_new_wander_target()
 	if selection_plumbob != null:
 		_plumbob_base_y = selection_plumbob.position.y
@@ -83,6 +87,16 @@ func _load_model() -> void:
 				return
 
 	# Fallback: a simple capsule mesh so the scene still works without imported assets.
+	var mi := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.25
+	mesh.height = 1.1
+	mi.mesh = mesh
+	model_root.add_child(mi)
+
+func _load_placeholder() -> void:
+	for child in model_root.get_children():
+		child.queue_free()
 	var mi := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
 	mesh.radius = 0.25
