@@ -51,7 +51,7 @@ func _process(delta: float) -> void:
 	if selection_plumbob == null or not selection_plumbob.visible:
 		return
 	_select_time += delta
-	selection_plumbob.position.y = _plumbob_base_y + sin(_select_time * 2.0) * 0.12
+	selection_plumbob.position.y = _plumbob_base_y + sin(_select_time * 2.0) * 0.08
 	selection_plumbob.rotation.y = _plumbob_base_rot_y + _select_time * 1.2
 
 func set_selected(is_selected: bool) -> void:
