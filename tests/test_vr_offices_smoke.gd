@@ -68,6 +68,13 @@ func _init() -> void:
 	if not T.require_true(self, again != null, "Expected add_npc() to succeed after removing one"):
 		return
 
-	world.queue_free()
+	# Reduce shutdown noise in headless runs by releasing audio/resources explicitly.
+	var bgm := world.get_node_or_null("Bgm") as AudioStreamPlayer
+	if bgm != null:
+		bgm.stop()
+		bgm.stream = null
+
+	get_root().remove_child(world)
+	world.free()
 	await process_frame
 	T.pass_and_quit(self)
