@@ -41,4 +41,3 @@ func _load_model() -> void:
 	mesh.height = 1.1
 	mi.mesh = mesh
 	model_root.add_child(mi)
-

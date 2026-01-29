@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 ZIP_PATH="${ROOT_DIR}/kenney_mini-characters.zip"
 DEST_DIR="${ROOT_DIR}/assets/kenney/mini-characters-1"
+TEX_DIR="${DEST_DIR}/Textures"
 
 if [[ ! -f "${ZIP_PATH}" ]]; then
   echo "Missing ${ZIP_PATH}"
@@ -12,7 +13,7 @@ if [[ ! -f "${ZIP_PATH}" ]]; then
   exit 1
 fi
 
-mkdir -p "${DEST_DIR}"
+mkdir -p "${DEST_DIR}" "${TEX_DIR}"
 
 extract_one() {
   local src="$1"
@@ -25,6 +26,10 @@ extract_one() {
 }
 
 extract_one "License.txt" "${DEST_DIR}/License.txt"
+# Keep both locations:
+# - Some pipelines reference `Textures/colormap.png` relative to the .glb file.
+# - Keeping a copy at the root helps if the reference is just `colormap.png`.
+extract_one "Models/GLB format/Textures/colormap.png" "${TEX_DIR}/colormap.png"
 extract_one "Models/GLB format/Textures/colormap.png" "${DEST_DIR}/colormap.png"
 
 for name in \
@@ -45,4 +50,3 @@ do
 done
 
 echo "Done. Assets in: ${DEST_DIR#${ROOT_DIR}/}"
-

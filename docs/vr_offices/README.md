@@ -22,6 +22,15 @@ Extracted files live under:
 
 - `assets/kenney/mini-characters-1/`
 
+Texture note:
+
+- The characters use a shared atlas: `assets/kenney/mini-characters-1/Textures/colormap.png`
+- If your NPCs show up as “white untextured”, use Godot’s **Reimport** on the folder after running the setup script.
+
+Animation note:
+
+- Kenney Mini Characters 1 ships as **rigged models without animations** (so a T-pose/rest-pose is expected until you add your own animations).
+
 ## Run
 
 Open and run:
@@ -34,4 +43,3 @@ Controls:
 - Zoom: mouse wheel
 - Pan: hold **Middle Mouse** and drag
 - Add/remove NPC: UI panel (click NPC to select)
-
