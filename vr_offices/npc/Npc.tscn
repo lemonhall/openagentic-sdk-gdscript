@@ -17,7 +17,7 @@ transparency = 1
 albedo_color = Color(1, 0.9, 0.2, 0.45)
 shading_mode = 0
 
-[sub_resource type="ConeMesh" id="ConeMesh_1"]
+[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
 top_radius = 0.0
 bottom_radius = 0.18
 height = 0.26
@@ -51,11 +51,11 @@ visible = false
 position = Vector3(0, 1.55, 0)
 
 [node name="Top" type="MeshInstance3D" parent="SelectionPlumbob"]
-mesh = SubResource("ConeMesh_1")
+mesh = SubResource("CylinderMesh_2")
 material_override = SubResource("StandardMaterial3D_2")
 
 [node name="Bottom" type="MeshInstance3D" parent="SelectionPlumbob"]
 position = Vector3(0, -0.26, 0)
 rotation = Vector3(3.14159, 0, 0)
-mesh = SubResource("ConeMesh_1")
+mesh = SubResource("CylinderMesh_2")
 material_override = SubResource("StandardMaterial3D_2")
