@@ -17,10 +17,14 @@ Non-goals (v3):
 
 ## Milestones (facts panel)
 
-1. **Scene baseline:** 3D world with floor, gravity, light, orbit camera. (todo)
-2. **NPC spawn/remove UI:** Add NPC, remove selected NPC. (todo)
-3. **Mouse selection:** Click to select NPC and show selected state in UI. (todo)
-4. **Smoke test:** Headless script loads scene and exercises add/remove. (todo)
+Milestone 1 tag:
+
+- `v3-m1` (`d8c5a5994f2ace9ea6ddb934c70b4caf6d99aece`)
+
+1. **Scene baseline:** 3D world with floor, gravity, light, orbit camera. (done)
+2. **NPC spawn/remove UI:** Add NPC, remove selected NPC. (done)
+3. **Mouse selection:** Click to select NPC and show selected state in UI. (done)
+4. **Smoke test:** Headless script loads scene and exercises add/remove. (done)
 
 ## Plans (v3)
 
@@ -45,6 +49,7 @@ Manual:
 Optional headless smoke test (requires a local Godot CLI):
 
 - `godot4 --headless --script tests/test_vr_offices_smoke.gd`
+- Windows PowerShell runner: `scripts\\run_godot_tests.ps1 -One tests\\test_vr_offices_smoke.gd`
 
 ## Known gaps (v3 backlog)
 
@@ -52,4 +57,3 @@ Optional headless smoke test (requires a local Godot CLI):
 - NPC movement/behaviors (walk to targets, idle animations).
 - Dialogue (OpenAgentic integration) and agent-driven add/remove.
 - Multi-select, keyboard selection, and contextual right-click menus.
-
