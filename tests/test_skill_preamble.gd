@@ -50,26 +50,15 @@ func _init() -> void:
 	var fake_provider := {"name": "fake"}
 	fake_provider["stream"] = func(req: Dictionary, on_event: Callable) -> void:
 		provider_state["called"] = int(provider_state.get("called", 0)) + 1
-		var input_v: Variant = req.get("input", null)
-		cap["first_item"] = "keys=%s typeof(input)=%s\n" % [str(req.keys()), str(typeof(input_v))]
-		if typeof(input_v) == TYPE_ARRAY:
-			var items: Array = input_v as Array
-			cap["first_item"] += "input_size=%d\n" % items.size()
-			if items.size() > 0:
-				cap["first_item"] += "input_0=%s\n" % str(items[0])
-			for it0 in items:
-				if typeof(it0) != TYPE_DICTIONARY:
-					continue
-				var it: Dictionary = it0 as Dictionary
-				if String(it.get("role", "")) != "system":
-					continue
-				var content := String(it.get("content", ""))
-				cap["last_system"] = content if content.length() <= 800 else (content.substr(0, 800) + "\n...[truncated]...")
-				if content.find("NPC skills") != -1 and content.find("spreadsheets") != -1:
-					cap["saw_skill"] = true
-				break
+		var instr_v: Variant = req.get("instructions", null)
+		cap["first_item"] = "keys=%s typeof(instructions)=%s\n" % [str(req.keys()), str(typeof(instr_v))]
+		if typeof(instr_v) == TYPE_STRING:
+			var content := String(instr_v)
+			cap["last_system"] = content if content.length() <= 800 else (content.substr(0, 800) + "\n...[truncated]...")
+			if content.find("NPC skills") != -1 and content.find("spreadsheets") != -1:
+				cap["saw_skill"] = true
 		else:
-			cap["first_item"] += "input_value=%s\n" % str(input_v)
+			cap["first_item"] += "instructions_value=%s\n" % str(instr_v)
 		on_event.call({"type": "done"})
 
 	var rt = RuntimeScript.new(store, runner, tools, fake_provider, "gpt-test")

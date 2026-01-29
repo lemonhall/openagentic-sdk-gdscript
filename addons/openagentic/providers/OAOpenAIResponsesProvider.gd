@@ -128,8 +128,20 @@ func stream(req: Dictionary, on_event: Callable) -> void:
 
 	var code := client.get_response_code()
 	if code >= 400:
-		push_error("OAOpenAIResponsesProvider: HTTP %s" % code)
-		on_event.call({"type": "done", "error": "http_%s" % code})
+		# Drain body so we can report a helpful error message (common cause: invalid payload).
+		var err_body := ""
+		while client.get_status() == HTTPClient.STATUS_BODY:
+			client.poll()
+			var chunk := client.read_response_body_chunk()
+			if chunk.size() == 0:
+				await _tree().process_frame
+				continue
+			err_body += chunk.get_string_from_utf8()
+			if err_body.length() >= 4000:
+				err_body = err_body.substr(0, 4000) + "\n...[truncated]..."
+				break
+		push_error("OAOpenAIResponsesProvider: HTTP %s\n%s" % [code, err_body])
+		on_event.call({"type": "done", "error": "http_%s" % code, "details": err_body})
 		return
 
 	_parser.reset()

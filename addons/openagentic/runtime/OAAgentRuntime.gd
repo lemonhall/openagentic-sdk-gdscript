@@ -118,17 +118,22 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 		var events: Array = _store.read_events(npc_id)
 		var input_items: Array = _OAReplay.rebuild_responses_input(events)
 
-		# Optional system preamble injection (used when save_id is passed in).
+		# Optional system preamble (used when save_id is passed in).
+		# For OpenAI Responses API, system guidance should be passed via `instructions`,
+		# not as a `role=system` input item (which can trigger HTTP 400).
+		var instructions := ""
 		if save_id.strip_edges() != "":
 			var pre := _build_system_preamble(save_id, npc_id)
 			if pre != "":
-				input_items = [{"role": "system", "content": pre}] + input_items
+				instructions = pre
 
 		var tool_calls: Array = []
 		var parts: Array[String] = []
 		var provider_error: String = ""
 
 		var req := {"model": _model, "input": input_items, "tools": _tool_schemas(), "stream": true}
+		if instructions != "":
+			req["instructions"] = instructions
 		await _provider_stream(req, func(mev: Dictionary) -> void:
 			if typeof(mev) != TYPE_DICTIONARY:
 				return
