@@ -27,7 +27,6 @@ func load_from_state_dict(state: Dictionary) -> void:
 static func _normalize_config(cfg: Dictionary) -> Dictionary:
 	var c := cfg if cfg != null else {}
 
-	var enabled := bool(c.get("enabled", false))
 	var host := String(c.get("host", "")).strip_edges()
 	var port := int(c.get("port", 6667))
 	if port <= 0:
@@ -51,12 +50,7 @@ static func _normalize_config(cfg: Dictionary) -> Dictionary:
 	if test_channel != "" and not test_channel.begins_with("#"):
 		test_channel = "#" + test_channel
 
-	# If host is missing, force disabled (prevents surprise connect attempts).
-	if host == "":
-		enabled = false
-
 	return {
-		"enabled": enabled,
 		"host": host,
 		"port": port,
 		"tls": tls,
@@ -67,4 +61,3 @@ static func _normalize_config(cfg: Dictionary) -> Dictionary:
 		"test_nick": test_nick,
 		"test_channel": test_channel,
 	}
-

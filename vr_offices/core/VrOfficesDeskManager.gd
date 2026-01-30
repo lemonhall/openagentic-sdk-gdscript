@@ -386,7 +386,9 @@ func _spawn_node_for(desk: Dictionary) -> void:
 func _maybe_attach_irc_link(desk_node: Node3D, desk: Dictionary) -> void:
 	if desk_node == null:
 		return
-	if _irc_config.is_empty() or not bool(_irc_config.get("enabled", false)):
+	var host := String(_irc_config.get("host", "")).strip_edges()
+	var port := int(_irc_config.get("port", 6667))
+	if host == "" or port <= 0:
 		return
 	if desk == null:
 		return
@@ -412,6 +414,9 @@ func _maybe_attach_irc_link(desk_node: Node3D, desk: Dictionary) -> void:
 func _refresh_irc_links() -> void:
 	if _is_headless.is_valid() and bool(_is_headless.call()):
 		return
+	var host := String(_irc_config.get("host", "")).strip_edges()
+	var port := int(_irc_config.get("port", 6667))
+	var configured := host != "" and port > 0
 	for d0 in _desks:
 		var d := d0 as Dictionary
 		if d == null:
@@ -427,8 +432,7 @@ func _refresh_irc_links() -> void:
 			continue
 
 		var link := desk_node.get_node_or_null("DeskIrcLink") as Node
-		var enabled := bool(_irc_config.get("enabled", false))
-		if not enabled:
+		if not configured:
 			if link != null:
 				link.queue_free()
 			continue

@@ -20,7 +20,6 @@ func _init() -> void:
 		return
 
 	var cfg := {
-		"enabled": true,
 		"host": "irc.example.net",
 		"port": 6667,
 		"tls": false,
@@ -40,7 +39,7 @@ func _init() -> void:
 	var s2 = (IrcSettingsScript as Script).new()
 	s2.call("load_from_state_dict", st)
 	var cfg2: Dictionary = s2.call("get_config")
-	if not T.require_eq(self, bool(cfg2.get("enabled", false)), true, "Expected enabled to persist"):
+	if not T.require_true(self, not cfg2.has("enabled"), "Expected `enabled` to be removed from persisted IRC config"):
 		return
 	if not T.require_eq(self, String(cfg2.get("host", "")), "irc.example.net", "Expected host to persist"):
 		return

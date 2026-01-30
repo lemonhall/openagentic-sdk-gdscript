@@ -96,15 +96,6 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 layout_mode = 2
 columns = 2
 
-[node name="EnabledLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
-layout_mode = 2
-text = "Enabled"
-
-[node name="EnabledCheck" type="CheckBox" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
-unique_name_in_owner = true
-layout_mode = 2
-text = ""
-
 [node name="HostLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
 layout_mode = 2
 text = "Host"
@@ -212,7 +203,7 @@ text = "Reload"
 [node name="HintLabel" type="Label" parent="Panel/VBox/Tabs/Settings"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Tip: desks auto-connect when Enabled is on and a host is set."
+text = "Tip: desks auto-connect when a host is set."
 
 [node name="Test" type="VBoxContainer" parent="Panel/VBox/Tabs"]
 layout_mode = 2

@@ -6,7 +6,6 @@ const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
 @onready var close_button: Button = %CloseButton
 @onready var tabs: TabContainer = %Tabs
 
-@onready var enabled_check: CheckBox = %EnabledCheck
 @onready var host_edit: LineEdit = %HostEdit
 @onready var port_spin: SpinBox = %PortSpin
 @onready var tls_check: CheckBox = %TlsCheck
@@ -132,7 +131,6 @@ func _on_backdrop_gui_input(event: InputEvent) -> void:
 			close()
 
 func _load_fields_from_config() -> void:
-	enabled_check.button_pressed = bool(_config.get("enabled", false))
 	host_edit.text = String(_config.get("host", ""))
 	port_spin.value = float(_config.get("port", 6667))
 	tls_check.button_pressed = bool(_config.get("tls", false))
@@ -149,7 +147,6 @@ func _collect_config_from_fields() -> Dictionary:
 	if test_channel != "" and not test_channel.begins_with("#"):
 		test_channel = "#" + test_channel
 	return {
-		"enabled": enabled_check.button_pressed and host != "",
 		"host": host,
 		"port": int(port_spin.value),
 		"tls": tls_check.button_pressed,

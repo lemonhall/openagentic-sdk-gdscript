@@ -37,7 +37,7 @@ func _init() -> void:
 	await process_frame
 
 	var world := FakeWorld.new()
-	world.cfg = {"enabled": false, "host": "", "port": 6667, "tls": false, "test_nick": "tester", "test_channel": "#test"}
+	world.cfg = {"host": "", "port": 6667, "tls": false, "test_nick": "tester", "test_channel": "#test"}
 	var desks := FakeDeskManager.new()
 
 	overlay.call("bind", world, desks)
@@ -58,4 +58,3 @@ func _init() -> void:
 	overlay.free()
 	await process_frame
 	T.pass_and_quit(self)
-

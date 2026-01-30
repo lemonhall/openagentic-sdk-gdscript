@@ -8,7 +8,7 @@ signal error(msg: String)
 const IrcClient := preload("res://addons/irc_client/IrcClient.gd")
 const IrcNames := preload("res://vr_offices/core/VrOfficesIrcNames.gd")
 
-var _config: Dictionary = {"enabled": false}
+var _config: Dictionary = {}
 var _save_id: String = ""
 var _workspace_id: String = ""
 var _desk_id: String = ""
@@ -22,7 +22,7 @@ var _log_lines: Array[String] = []
 var _max_log_lines := 200
 
 func configure(config: Dictionary, save_id: String, workspace_id: String, desk_id: String) -> void:
-	_config = config if config != null else {"enabled": false}
+	_config = config if config != null else {}
 	_save_id = save_id.strip_edges()
 	_workspace_id = workspace_id.strip_edges()
 	_desk_id = desk_id.strip_edges()
@@ -49,8 +49,7 @@ func configure(config: Dictionary, save_id: String, workspace_id: String, desk_i
 	_client.call("set_nick", nick)
 	_client.call("set_user", nick, "0", "*", nick)
 
-	if bool(_config.get("enabled", false)):
-		_connect_if_needed()
+	_connect_if_needed()
 
 func get_desired_channel() -> String:
 	return _desired_channel
@@ -89,8 +88,7 @@ func reconnect_now() -> void:
 	_set_ready(false)
 	if _client != null:
 		_client.call("close_connection")
-	if bool(_config.get("enabled", false)):
-		_connect_if_needed()
+	_connect_if_needed()
 
 func _process(dt: float) -> void:
 	if _client != null:
@@ -113,6 +111,9 @@ func _ensure_client() -> void:
 
 func _connect_if_needed() -> void:
 	if _client == null:
+		return
+	if DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless"):
+		_set_status("headless")
 		return
 	var host := String(_config.get("host", "")).strip_edges()
 	var port := int(_config.get("port", 0))
@@ -186,17 +187,34 @@ func _try_join_after_welcome() -> void:
 func _maybe_mark_joined(msg: Object) -> void:
 	if msg == null:
 		return
+	var ch := ""
+
 	var params0: Variant = msg.get("params")
-	if not (params0 is Array):
+	if params0 is Array:
+		var params := params0 as Array
+		if not params.is_empty():
+			ch = String(params[0]).strip_edges()
+
+	# Some servers send `JOIN :#channel` (channel ends up in `trailing` for our parser).
+	if ch == "":
+		var trailing0: Variant = msg.get("trailing")
+		if trailing0 == null:
+			ch = ""
+		else:
+			ch = String(trailing0).strip_edges()
+	if ch == "":
 		return
-	var params := params0 as Array
-	if params.is_empty():
+
+	var desired := _desired_channel.strip_edges()
+	if desired == "":
 		return
-	var ch := String(params[0]).strip_edges()
-	if ch == "" or ch != _desired_channel:
-		return
-	_set_status("joined")
-	_set_ready(true)
+
+	for part0 in ch.split(",", false):
+		var part := String(part0).strip_edges()
+		if part == desired:
+			_set_status("joined")
+			_set_ready(true)
+			return
 
 func _clear_log() -> void:
 	_log_lines = []

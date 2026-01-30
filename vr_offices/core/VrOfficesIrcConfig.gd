@@ -1,12 +1,6 @@
 extends Object
 
 static func from_environment() -> Dictionary:
-	# Opt-in: keep disabled by default to avoid unexpected background sockets.
-	var enabled := false
-	var v := OS.get_environment("VR_OFFICES_IRC_ENABLED").strip_edges()
-	if v != "" and v != "0" and v.to_lower() != "false":
-		enabled = true
-
 	var host := OS.get_environment("VR_OFFICES_IRC_HOST").strip_edges()
 	var port_s := OS.get_environment("VR_OFFICES_IRC_PORT").strip_edges()
 	var port := 6667
@@ -14,7 +8,7 @@ static func from_environment() -> Dictionary:
 		port = int(port_s)
 
 	var tls := false
-	v = OS.get_environment("VR_OFFICES_IRC_TLS").strip_edges()
+	var v := OS.get_environment("VR_OFFICES_IRC_TLS").strip_edges()
 	if v != "" and v != "0" and v.to_lower() != "false":
 		tls = true
 
@@ -32,7 +26,6 @@ static func from_environment() -> Dictionary:
 		channellen = int(v)
 
 	return {
-		"enabled": enabled and host != "",
 		"host": host,
 		"port": port,
 		"tls": tls,
@@ -42,4 +35,3 @@ static func from_environment() -> Dictionary:
 		"nicklen_default": nicklen,
 		"channellen_default": channellen,
 	}
-
