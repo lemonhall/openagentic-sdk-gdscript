@@ -12,6 +12,17 @@ var _sasl_user: String = ""
 var _sasl_pass: String = ""
 var _sasl_state: int = 0 # 0=off, 1=need_start, 2=wait_plus, 3=wait_result
 
+func _split_authenticate_payload(b64: String) -> Array[String]:
+	# RFC1459 line rules + SASL framing: AUTHENTICATE payload is max 400 chars per message.
+	var out: Array[String] = []
+	var i: int = 0
+	while i < b64.length():
+		var remaining: int = b64.length() - i
+		var n: int = 400 if remaining > 400 else remaining
+		out.append(b64.substr(i, n))
+		i += n
+	return out
+
 func set_enabled(enabled: bool) -> void:
 	_enabled = enabled
 	if not _enabled:
@@ -69,7 +80,12 @@ func on_message(msg: RefCounted, send_line: Callable) -> bool:
 			payload.append(0)
 			payload.append_array(_sasl_pass.to_utf8_buffer())
 			var b64 := Marshalls.raw_to_base64(payload)
-			send_line.call("AUTHENTICATE %s" % b64)
+			var chunks: Array[String] = _split_authenticate_payload(String(b64))
+			for c in chunks:
+				send_line.call("AUTHENTICATE %s" % c)
+			# If the last chunk is exactly 400 chars, a terminating "AUTHENTICATE +" is required.
+			if String(b64).length() > 0 and (String(b64).length() % 400) == 0:
+				send_line.call("AUTHENTICATE +")
 			_sasl_state = 3
 		return false
 
