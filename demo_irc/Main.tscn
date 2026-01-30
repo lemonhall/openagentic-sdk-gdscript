@@ -48,7 +48,7 @@ layout_mode = 2
 min_value = 1.0
 max_value = 65535.0
 step = 1.0
-value = 6697.0
+value = 6667.0
 
 [node name="TlsLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
 layout_mode = 2
@@ -57,7 +57,7 @@ text = "TLS"
 [node name="Tls" type="CheckBox" parent="Root/ConnectionPanel/VBox/Fields"]
 layout_mode = 2
 text = "Enable"
-button_pressed = true
+button_pressed = false
 
 [node name="NickLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
 layout_mode = 2
@@ -125,4 +125,3 @@ placeholder_text = "Type and press Enter…"
 [node name="Send" type="Button" parent="Root/InputRow"]
 layout_mode = 2
 text = "Send"
-

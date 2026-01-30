@@ -2,6 +2,7 @@ extends Control
 
 const IrcClient := preload("res://addons/irc_client/IrcClient.gd")
 const DemoIrcConfig := preload("res://demo_irc/DemoIrcConfig.gd")
+const DemoIrcInbound := preload("res://demo_irc/DemoIrcInbound.gd")
 
 @onready var _host: LineEdit = $"Root/ConnectionPanel/VBox/Fields/Host"
 @onready var _port: SpinBox = $"Root/ConnectionPanel/VBox/Fields/Port"
@@ -21,6 +22,8 @@ var _irc: Node = null
 var _connected: bool = false
 var _active_target: String = ""
 var _cfg := DemoIrcConfig.new()
+var _inbound := DemoIrcInbound.new()
+
 func _ready() -> void:
 	_irc = IrcClient.new()
 	add_child(_irc)
@@ -30,6 +33,8 @@ func _ready() -> void:
 	_irc.error.connect(_on_irc_error)
 	_irc.message_received.connect(_on_irc_message_received)
 	_irc.ctcp_action_received.connect(_on_irc_ctcp_action_received)
+
+	_inbound.configure(Callable(self, "_append_chat"), Callable(self, "_append_status"))
 
 	_cfg.load_from_user()
 	_apply_config_to_ui(_cfg)
@@ -70,6 +75,8 @@ func _read_ui_to_config(cfg: DemoIrcConfig) -> void:
 
 func _on_connect_pressed() -> void:
 	_read_ui_to_config(_cfg)
+	_cfg.normalize()
+	_apply_config_to_ui(_cfg)
 	_cfg.save_to_user()
 
 	_active_target = _cfg.channel
@@ -77,10 +84,11 @@ func _on_connect_pressed() -> void:
 	_update_buttons()
 
 	_irc.call("close_connection")
-	if _cfg.nick.strip_edges() != "":
-		_irc.call("set_nick", _cfg.nick)
-	if _cfg.user.strip_edges() != "":
-		_irc.call("set_user", _cfg.user, "0", "*", _cfg.realname)
+	if _cfg.nick.strip_edges() == "":
+		_append_status("Missing nick.")
+		return
+	_irc.call("set_nick", _cfg.nick)
+	_irc.call("set_user", _cfg.user, "0", "*", _cfg.realname)
 
 	if _cfg.host.strip_edges() == "" or _cfg.port <= 0:
 		_append_status("Missing host/port.")
@@ -100,6 +108,8 @@ func _on_disconnect_pressed() -> void:
 
 func _on_join_pressed() -> void:
 	_read_ui_to_config(_cfg)
+	_cfg.normalize()
+	_apply_config_to_ui(_cfg)
 	_cfg.save_to_user()
 
 	var ch := _cfg.channel.strip_edges()
@@ -143,37 +153,10 @@ func _on_irc_error(msg: String) -> void:
 	_append_status("[error] " + msg)
 
 func _on_irc_ctcp_action_received(prefix: String, target: String, text: String) -> void:
-	var nick := _nick_from_prefix(prefix)
-	_append_chat("* %s %s" % [nick, text])
+	_append_chat("* %s %s" % [_nick_from_prefix(prefix), text])
 
 func _on_irc_message_received(msg: RefCounted) -> void:
-	var cmd := String(msg.command)
-	if cmd == "PRIVMSG":
-		var target := ""
-		if msg.params.size() >= 1:
-			target = String(msg.params[0])
-		var nick := _nick_from_prefix(String(msg.prefix))
-		var line := "<%s> %s" % [nick, String(msg.trailing)]
-		if target.strip_edges() != "" and target != _cfg.nick and not target.begins_with("#"):
-			line = "[PM %s] %s" % [target, line]
-		_append_chat(line)
-		return
-	if cmd == "NOTICE":
-		var nick2 := _nick_from_prefix(String(msg.prefix))
-		_append_chat("-notice- %s: %s" % [nick2, String(msg.trailing)])
-		return
-	if cmd == "JOIN":
-		var nick3 := _nick_from_prefix(String(msg.prefix))
-		var ch := String(msg.trailing)
-		if ch.strip_edges() == "" and msg.params.size() >= 1:
-			ch = String(msg.params[0])
-		_append_chat("%s joined %s" % [nick3, ch])
-		return
-	if cmd == "PART":
-		var nick4 := _nick_from_prefix(String(msg.prefix))
-		var ch2: String = String(msg.params[0]) if msg.params.size() >= 1 else ""
-		_append_chat("%s left %s" % [nick4, String(ch2)])
-		return
+	_inbound.on_message(msg, _cfg.nick)
 
 func _nick_from_prefix(prefix: String) -> String:
 	var p := prefix

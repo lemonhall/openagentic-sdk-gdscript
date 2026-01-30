@@ -3,12 +3,26 @@ extends RefCounted
 const USER_CONFIG_PATH := "user://demo_irc/config.json"
 
 var host: String = ""
-var port: int = 6697
-var tls_enabled: bool = true
+var port: int = 6667
+var tls_enabled: bool = false
 var nick: String = ""
 var user: String = ""
 var realname: String = ""
 var channel: String = ""
+
+func normalize() -> void:
+	if nick.strip_edges() != "":
+		if user.strip_edges() == "":
+			user = nick
+		if realname.strip_edges() == "":
+			realname = nick
+
+	if channel.strip_edges() != "":
+		var c := channel.strip_edges()
+		var prefix := c.substr(0, 1)
+		if prefix != "#" and prefix != "&" and prefix != "+" and prefix != "!":
+			c = "#" + c
+		channel = c
 
 func to_dict() -> Dictionary:
 	return {
@@ -50,4 +64,3 @@ func load_from_user() -> void:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
 	from_dict(parsed as Dictionary)
-
