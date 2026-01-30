@@ -4,26 +4,69 @@ extends Node3D
 @export var workspace_id: String = ""
 @export var kind: String = "standing_desk"
 
+var _is_preview := false
+var _preview_valid := true
+var _preview_overlay: StandardMaterial3D = null
+var _centered_once := false
+
+func _ready() -> void:
+	ensure_centered()
+
 func configure(desk_id_in: String, workspace_id_in: String) -> void:
 	desk_id = desk_id_in
 	workspace_id = workspace_id_in
 
 func set_preview(enabled: bool) -> void:
-	if not enabled:
+	_is_preview = enabled
+	if not _is_preview:
 		return
-	var mat := StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(0.95, 0.95, 1.0, 0.25)
-	mat.emission_enabled = true
-	mat.emission = Color(0.35, 0.75, 1.0, 1.0)
-	mat.emission_energy_multiplier = 0.35
+	ensure_centered()
+	_apply_preview_visuals()
+
+func set_preview_valid(is_valid: bool) -> void:
+	_preview_valid = is_valid
+	if _is_preview:
+		_apply_preview_visuals()
+
+func ensure_centered() -> void:
+	if not is_inside_tree():
+		return
+	if _centered_once:
+		return
+	_centered_once = true
+
+	var model := get_node_or_null("Model") as Node3D
+	if model == null:
+		return
+
+	var bounds := _compute_visual_bounds_local()
+	if bounds.size == Vector3.ZERO:
+		return
+	var center := bounds.position + bounds.size * 0.5
+	# Center only on XZ so the desk still sits on the floor naturally.
+	model.position -= Vector3(center.x, 0.0, center.z)
+
+func _apply_preview_visuals() -> void:
+	if _preview_overlay == null:
+		_preview_overlay = StandardMaterial3D.new()
+		_preview_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_preview_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_preview_overlay.emission_enabled = true
+		_preview_overlay.emission_energy_multiplier = 0.25
+
+	var tint := Color(1.0, 1.0, 1.0, 0.25)
+	if not _preview_valid:
+		tint = Color(1.0, 0.35, 0.35, 0.25)
+	_preview_overlay.albedo_color = tint
+	_preview_overlay.emission = Color(0.25, 0.75, 1.0, 1.0) if _preview_valid else Color(1.0, 0.25, 0.35, 1.0)
 
 	for n0: Node in _iter_descendants(self):
 		if n0 is MeshInstance3D:
 			var mi: MeshInstance3D = n0 as MeshInstance3D
 			if mi != null:
-				mi.material_override = mat
+				# Keep original textures/materials; apply a semi-transparent overlay + per-instance transparency.
+				mi.transparency = 0.45
+				mi.material_overlay = _preview_overlay
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func play_spawn_fx() -> void:
@@ -53,3 +96,50 @@ func _iter_descendants(root: Node) -> Array[Node]:
 			out.append(c)
 			stack.append(c)
 	return out
+
+func _compute_visual_bounds_local() -> AABB:
+	# Returns bounds in this node's local space, based on MeshInstance3D AABBs.
+	var min_x := INF
+	var min_y := INF
+	var min_z := INF
+	var max_x := -INF
+	var max_y := -INF
+	var max_z := -INF
+	var any := false
+
+	for n0: Node in _iter_descendants(self):
+		if not (n0 is MeshInstance3D):
+			continue
+		var mi := n0 as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var aabb := mi.get_aabb()
+		var corners := _aabb_corners(aabb)
+		for p0 in corners:
+			var p_world := mi.global_transform * p0
+			var p_local := to_local(p_world)
+			min_x = minf(min_x, float(p_local.x))
+			min_y = minf(min_y, float(p_local.y))
+			min_z = minf(min_z, float(p_local.z))
+			max_x = maxf(max_x, float(p_local.x))
+			max_y = maxf(max_y, float(p_local.y))
+			max_z = maxf(max_z, float(p_local.z))
+			any = true
+
+	if not any:
+		return AABB()
+	return AABB(Vector3(min_x, min_y, min_z), Vector3(max_x - min_x, max_y - min_y, max_z - min_z))
+
+static func _aabb_corners(aabb: AABB) -> Array[Vector3]:
+	var p := aabb.position
+	var s := aabb.size
+	return [
+		Vector3(p.x, p.y, p.z),
+		Vector3(p.x + s.x, p.y, p.z),
+		Vector3(p.x, p.y + s.y, p.z),
+		Vector3(p.x, p.y, p.z + s.z),
+		Vector3(p.x + s.x, p.y + s.y, p.z),
+		Vector3(p.x + s.x, p.y, p.z + s.z),
+		Vector3(p.x, p.y + s.y, p.z + s.z),
+		Vector3(p.x + s.x, p.y + s.y, p.z + s.z),
+	]

@@ -25,8 +25,6 @@ var _placing_workspace_id: String = ""
 var _placing_workspace_rect := Rect2()
 var _placing_yaw := 0.0
 var _desk_preview_root: Node3D = null
-var _desk_preview_mesh: MeshInstance3D = null
-var _desk_preview_mat: StandardMaterial3D = null
 var _desk_preview_model: Node3D = null
 
 func _init(
@@ -305,43 +303,29 @@ func _ensure_desk_preview() -> void:
 	_desk_preview_root.position = Vector3(0, 0.0, 0)
 	owner.add_child(_desk_preview_root)
 
-	var mi := MeshInstance3D.new()
-	mi.name = "Footprint"
-	var box := BoxMesh.new()
-	box.size = Vector3(1, 0.05, 1)
-	mi.mesh = box
-	mi.position = Vector3(0, 0.03, 0)
-	_desk_preview_mat = StandardMaterial3D.new()
-	_desk_preview_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_desk_preview_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45)
-	mi.material_override = _desk_preview_mat
-	_desk_preview_root.add_child(mi)
-	_desk_preview_mesh = mi
-
 	var ghost0 := _StandingDeskScene.instantiate()
 	var ghost := ghost0 as Node3D
 	if ghost != null:
 		ghost.name = "GhostStandingDesk"
 		ghost.process_mode = Node.PROCESS_MODE_DISABLED
+		_desk_preview_root.add_child(ghost)
+		if ghost.has_method("ensure_centered"):
+			ghost.call("ensure_centered")
 		if ghost.has_method("set_preview"):
 			ghost.call("set_preview", true)
-		_desk_preview_root.add_child(ghost)
 		_desk_preview_model = ghost
 
 func _free_desk_preview() -> void:
 	if _desk_preview_root != null and is_instance_valid(_desk_preview_root):
 		_desk_preview_root.queue_free()
 	_desk_preview_root = null
-	_desk_preview_mesh = null
-	_desk_preview_mat = null
 	_desk_preview_model = null
 
 func _update_desk_preview(screen_pos: Vector2) -> void:
 	if owner == null or desk_manager == null or _placing_workspace_id == "":
 		return
 	_ensure_desk_preview()
-	if _desk_preview_root == null or _desk_preview_mesh == null:
+	if _desk_preview_root == null:
 		return
 
 	var hit := _raycast_floor_point(screen_pos)
@@ -366,19 +350,16 @@ func _update_desk_preview(screen_pos: Vector2) -> void:
 	var ok := bool(can.get("ok", false))
 
 	_desk_preview_root.position = Vector3(cx, 0.0, cz)
-	var box := _desk_preview_mesh.mesh as BoxMesh
-	if box != null:
-		box.size = Vector3(size_xz.x, 0.05, size_xz.y)
 	if _desk_preview_model != null and is_instance_valid(_desk_preview_model):
 		_desk_preview_model.rotation = Vector3(0.0, yaw, 0.0)
-	if _desk_preview_mat != null:
-		_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45) if ok else Color(0.95, 0.35, 0.35, 0.45)
+		if _desk_preview_model.has_method("set_preview_valid"):
+			_desk_preview_model.call("set_preview_valid", ok)
 
 func _set_desk_preview_center_xz(center_xz: Vector2) -> void:
 	if owner == null or desk_manager == null or _placing_workspace_id == "":
 		return
 	_ensure_desk_preview()
-	if _desk_preview_root == null or _desk_preview_mesh == null:
+	if _desk_preview_root == null:
 		return
 
 	var yaw := _placing_yaw
@@ -389,13 +370,10 @@ func _set_desk_preview_center_xz(center_xz: Vector2) -> void:
 	var ok := bool(can.get("ok", false))
 
 	_desk_preview_root.position = Vector3(center_xz.x, 0.0, center_xz.y)
-	var box := _desk_preview_mesh.mesh as BoxMesh
-	if box != null:
-		box.size = Vector3(size_xz.x, 0.05, size_xz.y)
 	if _desk_preview_model != null and is_instance_valid(_desk_preview_model):
 		_desk_preview_model.rotation = Vector3(0.0, yaw, 0.0)
-	if _desk_preview_mat != null:
-		_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45) if ok else Color(0.95, 0.35, 0.35, 0.45)
+		if _desk_preview_model.has_method("set_preview_valid"):
+			_desk_preview_model.call("set_preview_valid", ok)
 
 func _try_place_desk(screen_pos: Vector2) -> void:
 	if owner == null or desk_manager == null or _placing_workspace_id == "":

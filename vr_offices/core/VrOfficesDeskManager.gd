@@ -2,7 +2,7 @@ extends RefCounted
 
 const DESK_KIND_STANDING := "standing_desk"
 
-const _DEFAULT_FOOTPRINT_XZ := Vector2(2.025, 1.125) # X,Z meters (approx; tweak later)
+const _DEFAULT_FOOTPRINT_XZ := Vector2(1.755, 0.975) # X,Z meters (approx; tweak later)
 const _MAX_DESKS_PER_WORKSPACE := 3
 
 var _desk_counter := 0
