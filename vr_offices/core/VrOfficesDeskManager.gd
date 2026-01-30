@@ -186,7 +186,8 @@ func _count_for_workspace(workspace_id: String) -> int:
 func _desk_footprint_size_xz(yaw: float) -> Vector2:
 	var s := _DEFAULT_FOOTPRINT_XZ
 	var snap := _snap_yaw(yaw)
-	if absf(snap - PI * 0.5) < 1e-3:
+	# 90° and 270° swap X/Z.
+	if absf(snap - PI * 0.5) < 1e-3 or absf(snap - PI * 1.5) < 1e-3:
 		return Vector2(s.y, s.x)
 	return s
 
@@ -238,10 +239,10 @@ static func _rect_contains_rect(outer: Rect2, inner: Rect2) -> bool:
 	return ix0 >= ox0 - 1e-4 and iz0 >= oz0 - 1e-4 and ix1 <= ox1 + 1e-4 and iz1 <= oz1 + 1e-4
 
 static func _snap_yaw(yaw: float) -> float:
-	# Snap to 0 or 90 degrees for v11.
+	# Snap to 0/90/180/270.
 	var step := PI * 0.5
 	var k := int(round(yaw / step))
-	return float(posmod(k, 2)) * step
+	return float(posmod(k, 4)) * step
 
 func _rebuild_nodes() -> void:
 	_nodes_by_id.clear()
