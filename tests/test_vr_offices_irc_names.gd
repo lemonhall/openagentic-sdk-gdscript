@@ -60,4 +60,5 @@ func _init() -> void:
 	if not T.require_eq(self, ch2, ch, "Channel must be deterministic"):
 		return
 
+	names.free()
 	T.pass_and_quit(self)

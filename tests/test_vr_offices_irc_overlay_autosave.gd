@@ -53,4 +53,5 @@ func _init() -> void:
 	get_root().remove_child(overlay)
 	overlay.free()
 	await process_frame
+	world.free()
 	T.pass_and_quit(self)
