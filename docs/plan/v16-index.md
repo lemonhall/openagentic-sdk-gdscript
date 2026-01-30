@@ -19,20 +19,24 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 4. **Commands:** helpers for JOIN/PART/PRIVMSG/NOTICE + event signals. (done)
 5. **Verify:** headless test run evidence. (done)
 6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (done)
+7. **Hardening (v16 robustness):** partial-write safe output queue + line length limits + bounded buffers. (done)
 
 ## Plans (v16)
 
 - `docs/plan/v16-irc-client-core.md`
 - `docs/plan/v16-irc-client-core-polish.md`
+- `docs/plan/v16-irc-client-core-hardening.md`
 
 ## Gap Review (Vision vs. Reality)
 
-v16’s vision is “traditional core IRC over plain TCP”. The initial implementation proved the basics, but some v16-level “production correctness” gaps remain:
+v16’s vision is “traditional core IRC over plain TCP”.
 
-- **Framing is not byte-robust yet:** current read path decodes UTF-8 per chunk before framing; chunk splits inside multibyte sequences can corrupt data. v16 requires robust partial reads.
-- **“Emit IRC messages correctly” is only string helpers:** there is no structured “message → wire” formatter (`command + params + trailing → line`) that can be reused consistently.
-- **Clean disconnects are underspecified:** there is no explicit `quit()` / `disconnect()` API to perform a graceful QUIT and close the socket.
-- **Addon packaging:** `addons/irc_client/` is usable as scripts, but lacks standard Godot plugin metadata (`plugin.cfg`) and minimal usage docs.
+### Historical gaps (closed in second review)
+
+- Framing robustness (byte-safe UTF-8 chunking).
+- “message → wire” formatting as a single source of truth.
+- Clean disconnect API.
+- Standard plugin metadata + minimal usage docs.
 
 ### Second review (2026-01-30)
 
@@ -40,6 +44,14 @@ After closing the above gaps, v16 now matches its core vision and DoD, with one 
 
 - **Core behaviors covered by tests:** parsing/framing, message emission formatting, QUIT/close API, and ping/pong loop are all regression-tested under `tests/test_irc_*.gd`.
 - **Plain TCP is implemented but not socket-integration-tested in CI:** automated tests use an in-memory peer (sandbox friendly). Real-world TCP connection behavior is still exercised manually by users of the addon.
+
+### Third review (2026-01-30)
+
+Hardening focus (“扎实”):
+
+- **Partial write safety:** output now uses a queue and supports `put_partial_data` peers.
+- **Protocol line length safety:** outgoing formatting enforces a max byte budget (510 bytes before CRLF) with UTF-8 safe truncation of trailing payloads.
+- **Bounded buffers:** incoming line buffering is bounded; overflow triggers transport close + client `error` + `disconnected`.
 
 ## Definition of Done (DoD)
 
@@ -63,6 +75,11 @@ After closing the above gaps, v16 now matches its core vision and DoD, with one 
   - `tests/test_irc_client_integration.gd`
   - `tests/test_irc_wire_format.gd`
   - `tests/test_irc_disconnect.gd`
+  - `tests/test_irc_transport_partial_write.gd`
+  - `tests/test_irc_wire_max_len.gd`
+  - `tests/test_irc_line_buffer_limits.gd`
+  - `tests/test_irc_transport_overflow.gd`
+  - `tests/test_irc_client_overflow_disconnect.gd`
 
 - Last verification (Linux headless):
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_parser.gd`
@@ -70,3 +87,8 @@ After closing the above gaps, v16 now matches its core vision and DoD, with one 
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_integration.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_format.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_disconnect.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_transport_partial_write.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_max_len.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer_limits.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_transport_overflow.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_overflow_disconnect.gd`
