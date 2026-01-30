@@ -34,6 +34,13 @@ v16’s vision is “traditional core IRC over plain TCP”. The initial impleme
 - **Clean disconnects are underspecified:** there is no explicit `quit()` / `disconnect()` API to perform a graceful QUIT and close the socket.
 - **Addon packaging:** `addons/irc_client/` is usable as scripts, but lacks standard Godot plugin metadata (`plugin.cfg`) and minimal usage docs.
 
+### Second review (2026-01-30)
+
+After closing the above gaps, v16 now matches its core vision and DoD, with one explicit constraint:
+
+- **Core behaviors covered by tests:** parsing/framing, message emission formatting, QUIT/close API, and ping/pong loop are all regression-tested under `tests/test_irc_*.gd`.
+- **Plain TCP is implemented but not socket-integration-tested in CI:** automated tests use an in-memory peer (sandbox friendly). Real-world TCP connection behavior is still exercised manually by users of the addon.
+
 ## Definition of Done (DoD)
 
 - Addon code lives under `addons/irc_client/` and is usable from game code via scripts/classes (pure GDScript).

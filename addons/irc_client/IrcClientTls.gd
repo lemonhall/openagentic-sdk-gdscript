@@ -43,3 +43,6 @@ func take_last_err() -> int:
 	_last_err = OK
 	return e
 
+func disconnect_underlying() -> void:
+	if _under != null and _under.has_method("disconnect_from_host"):
+		_under.call("disconnect_from_host")

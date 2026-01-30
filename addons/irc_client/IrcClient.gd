@@ -7,19 +7,16 @@ signal message_received(msg: RefCounted)
 signal ctcp_action_received(prefix: String, target: String, text: String)
 signal error(msg: String)
 
-const IrcLineBuffer := preload("res://addons/irc_client/IrcLineBuffer.gd")
+const IrcClientTransport := preload("res://addons/irc_client/IrcClientTransport.gd")
 const IrcParser := preload("res://addons/irc_client/IrcParser.gd")
 const IrcClientCap := preload("res://addons/irc_client/IrcClientCap.gd")
-const IrcClientTls := preload("res://addons/irc_client/IrcClientTls.gd")
 const IrcClientPing := preload("res://addons/irc_client/IrcClientPing.gd")
 const IrcClientCtcp := preload("res://addons/irc_client/IrcClientCtcp.gd")
 const IrcWire := preload("res://addons/irc_client/IrcWire.gd")
 
-var _peer: Object = null # StreamPeerTCP or test double implementing the same methods.
-var _tls = null
-var _buf = null
 var _parser = null
 var _wire = null
+var _transport = null
 var _cap = null
 var _ping = null
 var _ctcp = null
@@ -32,18 +29,16 @@ var _user_unused: String = "*"
 var _user_realname: String = ""
 
 func _ensure_init() -> void:
-	if _buf == null: _buf = IrcLineBuffer.new()
 	if _parser == null: _parser = IrcParser.new()
 	if _wire == null: _wire = IrcWire.new()
+	if _transport == null: _transport = IrcClientTransport.new()
 	if _cap == null: _cap = IrcClientCap.new()
-	if _tls == null: _tls = IrcClientTls.new()
 	if _ping == null: _ping = IrcClientPing.new()
 	if _ctcp == null: _ctcp = IrcClientCtcp.new()
 
 func set_peer(peer: Object) -> void:
 	_ensure_init()
-	_peer = peer
-	_tls.call("reset")
+	_transport.call("set_peer", peer)
 	_was_connected = false
 
 func set_cap_enabled(enabled: bool) -> void:
@@ -69,50 +64,40 @@ func set_user(user: String, mode: String = "0", unused: String = "*", realname: 
 
 func connect_to(host: String, port: int) -> void:
 	_ensure_init()
-	var tcp := StreamPeerTCP.new()
-	var err := tcp.connect_to_host(host, port)
+	var err: int = int(_transport.call("connect_to", host, port))
 	if err != OK:
 		error.emit("connect_to_host failed: %s" % str(err))
-	_peer = tcp
-	_tls.call("reset")
 
 func connect_to_tls_over_stream(stream: StreamPeerTCP, server_name: String) -> void:
 	_ensure_init()
-	_peer = _tls.call("configure_over_stream", stream, server_name)
+	_transport.call("connect_to_tls_over_stream", stream, server_name)
 
 func connect_to_tls(host: String, port: int, server_name: String = "") -> void:
-	var sn := server_name
-	if sn.strip_edges() == "":
-		sn = host
-	var tcp := StreamPeerTCP.new()
-	var err := tcp.connect_to_host(host, port)
+	_ensure_init()
+	var err: int = int(_transport.call("connect_to_tls", host, port, server_name))
 	if err != OK:
 		error.emit("connect_to_host failed: %s" % str(err))
-	connect_to_tls_over_stream(tcp, sn)
 
 func poll() -> void:
 	_ensure_init()
-	if _peer == null:
+	if not bool(_transport.call("has_peer")):
 		return
 
-	if not bool(_tls.call("poll_pre")):
-		var tls_err: int = int(_tls.call("take_last_err"))
+	if not bool(_transport.call("poll_pre")):
+		var tls_err: int = int(_transport.call("take_tls_last_err"))
 		if tls_err != OK:
 			error.emit("tls.connect_to_stream failed: %s" % str(tls_err))
 		return
 
-	if _peer.has_method("poll"):
-		_peer.call("poll")
-	var status: int = StreamPeerTCP.STATUS_ERROR
-	if _peer.has_method("get_status"):
-		status = int(_peer.call("get_status"))
+	_transport.call("poll_peer")
+	var status: int = int(_transport.call("get_status"))
 
-		if status == StreamPeerTCP.STATUS_CONNECTED and not _was_connected:
-			_was_connected = true
-			connected.emit()
-			_cap.call("on_connected", func(line: String) -> void: send_raw_line(line))
-			if not bool(_cap.call("is_in_progress")):
-				_send_registration_if_ready()
+	if status == StreamPeerTCP.STATUS_CONNECTED and not _was_connected:
+		_was_connected = true
+		connected.emit()
+		_cap.call("on_connected", func(line: String) -> void: send_raw_line(line))
+		if not bool(_cap.call("is_in_progress")):
+			_send_registration_if_ready()
 
 	if status == StreamPeerTCP.STATUS_NONE or status == StreamPeerTCP.STATUS_ERROR:
 		if _was_connected:
@@ -127,31 +112,14 @@ func poll() -> void:
 	_read_available()
 
 func send_raw_line(line: String) -> void:
-	if _peer == null:
-		return
-	if not _peer.has_method("get_status") or int(_peer.call("get_status")) != StreamPeerTCP.STATUS_CONNECTED:
-		return
-	if not _peer.has_method("put_data"):
-		return
-	var s := line
-	if s.ends_with("\r\n"):
-		pass
-	elif s.ends_with("\n"):
-		s = s.substr(0, s.length() - 1) + "\r\n"
-	else:
-		s += "\r\n"
-	_peer.call("put_data", s.to_utf8_buffer())
+	_ensure_init()
+	_transport.call("send_line", line)
 
 func close_connection() -> void:
 	_ensure_init()
-	if _peer == null:
+	if not bool(_transport.call("has_peer")):
 		return
-
-	var status: int = StreamPeerTCP.STATUS_ERROR
-	if _peer.has_method("get_status"):
-		status = int(_peer.call("get_status"))
-
-	_close_transport()
+	var status: int = int(_transport.call("close"))
 
 	if _was_connected or status == StreamPeerTCP.STATUS_CONNECTED:
 		_was_connected = false
@@ -170,21 +138,6 @@ func send_message(command: String, params: Array = [], trailing: String = "") ->
 	if line.strip_edges() == "":
 		return
 	send_raw_line(line)
-
-func _close_transport() -> void:
-	if _peer == null:
-		return
-
-	# Best-effort: close TCP peers; if we're currently over TLS, close the underlying TCP stream too.
-	if _peer.has_method("disconnect_from_host"):
-		_peer.call("disconnect_from_host")
-	elif _tls != null:
-		var under = (_tls as Object).get("_under")
-		if under != null and (under as Object).has_method("disconnect_from_host"):
-			(under as Object).call("disconnect_from_host")
-
-	_peer = null
-	_tls.call("reset")
 
 func join(channel: String) -> void:
 	send_message("JOIN", [channel])
@@ -218,17 +171,10 @@ func _send_registration_if_ready() -> void:
 		send_message("USER", [_user_user, _user_mode, _user_unused], rn)
 
 func _read_available() -> void:
-	if not _peer.has_method("get_available_bytes") or not _peer.has_method("get_data"):
-		return
-	var avail: int = int(_peer.call("get_available_bytes"))
-	if avail <= 0:
-		return
-	var got = _peer.call("get_data", avail)
-	if int(got[0]) != OK:
-		error.emit("get_data failed")
-		return
-	var bytes: PackedByteArray = got[1]
-	var lines: Array[String] = _buf.call("push_bytes", bytes)
+	var lines: Array[String] = _transport.call("read_lines")
+	var read_err: String = String(_transport.call("take_last_error"))
+	if read_err.strip_edges() != "":
+		error.emit(read_err)
 	for line in lines:
 		raw_line_received.emit(line)
 		var msg = _parser.call("parse_line", line)
