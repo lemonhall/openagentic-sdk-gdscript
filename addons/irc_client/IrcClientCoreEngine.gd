@@ -9,6 +9,7 @@ var _inbound: Object = null
 var _channels: Object = null
 var _reconnect: Object = null
 var _cmd: Object = null
+var _server_info: Object = null
 
 var _emit_connected: Callable = Callable()
 var _emit_disconnected: Callable = Callable()
@@ -29,6 +30,7 @@ func configure(
 	channels: Object,
 	reconnect: Object,
 	cmd: Object,
+	server_info: Object,
 	emit_connected: Callable,
 	emit_disconnected: Callable,
 	emit_raw_line: Callable,
@@ -45,6 +47,7 @@ func configure(
 	_channels = channels
 	_reconnect = reconnect
 	_cmd = cmd
+	_server_info = server_info
 
 	_emit_connected = emit_connected
 	_emit_disconnected = emit_disconnected
@@ -57,6 +60,8 @@ func set_peer(peer: Object) -> void:
 	_transport.call("set_peer", peer)
 	_cmd.call("reset_registration_flags")
 	_was_connected = false
+	if _server_info != null and _server_info.has_method("reset"):
+		_server_info.call("reset")
 
 func connect_to(host: String, port: int) -> void:
 	_reconnect.call("remember_tcp", host, port)
@@ -173,6 +178,9 @@ func _read_available() -> void:
 	var close_fn := func() -> void: close_connection()
 	var on_welcome := func() -> void:
 		_channels.call("on_welcome", func(ch: String) -> void: _cmd.call("join", ch))
+	var on_isupport := func(m: Object) -> void:
+		if _server_info != null and _server_info.has_method("on_isupport"):
+			_server_info.call("on_isupport", m)
 	var on_cap_complete := func() -> void: _cmd.call("send_registration_if_ready")
 	var emit_ctcp := func(prefix: String, target: String, text: String) -> void:
 		if _emit_ctcp_action.is_valid():
@@ -191,9 +199,9 @@ func _read_available() -> void:
 			emit_err,
 			close_fn,
 			on_welcome,
+			on_isupport,
 			on_cap_complete,
 			emit_ctcp,
 		))
 		if stop:
 			return
-

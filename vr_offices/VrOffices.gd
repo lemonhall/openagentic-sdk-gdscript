@@ -94,7 +94,7 @@ func _ready() -> void:
 		_workspace_manager.call("bind_scene", workspaces_root, _WorkspaceAreaScene, Callable(self, "_is_headless"))
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
-		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"))
+		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"), Callable(_agent, "effective_save_id"))
 	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _desk_manager)
 	_dialogue_ctrl = _DialogueControllerScript.new(
 		self,

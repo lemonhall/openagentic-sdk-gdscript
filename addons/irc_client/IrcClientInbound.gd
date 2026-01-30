@@ -22,6 +22,7 @@ func handle_line(
 	emit_error: Callable,
 	close_connection: Callable,
 	on_welcome: Callable,
+	on_isupport: Callable,
 	on_cap_complete: Callable,
 	emit_ctcp_action: Callable,
 ) -> bool:
@@ -42,6 +43,10 @@ func handle_line(
 	if cmd == "001":
 		on_welcome.call()
 
+	if cmd == "005":
+		if on_isupport.is_valid():
+			on_isupport.call(msg)
+
 	if bool(cap.call("on_message", msg, func(out: String) -> void: send_raw_line.call(out))):
 		on_cap_complete.call()
 
@@ -50,4 +55,3 @@ func handle_line(
 	)
 	ping.call("maybe_reply", msg, func(out: String) -> void: send_raw_line.call(out))
 	return false
-

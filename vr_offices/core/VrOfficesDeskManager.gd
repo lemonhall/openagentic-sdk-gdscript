@@ -12,6 +12,8 @@ var _root: Node3D = null
 var _desk_scene: PackedScene = null
 var _is_headless: Callable = Callable()
 var _nodes_by_id: Dictionary = {}
+var _get_save_id: Callable = Callable()
+var _irc_config: Dictionary = {}
 
 func get_desk_counter() -> int:
 	return _desk_counter
@@ -36,10 +38,12 @@ func list_desks_for_workspace(workspace_id: String) -> Array:
 			out.append(d.duplicate(true))
 	return out
 
-func bind_scene(root: Node3D, desk_scene: PackedScene, is_headless: Callable) -> void:
+func bind_scene(root: Node3D, desk_scene: PackedScene, is_headless: Callable, get_save_id: Callable = Callable()) -> void:
 	_root = root
 	_desk_scene = desk_scene
 	_is_headless = is_headless
+	_get_save_id = get_save_id
+	_irc_config = _IrcConfig.from_environment()
 	_rebuild_nodes()
 
 func can_place_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, center_xz: Vector2, yaw: float) -> Dictionary:
@@ -294,7 +298,27 @@ func _spawn_node_for(desk: Dictionary) -> void:
 	if n.has_method("play_spawn_fx"):
 		n.call("play_spawn_fx")
 
+	_maybe_attach_irc_link(n, did)
 	_nodes_by_id[did] = n
+
+func _maybe_attach_irc_link(desk_node: Node3D, desk_id: String) -> void:
+	if desk_node == null:
+		return
+	if _irc_config.is_empty() or not bool(_irc_config.get("enabled", false)):
+		return
+	var sid := ""
+	if _get_save_id.is_valid():
+		sid = String(_get_save_id.call()).strip_edges()
+	if sid == "":
+		sid = "slot1"
+
+	var link := _DeskIrcLinkScript.new() as Node
+	if link == null:
+		return
+	link.name = "DeskIrcLink"
+	desk_node.add_child(link)
+	if link.has_method("configure"):
+		link.call("configure", _irc_config, sid, desk_id)
 
 func _free_node_for_id(desk_id: String) -> void:
 	var did := desk_id.strip_edges()
@@ -307,3 +331,5 @@ func _free_node_for_id(desk_id: String) -> void:
 	var n := n0 as Node
 	if n != null and is_instance_valid(n):
 		n.queue_free()
+const _IrcConfig := preload("res://vr_offices/core/VrOfficesIrcConfig.gd")
+const _DeskIrcLinkScript := preload("res://vr_offices/core/VrOfficesDeskIrcLink.gd")

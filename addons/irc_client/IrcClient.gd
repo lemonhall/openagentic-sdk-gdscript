@@ -120,3 +120,15 @@ func ctcp_action(target: String, text: String) -> void:
 	_ensure_init()
 	_core.call("ctcp_action", target, text)
 
+func get_isupport() -> Dictionary:
+	_ensure_init()
+	if not _core.has_method("get_isupport"):
+		return {}
+	return _core.call("get_isupport")
+
+func get_isupport_int(key: String, default_value: int = 0) -> int:
+	_ensure_init()
+	if not _core.has_method("get_isupport_int"):
+		return default_value
+	return int(_core.call("get_isupport_int", key, default_value))
+

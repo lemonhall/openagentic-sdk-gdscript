@@ -9,6 +9,7 @@ const IrcClientChannels := preload("res://addons/irc_client/IrcClientChannels.gd
 const IrcClientReconnect := preload("res://addons/irc_client/IrcClientReconnect.gd")
 const IrcClientInbound := preload("res://addons/irc_client/IrcClientInbound.gd")
 const IrcClientRegistration := preload("res://addons/irc_client/IrcClientRegistration.gd")
+const IrcClientServerInfo := preload("res://addons/irc_client/IrcClientServerInfo.gd")
 const IrcWire := preload("res://addons/irc_client/IrcWire.gd")
 
 const IrcClientCoreCommands := preload("res://addons/irc_client/IrcClientCoreCommands.gd")
@@ -24,6 +25,7 @@ var _channels = null
 var _reconnect = null
 var _inbound = null
 var _reg = null
+var _server_info = null
 
 var _cmd = null
 var _engine = null
@@ -41,6 +43,7 @@ func _ensure_init() -> void:
 	_reconnect = IrcClientReconnect.new()
 	_inbound = IrcClientInbound.new()
 	_reg = IrcClientRegistration.new()
+	_server_info = IrcClientServerInfo.new()
 
 	_cmd = IrcClientCoreCommands.new()
 	_cmd.call("configure", _wire, _transport, _cap, _ctcp, _channels, _reg)
@@ -66,6 +69,7 @@ func configure_callbacks(
 		_channels,
 		_reconnect,
 		_cmd,
+		_server_info,
 		emit_connected,
 		emit_disconnected,
 		emit_raw_line,
@@ -73,6 +77,18 @@ func configure_callbacks(
 		emit_ctcp_action,
 		emit_error,
 	)
+
+func get_isupport() -> Dictionary:
+	_ensure_init()
+	if _server_info == null or not _server_info.has_method("get_isupport"):
+		return {}
+	return _server_info.call("get_isupport")
+
+func get_isupport_int(key: String, default_value: int = 0) -> int:
+	_ensure_init()
+	if _server_info == null or not _server_info.has_method("get_int"):
+		return default_value
+	return int(_server_info.call("get_int", key, default_value))
 
 func set_peer(peer: Object) -> void:
 	_ensure_init()
@@ -169,4 +185,3 @@ func notice(target: String, text: String) -> void:
 func ctcp_action(target: String, text: String) -> void:
 	_ensure_init()
 	_cmd.call("ctcp_action", target, text)
-
