@@ -9,6 +9,8 @@ Build on v16 by adding modern interoperability features commonly expected in “
 - SASL authentication (so login is standardized instead of relying on ad-hoc `NickServ` messages).
 - Message tags parsing/preservation (metadata on messages).
 
+Note: “IRCv3 完整实现”在工程上需要收敛为可验收的 Profile；见 `docs/plan/v17-ircv3-completeness-profile.md`。
+
 ## Milestones (facts panel)
 
 1. **Plan:** write an executable v17 plan with tests. (done)
@@ -18,12 +20,14 @@ Build on v16 by adding modern interoperability features commonly expected in “
 5. **Tags:** parse message tags + tests. (done)
 6. **Hardening:** CAP multiline/value caps + SASL chunking + tests. (done)
 7. **Coverage:** expand v17 test diversity + CAP param-list support. (done)
+8. **IRCv3 Profile A:** define “complete” + CAP LIST/NEW/DEL + tests. (done)
 
 ## Plans (v17)
 
 - `docs/plan/v17-ircv3-tls-sasl-tags.md`
 - `docs/plan/v17-ircv3-cap-sasl-hardening.md`
 - `docs/plan/v17-ircv3-test-diversity-2.md`
+- `docs/plan/v17-ircv3-completeness-profile.md`
 
 ## Definition of Done (DoD)
 
@@ -36,6 +40,7 @@ Build on v16 by adding modern interoperability features commonly expected in “
 - Tests:
   - `tests/test_irc_parser_tags.gd`
   - `tests/test_irc_parser_tags_escapes.gd`
+  - `tests/test_irc_cap_negotiation_list_new_del.gd`
   - `tests/test_irc_client_cap.gd`
   - `tests/test_irc_client_cap_disabled_registers.gd`
   - `tests/test_irc_client_cap_ls_without_trailing_colon.gd`

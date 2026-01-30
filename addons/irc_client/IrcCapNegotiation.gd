@@ -7,6 +7,7 @@ var _started: bool = false
 var _done: bool = false
 var _ls_collecting: bool = false
 var _ack_collecting: bool = false
+var _list_collecting: bool = false
 
 func _cap_name(token: String) -> String:
 	var eq: int = token.find("=")
@@ -69,6 +70,7 @@ func start() -> Array[String]:
 	_acked = {}
 	_ls_collecting = false
 	_ack_collecting = false
+	_list_collecting = false
 	return ["CAP LS 302"]
 
 func get_acked_caps() -> Array[String]:
@@ -77,8 +79,14 @@ func get_acked_caps() -> Array[String]:
 		out.append(String(k))
 	return out
 
+func get_supported_caps() -> Array[String]:
+	var out: Array[String] = []
+	for k in _supported.keys():
+		out.append(String(k))
+	return out
+
 func handle_message(msg: RefCounted) -> Array[String]:
-	if _done or msg == null:
+	if msg == null:
 		return []
 	var cmd := String((msg as Object).get("command"))
 	if cmd != "CAP":
@@ -88,6 +96,10 @@ func handle_message(msg: RefCounted) -> Array[String]:
 	var sub := ""
 	if params is Array and params.size() >= 2:
 		sub = String(params[1])
+
+	# After the initial negotiation is done, still accept dynamic updates.
+	if _done and (sub == "LS" or sub == "ACK" or sub == "NAK"):
+		return []
 
 	if sub == "LS":
 		var has_more: bool = _has_more_marker(params)
@@ -138,6 +150,44 @@ func handle_message(msg: RefCounted) -> Array[String]:
 
 		_ack_collecting = false
 		_done = true
+		return []
+
+	if sub == "LIST":
+		var has_more_list: bool = _has_more_marker(params)
+		if not _list_collecting:
+			_acked = {}
+			_list_collecting = true
+		for c3 in _extract_caps_tokens(msg):
+			var tok3 := String(c3).strip_edges()
+			if tok3 == "":
+				continue
+			var name3 := _cap_name(tok3)
+			if name3 != "":
+				_acked[name3] = true
+		if has_more_list:
+			return []
+		_list_collecting = false
+		return []
+
+	if sub == "NEW":
+		for c4 in _extract_caps_tokens(msg):
+			var tok4 := String(c4).strip_edges()
+			if tok4 == "":
+				continue
+			var name4 := _cap_name(tok4)
+			if name4 != "":
+				_supported[name4] = true
+		return []
+
+	if sub == "DEL":
+		for c5 in _extract_caps_tokens(msg):
+			var tok5 := String(c5).strip_edges()
+			if tok5 == "":
+				continue
+			var name5 := _cap_name(tok5)
+			if name5 != "":
+				_supported.erase(name5)
+				_acked.erase(name5)
 		return []
 
 	return []
