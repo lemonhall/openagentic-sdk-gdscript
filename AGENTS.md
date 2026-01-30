@@ -1,5 +1,16 @@
 # Agent Notes (OpenAgentic Godot)
 
+## 0) Development Discipline (塔山开发循环)
+
+This repo expects **disciplined, test-backed iteration**:
+
+- Use the **塔山开发循环** for any non-trivial change:
+  - write/update `docs/plan/vN-*.md` (and `docs/plan/vN-index.md`)
+  - execute Red → Green → Refactor with evidence (tests/logs) before claiming “done”
+- Keep slices small:
+  - one slice → one `git commit` → one `git push`
+- If you change behavior, add/adjust tests so the regression can’t ship again.
+
 ## 1) Architecture Overview
 
 This repo contains 3 major areas:
@@ -50,6 +61,9 @@ Game UI / NPC logic (vr_offices)
 
 Rules that prevent expensive regressions:
 
+- **Architecture hygiene:** keep modules small and responsibilities single-purpose.
+  - If a file grows past ~300–500 LOC (or mixes UI + IO + state + gameplay), treat it as a refactor trigger.
+  - Use the “意大利面重构技能” (`skills/spaghetti-refactor/SKILL.md`) to guide safe extraction into modules/controllers.
 - **Do not grow `vr_offices/VrOffices.gd`** into a “god file” again. New behavior must land in `vr_offices/core/*` (controllers/managers) and be wired from `VrOffices.gd`.
 - **Godot 4.6 strict mode:** avoid inferred typing from `null`/Variant (`var x := null` will break). Prefer explicit nullable types (`var x: Node = null`) or keep untyped vars.
 - **Avoid shadowing built-ins / base members** (`name`, `scale`, `floor`, …). Godot warnings can become errors later.
