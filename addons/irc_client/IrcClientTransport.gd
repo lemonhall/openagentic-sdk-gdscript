@@ -4,6 +4,7 @@ const IrcLineBuffer := preload("res://addons/irc_client/IrcLineBuffer.gd")
 const IrcClientTls := preload("res://addons/irc_client/IrcClientTls.gd")
 
 var _peer: Object = null # StreamPeerTCP/StreamPeerTLS or test double.
+var _peer_factory: Callable = Callable()
 var _buf = null
 var _tls = null
 var _last_error: String = ""
@@ -23,14 +24,26 @@ func set_peer(peer: Object) -> void:
 	_tls.call("reset")
 	_out_queue = PackedByteArray()
 
+func set_peer_factory(peer_factory: Callable) -> void:
+	_peer_factory = peer_factory
+
 func connect_to(host: String, port: int) -> int:
 	_ensure_init()
+	if _peer_factory.is_valid():
+		var p = _peer_factory.call(host, port)
+		if p == null:
+			return ERR_CANT_CONNECT
+		_peer = p
+		_tls.call("reset")
+		_out_queue = PackedByteArray()
+		return OK
 	var tcp := StreamPeerTCP.new()
 	var err := tcp.connect_to_host(host, port)
 	if err != OK:
 		return err
 	_peer = tcp
 	_tls.call("reset")
+	_out_queue = PackedByteArray()
 	return OK
 
 func connect_to_tls_over_stream(stream: StreamPeerTCP, server_name: String) -> void:
