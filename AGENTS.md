@@ -61,10 +61,10 @@ Game UI / NPC logic (vr_offices)
 
 Rules that prevent expensive regressions:
 
-- **Architecture hygiene:** keep modules small and responsibilities single-purpose.
-  - If a file grows past ~300–500 LOC (or mixes UI + IO + state + gameplay), treat it as a refactor trigger.
+- **Architecture hygiene:** keep scripts/modules small and responsibilities single-purpose.
+  - If a `.gd` file grows past ~200 LOC (or mixes UI + IO + state + gameplay), pause and self-review: can you split it into smaller focused modules/controllers?
   - Use the “意大利面重构技能” (`skills/spaghetti-refactor/SKILL.md`) to guide safe extraction into modules/controllers.
-- **Do not grow `vr_offices/VrOffices.gd`** into a “god file” again. New behavior must land in `vr_offices/core/*` (controllers/managers) and be wired from `VrOffices.gd`.
+- **Avoid “god files” in GDScript.** Prefer multiple small scripts over one long one; extract controllers/managers when a script starts accumulating unrelated responsibilities.
 - **Godot 4.6 strict mode:** avoid inferred typing from `null`/Variant (`var x := null` will break). Prefer explicit nullable types (`var x: Node = null`) or keep untyped vars.
 - **Avoid shadowing built-ins / base members** (`name`, `scale`, `floor`, …). Godot warnings can become errors later.
 - **No Bash tool for agents.** Workspace tools must stay inside the NPC private workspace; reject path traversal and absolute/scheme paths.
