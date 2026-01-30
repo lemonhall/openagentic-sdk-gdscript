@@ -6,6 +6,7 @@ const _DEFAULT_FOOTPRINT_XZ := Vector2(1.755, 0.975) # X,Z meters (approx; tweak
 const _MAX_DESKS_PER_WORKSPACE := 3
 
 const _DeskIrcLinkScript := preload("res://vr_offices/core/VrOfficesDeskIrcLink.gd")
+const _IrcConfig := preload("res://vr_offices/core/VrOfficesIrcConfig.gd")
 
 var _desk_counter := 0
 var _desks: Array[Dictionary] = []
@@ -89,7 +90,10 @@ func bind_scene(root: Node3D, desk_scene: PackedScene, is_headless: Callable, ge
 	_rebuild_nodes()
 
 func set_irc_config(config: Dictionary) -> void:
-	_irc_config = config if config != null else {}
+	var cfg := _IrcConfig.for_desks(config)
+	if _irc_config == cfg:
+		return
+	_irc_config = cfg
 	_refresh_irc_links()
 
 func reconnect_all_irc_links() -> void:

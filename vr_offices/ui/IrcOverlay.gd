@@ -266,7 +266,14 @@ func _on_desk_selected(idx: int) -> void:
 	var ch := String(snap.get("desired_channel", ""))
 	var status := String(snap.get("status", ""))
 	var ready := bool(snap.get("ready", false))
-	desk_info_label.text = "desk=%s  ws=%s\nchannel=%s\nstatus=%s  ready=%s" % [_selected_desk_id, ws, ch, status, "true" if ready else "false"]
+	var log_abs := String(snap.get("log_file_abs", ""))
+	var log_user := String(snap.get("log_file_user", ""))
+	var log_line := ""
+	if log_abs.strip_edges() != "":
+		log_line = "\nlog=%s" % log_abs
+	elif log_user.strip_edges() != "":
+		log_line = "\nlog=%s" % log_user
+	desk_info_label.text = "desk=%s  ws=%s\nchannel=%s\nstatus=%s  ready=%s%s" % [_selected_desk_id, ws, ch, status, "true" if ready else "false", log_line]
 	desk_log.text = ""
 	var lines0: Variant = snap.get("log_lines", [])
 	if lines0 is Array:
