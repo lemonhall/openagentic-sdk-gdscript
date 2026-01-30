@@ -1,33 +1,25 @@
 extends Node
-
 signal connected
 signal disconnected
 signal raw_line_received(line: String)
 signal message_received(msg: RefCounted)
 signal ctcp_action_received(prefix: String, target: String, text: String)
 signal error(msg: String)
-
 const IrcClientTransport := preload("res://addons/irc_client/IrcClientTransport.gd")
 const IrcParser := preload("res://addons/irc_client/IrcParser.gd")
 const IrcClientCap := preload("res://addons/irc_client/IrcClientCap.gd")
 const IrcClientPing := preload("res://addons/irc_client/IrcClientPing.gd")
 const IrcClientCtcp := preload("res://addons/irc_client/IrcClientCtcp.gd")
+const IrcClientRegistration := preload("res://addons/irc_client/IrcClientRegistration.gd")
 const IrcWire := preload("res://addons/irc_client/IrcWire.gd")
-
 var _parser = null
 var _wire = null
 var _transport = null
 var _cap = null
 var _ping = null
 var _ctcp = null
+var _reg = null
 var _was_connected: bool = false
-
-var _nick: String = ""
-var _user_user: String = ""
-var _user_mode: String = "0"
-var _user_unused: String = "*"
-var _user_realname: String = ""
-
 func _ensure_init() -> void:
 	if _parser == null: _parser = IrcParser.new()
 	if _wire == null: _wire = IrcWire.new()
@@ -35,10 +27,12 @@ func _ensure_init() -> void:
 	if _cap == null: _cap = IrcClientCap.new()
 	if _ping == null: _ping = IrcClientPing.new()
 	if _ctcp == null: _ctcp = IrcClientCtcp.new()
+	if _reg == null: _reg = IrcClientRegistration.new()
 
 func set_peer(peer: Object) -> void:
 	_ensure_init()
 	_transport.call("set_peer", peer)
+	_reg.call("reset")
 	_was_connected = false
 
 func set_cap_enabled(enabled: bool) -> void:
@@ -53,27 +47,33 @@ func set_sasl_plain(user: String, password: String) -> void:
 	_ensure_init()
 	_cap.call("set_sasl_plain", user, password)
 
+func set_password(password: String) -> void:
+	_ensure_init()
+	_reg.call("set_password", password)
+
 func set_nick(nick: String) -> void:
-	_nick = nick
+	_ensure_init()
+	_reg.call("set_nick", nick)
 
 func set_user(user: String, mode: String = "0", unused: String = "*", realname: String = "") -> void:
-	_user_user = user
-	_user_mode = mode
-	_user_unused = unused
-	_user_realname = realname
+	_ensure_init()
+	_reg.call("set_user", user, mode, unused, realname)
 
 func connect_to(host: String, port: int) -> void:
 	_ensure_init()
+	_reg.call("reset")
 	var err: int = int(_transport.call("connect_to", host, port))
 	if err != OK:
 		error.emit("connect_to_host failed: %s" % str(err))
 
 func connect_to_tls_over_stream(stream: StreamPeerTCP, server_name: String) -> void:
 	_ensure_init()
+	_reg.call("reset")
 	_transport.call("connect_to_tls_over_stream", stream, server_name)
 
 func connect_to_tls(host: String, port: int, server_name: String = "") -> void:
 	_ensure_init()
+	_reg.call("reset")
 	var err: int = int(_transport.call("connect_to_tls", host, port, server_name))
 	if err != OK:
 		error.emit("connect_to_host failed: %s" % str(err))
@@ -162,13 +162,9 @@ func _send_registration_if_ready() -> void:
 	_ensure_init()
 	if bool(_cap.call("is_in_progress")):
 		return
-	if _nick.strip_edges() != "":
-		send_message("NICK", [_nick])
-	if _user_user.strip_edges() != "":
-		var rn := _user_realname
-		if rn.strip_edges() == "":
-			rn = _user_user
-		send_message("USER", [_user_user, _user_mode, _user_unused], rn)
+	_reg.call("send_if_ready", func(cmd: String, params: Array, trailing: String) -> void:
+		send_message(cmd, params, trailing)
+	)
 
 func _read_available() -> void:
 	var lines: Array[String] = _transport.call("read_lines")
@@ -184,6 +180,20 @@ func _read_available() -> void:
 		raw_line_received.emit(line)
 		var msg = _parser.call("parse_line", line)
 		message_received.emit(msg)
+
+		var cmd := String((msg as Object).get("command"))
+		if cmd == "ERROR":
+			var reason := String((msg as Object).get("trailing"))
+			if reason.strip_edges() == "":
+				var params = (msg as Object).get("params")
+				if params is Array and params.size() > 0:
+					reason = String(params[0])
+			if reason.strip_edges() == "":
+				reason = "server ERROR"
+			error.emit(reason)
+			close_connection()
+			return
+
 		if bool(_cap.call("on_message", msg, func(out: String) -> void: send_raw_line(out))):
 			_send_registration_if_ready()
 		_ctcp.call("handle_message", msg, func(prefix: String, target: String, text: String) -> void: ctcp_action_received.emit(prefix, target, text))

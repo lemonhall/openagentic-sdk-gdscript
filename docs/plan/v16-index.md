@@ -20,7 +20,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 5. **Verify:** headless test run evidence. (done)
 6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (done)
 7. **Hardening (v16 robustness):** partial-write safe output queue + line length limits + bounded buffers. (done)
-8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (doing)
+8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (done)
 
 ## Plans (v16)
 
@@ -55,6 +55,13 @@ Hardening focus (“扎实”):
 - **Protocol line length safety:** outgoing formatting enforces a max byte budget (510 bytes before CRLF) with UTF-8 safe truncation of trailing payloads.
 - **Bounded buffers:** incoming line buffering is bounded; overflow triggers transport close + client `error` + `disconnected`.
 
+### Fourth review (2026-01-30)
+
+Classic IRC completeness checks:
+
+- **Registration correctness:** supports optional `PASS` (before `NICK/USER`) and avoids resending registration lines even when CAP completion causes repeated “ready to register” callbacks.
+- **Server ERROR handling:** receiving `ERROR :...` emits `error` and closes the connection (emitting `disconnected`).
+
 ## Definition of Done (DoD)
 
 - Addon code lives under `addons/irc_client/` and is usable from game code via scripts/classes (pure GDScript).
@@ -82,6 +89,10 @@ Hardening focus (“扎实”):
   - `tests/test_irc_line_buffer_limits.gd`
   - `tests/test_irc_transport_overflow.gd`
   - `tests/test_irc_client_overflow_disconnect.gd`
+  - `tests/test_irc_client_registration_order.gd`
+  - `tests/test_irc_client_registration_idempotent.gd`
+  - `tests/test_irc_client_user_realname.gd`
+  - `tests/test_irc_client_server_error_disconnect.gd`
 
 - Last verification (Linux headless):
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_parser.gd`
@@ -94,3 +105,7 @@ Hardening focus (“扎实”):
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer_limits.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_transport_overflow.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_overflow_disconnect.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_registration_order.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_registration_idempotent.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_user_realname.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_server_error_disconnect.gd`
