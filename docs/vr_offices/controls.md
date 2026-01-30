@@ -18,6 +18,7 @@ This document lists the current keyboard/mouse bindings in `vr_offices/`.
 ## Workspaces (when dialogue is closed)
 
 - Create workspace: **Left Click + Drag** on the floor, release to name the workspace
+- After creating a workspace, an on-screen hint briefly explains how to open the workspace menu.
 - Workspace menu: **Right Click** a workspace (use **Shift+Right Click** if an NPC is selected)
 - Delete workspace: workspace menu → **Delete workspace**
 

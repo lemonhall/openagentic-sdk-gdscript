@@ -5,6 +5,8 @@ signal create_canceled
 signal delete_requested(workspace_id: String)
 signal add_standing_desk_requested(workspace_id: String)
 
+const CREATE_POPUP_SIZE := Vector2i(520, 180)
+
 @onready var create_popup: PopupPanel = %CreatePopup
 @onready var name_edit: LineEdit = %NameEdit
 @onready var context_menu: PopupMenu = %ContextMenu
@@ -38,9 +40,13 @@ func prompt_create(default_name: String) -> void:
 	if create_popup == null or name_edit == null:
 		return
 	name_edit.text = default_name
-	create_popup.popup_centered()
+	# Keep the dialog wide enough so longer text isn't clipped.
+	create_popup.popup_centered(CREATE_POPUP_SIZE)
 	name_edit.grab_focus()
 	name_edit.select_all()
+
+func get_create_popup_size() -> Vector2i:
+	return CREATE_POPUP_SIZE
 
 func cancel_create() -> void:
 	if create_popup != null and create_popup.visible:

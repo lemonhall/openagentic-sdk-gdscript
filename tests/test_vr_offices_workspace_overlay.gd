@@ -30,6 +30,18 @@ func _init() -> void:
 
 	overlay.call("prompt_create", "  Alpha  ")
 	await process_frame
+	var popup := overlay.get_node_or_null("%CreatePopup") as PopupPanel
+	if popup == null:
+		T.fail_and_quit(self, "Missing %CreatePopup")
+		return
+	# Regression: ensure the configured popup size is wide enough.
+	var s0: Variant = overlay.call("get_create_popup_size")
+	if not (s0 is Vector2i):
+		T.fail_and_quit(self, "Expected get_create_popup_size() -> Vector2i")
+		return
+	var s := s0 as Vector2i
+	if not T.require_true(self, int(s.x) >= 480, "Expected CreatePopup configured width >= 480"):
+		return
 	overlay.call("confirm_create")
 	await process_frame
 	if not T.require_eq(self, confirmed.size(), 1, "Expected create_confirmed once"):

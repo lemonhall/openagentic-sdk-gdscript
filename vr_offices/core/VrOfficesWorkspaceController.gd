@@ -26,6 +26,8 @@ var _placing_workspace_rect := Rect2()
 var _placing_yaw := 0.0
 var _desk_preview_root: Node3D = null
 var _desk_preview_model: Node3D = null
+var _action_hint_generation := 0
+var _workspace_create_hint_shown := false
 
 func _init(
 	owner_in: Node,
@@ -176,6 +178,7 @@ func _on_create_confirmed(name: String) -> void:
 	if bool(res.get("ok", false)):
 		if autosave.is_valid():
 			autosave.call()
+		_show_post_create_hint()
 	_hide_preview()
 
 func _on_create_canceled() -> void:
@@ -280,7 +283,38 @@ func _begin_desk_placement(workspace_id: String, rect_xz: Rect2) -> void:
 	var center_xz := rect_xz.position + rect_xz.size * 0.5
 	_set_desk_preview_center_xz(center_xz)
 	if action_hint != null and action_hint.has_method("show_hint"):
+		_action_hint_generation += 1
 		action_hint.call("show_hint", "Place Standing Desk: LMB confirm · R/RMB rotate · Esc cancel")
+
+func _show_post_create_hint() -> void:
+	# Help users discover the workspace context menu (needed to add desks / delete workspaces).
+	# Show once per session to avoid spamming during rapid workspace creation.
+	if owner == null or action_hint == null:
+		return
+	if not owner.is_inside_tree():
+		return
+	if _workspace_create_hint_shown:
+		return
+	if not action_hint.has_method("show_hint") or not action_hint.has_method("hide_hint"):
+		return
+
+	_workspace_create_hint_shown = true
+	_action_hint_generation += 1
+	var gen := _action_hint_generation
+	action_hint.call("show_hint", "提示：Shift + 右键 工作区 打开菜单（添加桌子/删除）\nTip: Shift + RMB on a workspace opens the menu (Add desk / Delete).")
+
+	var tree := owner.get_tree()
+	if tree == null:
+		return
+	tree.create_timer(10.0).timeout.connect(func() -> void:
+		# Only hide if this hint is still the latest hint shown by the controller.
+		if _action_hint_generation != gen:
+			return
+		if _placing_workspace_id != "":
+			return
+		if action_hint != null and action_hint.has_method("hide_hint"):
+			action_hint.call("hide_hint")
+	)
 
 func _end_desk_placement(toast_msg: String = "") -> void:
 	_placing_workspace_id = ""
