@@ -34,6 +34,10 @@ func _init() -> void:
 		T.fail_and_quit(self, "Failed to add npc")
 		return
 
+	# Ensure the NPC is selected (so right-click move issues a command).
+	if world.has_method("select_npc"):
+		world.call("select_npc", npc)
+
 	# Speed up the "waiting for work" timer to keep this test fast.
 	if npc.has_method("set") and npc.has_method("get"):
 		npc.set("waiting_for_work_seconds", 0.2)
@@ -57,16 +61,52 @@ func _init() -> void:
 			if npc_body.is_on_floor():
 				break
 
+	# Regression: RMB move should still work when clicking inside a workspace (no hard conflict with workspace RMB menu).
+	var wsm0: Variant = world.get("_workspace_manager") if world.has_method("get") else null
+	var wsm := wsm0 as RefCounted
+	if wsm == null:
+		T.fail_and_quit(self, "Missing _workspace_manager on VrOffices")
+		return
+	var ws_rect := Rect2(Vector2(npc3d.global_position.x - 1.5, npc3d.global_position.z - 1.5), Vector2(3.0, 3.0))
+	var created: Dictionary = wsm.call("create_workspace", ws_rect, "Test Workspace")
+	if not T.require_true(self, bool(created.get("ok", false)), "Expected to create workspace for RMB regression"):
+		return
+	# Ensure the workspace collider is registered in the physics world before we click.
+	await physics_frame
+
+	# Click a point inside the workspace but not exactly at the NPC position (avoid immediate arrival clearing the indicator).
+	var ws_center := Vector3(npc3d.global_position.x + 0.7, 0.0, npc3d.global_position.z)
+	var ws_screen_pos := cam.unproject_position(ws_center)
+
+	var indicators0 := world.get_node_or_null("MoveIndicators") as Node
+	if not T.require_true(self, indicators0 != null, "Missing MoveIndicators root"):
+		return
+	# If RMB is incorrectly consumed by the workspace menu, no indicator will be created.
+	if not T.require_eq(self, indicators0.get_child_count(), 0, "Expected no move indicators initially (workspace RMB regression)"):
+		return
+
+	var ws_down := InputEventMouseButton.new()
+	ws_down.button_index = MOUSE_BUTTON_RIGHT
+	ws_down.pressed = true
+	ws_down.position = ws_screen_pos
+	world.call("_unhandled_input", ws_down)
+
+	var ws_up := InputEventMouseButton.new()
+	ws_up.button_index = MOUSE_BUTTON_RIGHT
+	ws_up.pressed = false
+	ws_up.position = ws_screen_pos
+	world.call("_unhandled_input", ws_up)
+
+	if not T.require_eq(self, indicators0.get_child_count(), 1, "Expected 1 move indicator after RMB inside workspace"):
+		return
+
 	# Right-click the floor under the NPC (should trigger command_move_to, reach immediately,
 	# then resume wandering after the countdown).
-	var floor_point := Vector3(npc3d.global_position.x, 0.0, npc3d.global_position.z)
+	# Use a small offset so the indicator persists long enough to assert reliably.
+	var floor_point := Vector3(npc3d.global_position.x + 0.6, 0.0, npc3d.global_position.z)
 	var screen_pos := cam.unproject_position(floor_point)
 
-	var indicators := world.get_node_or_null("MoveIndicators") as Node
-	if not T.require_true(self, indicators != null, "Missing MoveIndicators root"):
-		return
-	if not T.require_eq(self, indicators.get_child_count(), 0, "Expected no move indicators initially"):
-		return
+	var indicators := indicators0
 
 	var down := InputEventMouseButton.new()
 	down.button_index = MOUSE_BUTTON_RIGHT
@@ -80,7 +120,9 @@ func _init() -> void:
 	up.position = screen_pos
 	world.call("_unhandled_input", up)
 
-	if not T.require_eq(self, indicators.get_child_count(), 1, "Expected 1 move indicator after right-click"):
+	# A new move command replaces the previous indicator, but queue_free cleanup is deferred by a frame.
+	# Accept 1+ here, and later assert that indicators clear after arrival.
+	if not T.require_true(self, indicators.get_child_count() >= 1, "Expected a move indicator after right-click"):
 		return
 
 	await physics_frame

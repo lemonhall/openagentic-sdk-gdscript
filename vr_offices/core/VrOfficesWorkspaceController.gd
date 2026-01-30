@@ -131,10 +131,10 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 
 	return false
 
-func handle_rmb_release(_screen_pos: Vector2) -> bool:
+func handle_rmb_release(screen_pos: Vector2) -> bool:
 	if _placing_workspace_id == "":
 		return false
-	_end_desk_placement("Canceled")
+	_rotate_desk_preview(screen_pos)
 	return true
 
 func handle_key_event(event: InputEventKey) -> bool:
@@ -147,8 +147,7 @@ func handle_key_event(event: InputEventKey) -> bool:
 		_end_desk_placement("Canceled")
 		return true
 	if event.physical_keycode == KEY_R:
-		_placing_yaw = 0.0 if absf(_placing_yaw) > 1e-3 else PI * 0.5
-		_update_desk_preview(_last_screen)
+		_rotate_desk_preview(_last_screen)
 		return true
 	return false
 
@@ -281,7 +280,7 @@ func _begin_desk_placement(workspace_id: String, rect_xz: Rect2) -> void:
 	var center_xz := rect_xz.position + rect_xz.size * 0.5
 	_set_desk_preview_center_xz(center_xz)
 	if action_hint != null and action_hint.has_method("show_hint"):
-		action_hint.call("show_hint", "Place Standing Desk: LMB confirm · RMB/Esc cancel · R rotate")
+		action_hint.call("show_hint", "Place Standing Desk: LMB confirm · R/RMB rotate · Esc cancel")
 
 func _end_desk_placement(toast_msg: String = "") -> void:
 	_placing_workspace_id = ""
@@ -314,6 +313,18 @@ func _ensure_desk_preview() -> void:
 		if ghost.has_method("set_preview"):
 			ghost.call("set_preview", true)
 		_desk_preview_model = ghost
+
+func _rotate_desk_preview(screen_pos: Vector2) -> void:
+	if _placing_workspace_id == "":
+		return
+	_placing_yaw = _next_snap_yaw(_placing_yaw)
+	_update_desk_preview(screen_pos)
+
+static func _next_snap_yaw(current_yaw: float, step_rad: float = PI * 0.5) -> float:
+	var step := maxf(0.001, absf(step_rad))
+	var snaps := roundi(current_yaw / step) + 1
+	var yaw := float(snaps) * step
+	return wrapf(yaw, 0.0, TAU)
 
 func _free_desk_preview() -> void:
 	if _desk_preview_root != null and is_instance_valid(_desk_preview_root):

@@ -11,14 +11,15 @@ This document lists the current keyboard/mouse bindings in `vr_offices/`.
 ## NPC interaction (when dialogue is closed)
 
 - Select NPC: **Left Click** on an NPC
-- Move selected NPC: **Right Click** on the floor
+- Move selected NPC: **Right Click** on the floor (including inside a workspace)
 - Talk: **Double Left Click** on an NPC (same as pressing **E**)
 - Talk (keyboard): select an NPC, press **E**
 
 ## Workspaces (when dialogue is closed)
 
 - Create workspace: **Left Click + Drag** on the floor, release to name the workspace
-- Delete workspace: **Right Click** a workspace → **Delete workspace**
+- Workspace menu: **Right Click** a workspace (use **Shift+Right Click** if an NPC is selected)
+- Delete workspace: workspace menu → **Delete workspace**
 
 ## Workspace furniture: Standing Desk
 
@@ -26,8 +27,8 @@ This document lists the current keyboard/mouse bindings in `vr_offices/`.
 - Placement mode (see on-screen action hint while active):
   - Move preview: move mouse over the floor
   - Confirm placement: **Left Click**
-  - Cancel placement: **Right Click** (without dragging) or **Esc**
-  - Rotate: press **R** (90°)
+  - Cancel placement: **Esc**
+  - Rotate: **R** or **Right Click** (snap 90°, cycles 0°/90°/180°/270°)
 
 ## Dialogue overlay (when dialogue is open)
 

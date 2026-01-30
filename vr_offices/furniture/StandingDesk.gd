@@ -52,20 +52,22 @@ func _apply_preview_visuals() -> void:
 		_preview_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_preview_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_preview_overlay.emission_enabled = true
-		_preview_overlay.emission_energy_multiplier = 0.25
+		_preview_overlay.emission_energy_multiplier = 1.25
 
-	var tint := Color(1.0, 1.0, 1.0, 0.25)
+	# Use a strong tint (but keep original textures visible) so "can place" is obvious.
+	var tint := Color(0.25, 0.85, 1.0, 0.45)
 	if not _preview_valid:
-		tint = Color(1.0, 0.35, 0.35, 0.25)
+		tint = Color(1.0, 0.20, 0.20, 0.55)
 	_preview_overlay.albedo_color = tint
-	_preview_overlay.emission = Color(0.25, 0.75, 1.0, 1.0) if _preview_valid else Color(1.0, 0.25, 0.35, 1.0)
+	_preview_overlay.emission = Color(0.25, 0.90, 1.00, 1.0) if _preview_valid else Color(1.0, 0.15, 0.20, 1.0)
+	_preview_overlay.emission_energy_multiplier = 1.25 if _preview_valid else 2.0
 
 	for n0: Node in _iter_descendants(self):
 		if n0 is MeshInstance3D:
 			var mi: MeshInstance3D = n0 as MeshInstance3D
 			if mi != null:
 				# Keep original textures/materials; apply a semi-transparent overlay + per-instance transparency.
-				mi.transparency = 0.45
+				mi.transparency = 0.25
 				mi.material_overlay = _preview_overlay
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
