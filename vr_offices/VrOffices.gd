@@ -14,6 +14,7 @@ const _WorkspaceManagerScript := preload("res://vr_offices/core/VrOfficesWorkspa
 const _WorkspaceControllerScript := preload("res://vr_offices/core/VrOfficesWorkspaceController.gd")
 const _DeskManagerScript := preload("res://vr_offices/core/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/VrOfficesBgm.gd")
+const _IrcSettingsScript := preload("res://vr_offices/core/VrOfficesIrcSettings.gd")
 const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.tscn")
 const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tscn")
@@ -34,6 +35,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var saving_overlay: Control = $UI/SavingOverlay
 @onready var workspace_overlay: Control = $UI/WorkspaceOverlay
 @onready var action_hint_overlay: Control = $UI/ActionHintOverlay
+@onready var irc_overlay: Control = $UI/IrcOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _agent: RefCounted = null
@@ -48,6 +50,7 @@ var _move_ctrl: RefCounted = null
 var _workspace_manager: RefCounted = null
 var _workspace_ctrl: RefCounted = null
 var _desk_manager: RefCounted = null
+var _irc_settings: RefCounted = null
 var _quitting := false
 
 func _ready() -> void:
@@ -64,6 +67,8 @@ func _ready() -> void:
 
 	ui.add_npc_pressed.connect(add_npc)
 	ui.remove_selected_pressed.connect(remove_selected)
+	if ui.has_signal("irc_pressed"):
+		ui.connect("irc_pressed", Callable(self, "open_irc_overlay"))
 	if ui.has_signal("culture_changed"):
 		ui.connect("culture_changed", Callable(self, "set_culture"))
 
@@ -95,7 +100,8 @@ func _ready() -> void:
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
 		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"), Callable(_agent, "effective_save_id"))
-	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _desk_manager)
+	_irc_settings = _IrcSettingsScript.new()
+	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _desk_manager, _irc_settings)
 	_dialogue_ctrl = _DialogueControllerScript.new(
 		self,
 		camera_rig,
@@ -110,6 +116,9 @@ func _ready() -> void:
 			dialogue.connect("message_submitted", Callable(_dialogue_ctrl, "on_message_submitted"))
 		if dialogue.has_signal("closed"):
 			dialogue.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
+
+	if irc_overlay != null and irc_overlay.has_method("bind"):
+		irc_overlay.call("bind", self, _desk_manager)
 
 	_workspace_ctrl = _WorkspaceControllerScript.new(
 		self,
@@ -131,6 +140,7 @@ func _ready() -> void:
 	)
 	if _save_ctrl != null:
 		_save_ctrl.call("load_world")
+	_apply_irc_settings_to_desks()
 	if ui.has_method("set_culture"):
 		ui.call("set_culture", culture_code)
 	if get_tree() != null and get_tree().has_signal("about_to_quit"):
@@ -182,6 +192,41 @@ func set_culture(code: String) -> void:
 func autosave() -> void:
 	if _save_ctrl != null:
 		_save_ctrl.call("save_world", npc_root)
+
+func get_irc_config() -> Dictionary:
+	if _irc_settings == null or not _irc_settings.has_method("get_config"):
+		return {}
+	return _irc_settings.call("get_config")
+
+func set_irc_config(cfg: Dictionary) -> void:
+	if _irc_settings != null and _irc_settings.has_method("set_config"):
+		_irc_settings.call("set_config", cfg)
+	_apply_irc_settings_to_desks()
+	autosave()
+
+func _apply_irc_settings_to_desks() -> void:
+	if _desk_manager == null or _irc_settings == null:
+		return
+	if not _desk_manager.has_method("set_irc_config") or not _irc_settings.has_method("get_config"):
+		return
+	_desk_manager.call("set_irc_config", _irc_settings.call("get_config"))
+
+func open_irc_overlay() -> void:
+	if irc_overlay == null:
+		return
+	if irc_overlay.has_method("set_config"):
+		irc_overlay.call("set_config", get_irc_config())
+	if irc_overlay.has_method("open"):
+		irc_overlay.call("open")
+
+func toggle_irc_overlay() -> void:
+	if irc_overlay == null:
+		return
+	if irc_overlay.visible:
+		if irc_overlay.has_method("close"):
+			irc_overlay.call("close")
+	else:
+		open_irc_overlay()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:

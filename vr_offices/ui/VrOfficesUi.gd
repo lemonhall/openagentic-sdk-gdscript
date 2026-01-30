@@ -3,16 +3,19 @@ extends Control
 signal add_npc_pressed
 signal remove_selected_pressed
 signal culture_changed(culture_code: String)
+signal irc_pressed
 
 @onready var selected_label: Label = %SelectedLabel
 @onready var add_button: Button = %AddNpcButton
 @onready var remove_button: Button = %RemoveSelectedButton
+@onready var irc_button: Button = %IrcButton
 @onready var status_label: Label = %StatusLabel
 @onready var culture_option: OptionButton = %CultureOption
 
 func _ready() -> void:
 	add_button.pressed.connect(_on_add_pressed)
 	remove_button.pressed.connect(_on_remove_pressed)
+	irc_button.pressed.connect(_on_irc_pressed)
 
 	set_selected_text("")
 	set_status_text("")
@@ -23,6 +26,9 @@ func _on_add_pressed() -> void:
 
 func _on_remove_pressed() -> void:
 	remove_selected_pressed.emit()
+
+func _on_irc_pressed() -> void:
+	irc_pressed.emit()
 
 func _setup_culture_options() -> void:
 	culture_option.clear()

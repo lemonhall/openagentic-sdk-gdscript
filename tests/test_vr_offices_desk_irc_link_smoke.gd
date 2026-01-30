@@ -15,11 +15,11 @@ func _init() -> void:
 	await process_frame
 
 	if not link.has_method("configure"):
-		T.fail_and_quit(self, "VrOfficesDeskIrcLink must implement configure(config: Dictionary, save_id: String, desk_id: String)")
+		T.fail_and_quit(self, "VrOfficesDeskIrcLink must implement configure(config: Dictionary, save_id: String, workspace_id: String, desk_id: String)")
 		return
 
 	# Must be safe to configure in headless tests without opening sockets.
-	link.call("configure", {"enabled": false}, "slot1", "desk_1")
+	link.call("configure", {"enabled": false}, "slot1", "ws_1", "desk_1")
 
 	if not link.has_method("get_desired_channel"):
 		T.fail_and_quit(self, "VrOfficesDeskIrcLink must implement get_desired_channel()")
@@ -28,7 +28,8 @@ func _init() -> void:
 	if not T.require_true(self, ch.begins_with("#"), "Derived channel must start with #"):
 		return
 
-	link.queue_free()
+	get_root().remove_child(link)
+	link.free()
 	await process_frame
 
 	T.pass_and_quit(self)

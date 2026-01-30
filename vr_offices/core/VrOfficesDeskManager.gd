@@ -5,6 +5,8 @@ const DESK_KIND_STANDING := "standing_desk"
 const _DEFAULT_FOOTPRINT_XZ := Vector2(1.755, 0.975) # X,Z meters (approx; tweak later)
 const _MAX_DESKS_PER_WORKSPACE := 3
 
+const _DeskIrcLinkScript := preload("res://vr_offices/core/VrOfficesDeskIrcLink.gd")
+
 var _desk_counter := 0
 var _desks: Array[Dictionary] = []
 
@@ -38,13 +40,57 @@ func list_desks_for_workspace(workspace_id: String) -> Array:
 			out.append(d.duplicate(true))
 	return out
 
+func list_desk_irc_snapshots() -> Array:
+	var out: Array = []
+	if _is_headless.is_valid() and bool(_is_headless.call()):
+		return out
+	for d0 in _desks:
+		var d := d0 as Dictionary
+		if d == null:
+			continue
+		var did := String(d.get("id", "")).strip_edges()
+		var wid := String(d.get("workspace_id", "")).strip_edges()
+		var snap := {
+			"desk_id": did,
+			"workspace_id": wid,
+			"desired_channel": "",
+			"status": "no_node",
+			"ready": false,
+			"log_lines": [],
+		}
+		if did != "" and _nodes_by_id.has(did):
+			var n0: Variant = _nodes_by_id.get(did)
+			var node := n0 as Node
+			if node != null:
+				var link := node.get_node_or_null("DeskIrcLink") as Node
+				if link != null and link.has_method("get_debug_snapshot"):
+					var l0: Variant = link.call("get_debug_snapshot")
+					if typeof(l0) == TYPE_DICTIONARY:
+						var l := l0 as Dictionary
+						snap["desired_channel"] = String(l.get("desired_channel", ""))
+						snap["status"] = String(l.get("status", ""))
+						snap["ready"] = bool(l.get("ready", false))
+						snap["log_lines"] = l.get("log_lines", [])
+				elif link != null:
+					if link.has_method("get_status"):
+						snap["status"] = String(link.call("get_status"))
+					if link.has_method("is_ready"):
+						snap["ready"] = bool(link.call("is_ready"))
+					if link.has_method("get_desired_channel"):
+						snap["desired_channel"] = String(link.call("get_desired_channel"))
+		out.append(snap)
+	return out
+
 func bind_scene(root: Node3D, desk_scene: PackedScene, is_headless: Callable, get_save_id: Callable = Callable()) -> void:
 	_root = root
 	_desk_scene = desk_scene
 	_is_headless = is_headless
 	_get_save_id = get_save_id
-	_irc_config = _IrcConfig.from_environment()
 	_rebuild_nodes()
+
+func set_irc_config(config: Dictionary) -> void:
+	_irc_config = config if config != null else {}
+	_refresh_irc_links()
 
 func can_place_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, center_xz: Vector2, yaw: float) -> Dictionary:
 	var wid := workspace_id.strip_edges()
@@ -298,14 +344,21 @@ func _spawn_node_for(desk: Dictionary) -> void:
 	if n.has_method("play_spawn_fx"):
 		n.call("play_spawn_fx")
 
-	_maybe_attach_irc_link(n, did)
+	_maybe_attach_irc_link(n, desk)
 	_nodes_by_id[did] = n
 
-func _maybe_attach_irc_link(desk_node: Node3D, desk_id: String) -> void:
+func _maybe_attach_irc_link(desk_node: Node3D, desk: Dictionary) -> void:
 	if desk_node == null:
 		return
 	if _irc_config.is_empty() or not bool(_irc_config.get("enabled", false)):
 		return
+	if desk == null:
+		return
+	var desk_id := String(desk.get("id", "")).strip_edges()
+	if desk_id == "":
+		return
+	var workspace_id := String(desk.get("workspace_id", "")).strip_edges()
+
 	var sid := ""
 	if _get_save_id.is_valid():
 		sid = String(_get_save_id.call()).strip_edges()
@@ -318,7 +371,41 @@ func _maybe_attach_irc_link(desk_node: Node3D, desk_id: String) -> void:
 	link.name = "DeskIrcLink"
 	desk_node.add_child(link)
 	if link.has_method("configure"):
-		link.call("configure", _irc_config, sid, desk_id)
+		link.call("configure", _irc_config, sid, workspace_id, desk_id)
+
+func _refresh_irc_links() -> void:
+	if _is_headless.is_valid() and bool(_is_headless.call()):
+		return
+	for d0 in _desks:
+		var d := d0 as Dictionary
+		if d == null:
+			continue
+		var did := String(d.get("id", "")).strip_edges()
+		if did == "" or not _nodes_by_id.has(did):
+			continue
+		var n0: Variant = _nodes_by_id.get(did)
+		if typeof(n0) != TYPE_OBJECT:
+			continue
+		var desk_node := n0 as Node3D
+		if desk_node == null or not is_instance_valid(desk_node):
+			continue
+
+		var link := desk_node.get_node_or_null("DeskIrcLink") as Node
+		var enabled := bool(_irc_config.get("enabled", false))
+		if not enabled:
+			if link != null:
+				link.queue_free()
+			continue
+
+		if link == null:
+			_maybe_attach_irc_link(desk_node, d)
+		elif link.has_method("configure"):
+			var sid := ""
+			if _get_save_id.is_valid():
+				sid = String(_get_save_id.call()).strip_edges()
+			if sid == "":
+				sid = "slot1"
+			link.call("configure", _irc_config, sid, String(d.get("workspace_id", "")), did)
 
 func _free_node_for_id(desk_id: String) -> void:
 	var did := desk_id.strip_edges()
@@ -331,5 +418,3 @@ func _free_node_for_id(desk_id: String) -> void:
 	var n := n0 as Node
 	if n != null and is_instance_valid(n):
 		n.queue_free()
-const _IrcConfig := preload("res://vr_offices/core/VrOfficesIrcConfig.gd")
-const _DeskIrcLinkScript := preload("res://vr_offices/core/VrOfficesDeskIrcLink.gd")

@@ -24,8 +24,15 @@ func _init() -> void:
 	var save_id := "slot1-with-a-very-very-long-save-id-1234567890-abcdef"
 	var desk_id := "desk_1234567890_with_extra_suffix_beyond_reasonable_length"
 
+	if not names.has_method("derive_nick"):
+		T.fail_and_quit(self, "VrOfficesIrcNames must implement derive_nick(save_id, desk_id, nicklen)")
+		return
+	if not names.has_method("derive_channel_for_workspace"):
+		T.fail_and_quit(self, "VrOfficesIrcNames must implement derive_channel_for_workspace(save_id, workspace_id, desk_id, channellen)")
+		return
+
 	var nick := String(names.call("derive_nick", save_id, desk_id, 9))
-	var ch := String(names.call("derive_channel", save_id, desk_id, 50))
+	var ch := String(names.call("derive_channel_for_workspace", save_id, "ws_1", desk_id, 50))
 
 	if not T.require_true(self, nick.begins_with("oa"), "Nick should start with 'oa'"):
 		return
@@ -40,10 +47,14 @@ func _init() -> void:
 		return
 	if not T.require_true(self, _is_safe_irc_token(ch.substr(1)), "Channel body should be conservative-safe token"):
 		return
+	if not T.require_true(self, ch.find("ws_1") != -1, "Channel should include workspace_id for meaning"):
+		return
+	if not T.require_true(self, ch.find("desk") != -1, "Channel should include desk_id hint for meaning"):
+		return
 
 	# Deterministic.
 	var nick2 := String(names.call("derive_nick", save_id, desk_id, 9))
-	var ch2 := String(names.call("derive_channel", save_id, desk_id, 50))
+	var ch2 := String(names.call("derive_channel_for_workspace", save_id, "ws_1", desk_id, 50))
 	if not T.require_eq(self, nick2, nick, "Nick must be deterministic"):
 		return
 	if not T.require_eq(self, ch2, ch, "Channel must be deterministic"):

@@ -34,6 +34,14 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 	if owner == null:
 		return
 
+	if event is InputEventKey:
+		var k0 := event as InputEventKey
+		if k0.pressed and not k0.echo and k0.ctrl_pressed and k0.physical_keycode == KEY_I:
+			if owner.has_method("toggle_irc_overlay"):
+				owner.call("toggle_irc_overlay")
+				owner.get_viewport().set_input_as_handled()
+				return
+
 	if dialogue != null and dialogue.visible:
 		# In dialogue: Esc is a 2-step exit (helps avoid accidental close while typing).
 		# 1st Esc: release LineEdit focus (stop typing)

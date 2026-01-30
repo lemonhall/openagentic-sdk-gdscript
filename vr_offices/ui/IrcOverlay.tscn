@@ -1,0 +1,304 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://vr_offices/ui/IrcOverlay.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.06, 0.07, 0.08, 0.92)
+border_color = Color(1, 1, 1, 0.08)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_left = 14
+corner_radius_bottom_right = 14
+content_margin_left = 14
+content_margin_top = 14
+content_margin_right = 14
+content_margin_bottom = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2"]
+bg_color = Color(1, 1, 1, 0.06)
+border_color = Color(1, 1, 1, 0.10)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 10
+content_margin_top = 10
+content_margin_right = 10
+content_margin_bottom = 10
+
+[node name="IrcOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+visible = false
+script = ExtResource("1")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+color = Color(0, 0, 0, 0.35)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+anchors_preset = 10
+anchor_left = 0.06
+anchor_top = 0.10
+anchor_right = 0.94
+anchor_bottom = 0.94
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Header" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "IRC"
+
+[node name="CloseButton" type="Button" parent="Panel/VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Close"
+
+[node name="Tabs" type="TabContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Settings" type="VBoxContainer" parent="Panel/VBox/Tabs"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FormPanel" type="PanelContainer" parent="Panel/VBox/Tabs/Settings"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="Form" type="GridContainer" parent="Panel/VBox/Tabs/Settings/FormPanel"]
+layout_mode = 2
+columns = 2
+
+[node name="EnabledLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Enabled"
+
+[node name="EnabledCheck" type="CheckBox" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+
+[node name="HostLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Host"
+
+[node name="HostEdit" type="LineEdit" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "irc.example.net"
+
+[node name="PortLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Port"
+
+[node name="PortSpin" type="SpinBox" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 65535.0
+step = 1.0
+value = 6667.0
+
+[node name="TlsLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "TLS"
+
+[node name="TlsCheck" type="CheckBox" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+
+[node name="ServerNameLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Server name (SNI)"
+
+[node name="ServerNameEdit" type="LineEdit" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "optional"
+
+[node name="PasswordLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Password"
+
+[node name="PasswordEdit" type="LineEdit" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+secret = true
+placeholder_text = "optional"
+
+[node name="NickLenLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "NickLen default"
+
+[node name="NickLenSpin" type="SpinBox" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 32.0
+step = 1.0
+value = 9.0
+
+[node name="ChannelLenLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "ChannelLen default"
+
+[node name="ChannelLenSpin" type="SpinBox" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 200.0
+step = 1.0
+value = 50.0
+
+[node name="TestNickLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Test nick"
+
+[node name="TestNickEdit" type="LineEdit" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "tester"
+
+[node name="TestChannelLabel" type="Label" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+layout_mode = 2
+text = "Test channel"
+
+[node name="TestChannelEdit" type="LineEdit" parent="Panel/VBox/Tabs/Settings/FormPanel/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "#test"
+
+[node name="ApplyRow" type="HBoxContainer" parent="Panel/VBox/Tabs/Settings"]
+layout_mode = 2
+
+[node name="ApplyButton" type="Button" parent="Panel/VBox/Tabs/Settings/ApplyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save & Apply"
+
+[node name="HintLabel" type="Label" parent="Panel/VBox/Tabs/Settings"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Tip: desks auto-connect when Enabled is on and a host is set."
+
+[node name="Test" type="VBoxContainer" parent="Panel/VBox/Tabs"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Controls" type="HBoxContainer" parent="Panel/VBox/Tabs/Test"]
+layout_mode = 2
+
+[node name="ConnectButton" type="Button" parent="Panel/VBox/Tabs/Test/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Connect"
+
+[node name="DisconnectButton" type="Button" parent="Panel/VBox/Tabs/Test/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Disconnect"
+
+[node name="JoinButton" type="Button" parent="Panel/VBox/Tabs/Test/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Join"
+
+[node name="StatusLabel" type="Label" parent="Panel/VBox/Tabs/Test/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="Log" type="RichTextLabel" parent="Panel/VBox/Tabs/Test"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = false
+scroll_active = true
+selection_enabled = true
+
+[node name="SendRow" type="HBoxContainer" parent="Panel/VBox/Tabs/Test"]
+layout_mode = 2
+
+[node name="SendEdit" type="LineEdit" parent="Panel/VBox/Tabs/Test/SendRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Message to test channel…"
+
+[node name="SendButton" type="Button" parent="Panel/VBox/Tabs/Test/SendRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Send"
+
+[node name="Desks" type="VBoxContainer" parent="Panel/VBox/Tabs"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DeskRow" type="HBoxContainer" parent="Panel/VBox/Tabs/Desks"]
+layout_mode = 2
+
+[node name="RefreshButton" type="Button" parent="Panel/VBox/Tabs/Desks/DeskRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refresh"
+
+[node name="DeskStatusLabel" type="Label" parent="Panel/VBox/Tabs/Desks/DeskRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="Split" type="HSplitContainer" parent="Panel/VBox/Tabs/Desks"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DeskList" type="ItemList" parent="Panel/VBox/Tabs/Desks/Split"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+
+[node name="DeskDetails" type="VBoxContainer" parent="Panel/VBox/Tabs/Desks/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DeskInfoLabel" type="Label" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+
+[node name="DeskLog" type="RichTextLabel" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = false
+scroll_active = true
+selection_enabled = true
+

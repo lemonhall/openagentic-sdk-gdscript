@@ -10,6 +10,7 @@ const IrcNames := preload("res://vr_offices/core/VrOfficesIrcNames.gd")
 
 var _config: Dictionary = {"enabled": false}
 var _save_id: String = ""
+var _workspace_id: String = ""
 var _desk_id: String = ""
 
 var _client: Node = null
@@ -17,20 +18,25 @@ var _status: String = "idle"
 var _ready: bool = false
 var _desired_channel: String = ""
 var _joined_this_session: bool = false
+var _log_lines: Array[String] = []
+var _max_log_lines := 200
 
-func configure(config: Dictionary, save_id: String, desk_id: String) -> void:
+func configure(config: Dictionary, save_id: String, workspace_id: String, desk_id: String) -> void:
 	_config = config if config != null else {"enabled": false}
 	_save_id = save_id.strip_edges()
+	_workspace_id = workspace_id.strip_edges()
 	_desk_id = desk_id.strip_edges()
 
 	var nicklen := int(_config.get("nicklen_default", 9))
 	var channellen := int(_config.get("channellen_default", 50))
 	var nick := String(IrcNames.derive_nick(_save_id, _desk_id, nicklen))
-	_desired_channel = String(IrcNames.derive_channel(_save_id, _desk_id, channellen))
+	_desired_channel = String(IrcNames.derive_channel_for_workspace(_save_id, _workspace_id, _desk_id, channellen))
 
 	_ensure_client()
 	_joined_this_session = false
 	_set_ready(false)
+	_clear_log()
+	_log("config desk=%s ws=%s ch=%s" % [_desk_id, _workspace_id, _desired_channel])
 
 	_client.call("set_cap_enabled", false)
 	_client.call("set_auto_reconnect_enabled", true)
@@ -54,6 +60,20 @@ func get_status() -> String:
 
 func is_ready() -> bool:
 	return _ready
+
+func get_debug_lines() -> Array[String]:
+	return _log_lines.duplicate()
+
+func get_debug_snapshot() -> Dictionary:
+	return {
+		"save_id": _save_id,
+		"workspace_id": _workspace_id,
+		"desk_id": _desk_id,
+		"desired_channel": _desired_channel,
+		"status": _status,
+		"ready": _ready,
+		"log_lines": get_debug_lines(),
+	}
 
 func send_channel_message(text: String) -> void:
 	if _client == null:
@@ -79,6 +99,7 @@ func _ensure_client() -> void:
 	_client.connected.connect(_on_connected)
 	_client.disconnected.connect(_on_disconnected)
 	_client.message_received.connect(_on_message_received)
+	_client.raw_line_received.connect(_on_raw_line_received)
 	_client.error.connect(_on_error)
 
 func _connect_if_needed() -> void:
@@ -104,12 +125,14 @@ func _set_status(s: String) -> void:
 	if ss == _status:
 		return
 	_status = ss
+	_log("status=%s" % _status)
 	status_changed.emit(_status)
 
 func _set_ready(v: bool) -> void:
 	if v == _ready:
 		return
 	_ready = v
+	_log("ready=%s" % ("true" if _ready else "false"))
 	ready_changed.emit(_ready)
 
 func _on_connected() -> void:
@@ -121,7 +144,12 @@ func _on_disconnected() -> void:
 	_set_status("disconnected")
 
 func _on_error(msg: String) -> void:
+	_log("error: %s" % msg)
 	error.emit(msg)
+
+func _on_raw_line_received(line: String) -> void:
+	# Keep a copy for debugging/verification.
+	_log(line)
 
 func _on_message_received(msg: RefCounted) -> void:
 	message_received.emit(msg)
@@ -161,3 +189,13 @@ func _maybe_mark_joined(msg: Object) -> void:
 	_set_status("joined")
 	_set_ready(true)
 
+func _clear_log() -> void:
+	_log_lines = []
+
+func _log(line: String) -> void:
+	var t := line.strip_edges()
+	if t == "":
+		return
+	_log_lines.append("[%s] %s" % [Time.get_time_string_from_system(), t])
+	while _log_lines.size() > _max_log_lines:
+		_log_lines.pop_front()
