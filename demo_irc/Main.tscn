@@ -1,0 +1,128 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://demo_irc/Main.gd" id="1"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="ConnectionPanel" type="PanelContainer" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBox" type="VBoxContainer" parent="Root/ConnectionPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Fields" type="GridContainer" parent="Root/ConnectionPanel/VBox"]
+layout_mode = 2
+columns = 2
+
+[node name="HostLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "Host"
+
+[node name="Host" type="LineEdit" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+placeholder_text = "irc.example.org"
+
+[node name="PortLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "Port"
+
+[node name="Port" type="SpinBox" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+min_value = 1.0
+max_value = 65535.0
+step = 1.0
+value = 6697.0
+
+[node name="TlsLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "TLS"
+
+[node name="Tls" type="CheckBox" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "Enable"
+button_pressed = true
+
+[node name="NickLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "Nick"
+
+[node name="Nick" type="LineEdit" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+placeholder_text = "my_nick"
+
+[node name="UserLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "User"
+
+[node name="User" type="LineEdit" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+placeholder_text = "my_user"
+
+[node name="RealnameLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "Real Name"
+
+[node name="Realname" type="LineEdit" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+placeholder_text = "My Real Name"
+
+[node name="ChannelLabel" type="Label" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+text = "Channel"
+
+[node name="Channel" type="LineEdit" parent="Root/ConnectionPanel/VBox/Fields"]
+layout_mode = 2
+placeholder_text = "#channel"
+
+[node name="Buttons" type="HBoxContainer" parent="Root/ConnectionPanel/VBox"]
+layout_mode = 2
+
+[node name="Connect" type="Button" parent="Root/ConnectionPanel/VBox/Buttons"]
+layout_mode = 2
+text = "Connect"
+
+[node name="Disconnect" type="Button" parent="Root/ConnectionPanel/VBox/Buttons"]
+layout_mode = 2
+text = "Disconnect"
+
+[node name="Join" type="Button" parent="Root/ConnectionPanel/VBox/Buttons"]
+layout_mode = 2
+text = "Join"
+
+[node name="ChatLog" type="RichTextLabel" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+selection_enabled = true
+
+[node name="InputRow" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="Input" type="LineEdit" parent="Root/InputRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type and press Enter…"
+
+[node name="Send" type="Button" parent="Root/InputRow"]
+layout_mode = 2
+text = "Send"
+
