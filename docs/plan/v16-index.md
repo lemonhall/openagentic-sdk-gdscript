@@ -18,7 +18,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 3. **Client:** connect/register + ping/pong loop with integration test. (done)
 4. **Commands:** helpers for JOIN/PART/PRIVMSG/NOTICE + event signals. (done)
 5. **Verify:** headless test run evidence. (done)
-6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (doing)
+6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (done)
 
 ## Plans (v16)
 
