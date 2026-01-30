@@ -35,6 +35,13 @@ class FakeStreamPeerTCP:
 		outbound = PackedByteArray()
 		return s
 
+func _sasl_plain_b64(user: String, password: String) -> String:
+	var payload := PackedByteArray([0])
+	payload.append_array(user.to_utf8_buffer())
+	payload.append(0)
+	payload.append_array(password.to_utf8_buffer())
+	return Marshalls.raw_to_base64(payload)
+
 func _init() -> void:
 	var ClientScript := load("res://addons/irc_client/IrcClient.gd")
 	if ClientScript == null or not (ClientScript is Script) or not (ClientScript as Script).can_instantiate():
@@ -52,17 +59,14 @@ func _init() -> void:
 	get_root().add_child(client)
 	await process_frame
 
-	if not T.require_true(self, client.has_method("set_peer"), "IrcClient must implement set_peer(peer)"):
-		return
-	if not T.require_true(self, client.has_method("set_cap_enabled"), "IrcClient must implement set_cap_enabled(enabled: bool)"):
-		return
-	if not T.require_true(self, client.has_method("set_requested_caps"), "IrcClient must implement set_requested_caps(caps: Array[String])"):
+	if not T.require_true(self, client.has_method("set_sasl_plain"), "IrcClient must implement set_sasl_plain(user: String, password: String)"):
 		return
 
 	var fake := FakeStreamPeerTCP.new()
 	client.call("set_peer", fake)
 	client.call("set_cap_enabled", true)
-	client.call("set_requested_caps", ["sasl", "message-tags"])
+	client.call("set_requested_caps", ["sasl"])
+	client.call("set_sasl_plain", "u", "p")
 
 	client.call("set_nick", "nick_test")
 	client.call("set_user", "user_test", "0", "*", "Real Name")
@@ -70,61 +74,65 @@ func _init() -> void:
 	var buf = (BufScript as Script).new()
 	var sent: Array[String] = []
 
-	# First poll should start CAP (and NOT send NICK/USER yet).
+	var deadline_ms: int = Time.get_ticks_msec() + 2000
+
+	# Kick things off.
 	client.call("poll")
 	await process_frame
-	var out1: String = fake.server_take_outbound_text()
-	for l in (buf.call("push_chunk", out1) as Array[String]):
+	for l in (buf.call("push_chunk", fake.server_take_outbound_text()) as Array[String]):
 		sent.append(l)
-
 	if not T.require_true(self, sent.any(func(x: String) -> bool: return x == "CAP LS 302"), "Expected CAP LS 302 on start"):
 		return
 
-	# Server advertises capabilities; client should REQ the intersection.
-	fake.server_push_line(":srv CAP * LS :sasl message-tags other")
+	# CAP LS -> client CAP REQ :sasl
+	fake.server_push_line(":srv CAP * LS :sasl")
 	client.call("poll")
 	await process_frame
-	var out2: String = fake.server_take_outbound_text()
-	var req_line := ""
-	for l in (buf.call("push_chunk", out2) as Array[String]):
+	for l in (buf.call("push_chunk", fake.server_take_outbound_text()) as Array[String]):
 		sent.append(l)
-		if l.begins_with("CAP REQ "):
-			req_line = l
-	if not T.require_true(self, req_line != "", "Expected CAP REQ after CAP LS"):
-		return
-	if not T.require_true(self, req_line.find("sasl") != -1 and req_line.find("message-tags") != -1, "CAP REQ should include requested caps"):
+	if not T.require_true(self, sent.any(func(x: String) -> bool: return x.begins_with("CAP REQ ") and x.find("sasl") != -1), "Expected CAP REQ :sasl"):
 		return
 
-	# Server ACK; client should CAP END, then proceed with registration.
-	fake.server_push_line(":srv CAP * ACK :sasl message-tags")
-	var deadline_ms: int = Time.get_ticks_msec() + 1000
+	# CAP ACK -> client AUTHENTICATE PLAIN
+	fake.server_push_line(":srv CAP * ACK :sasl")
+	client.call("poll")
+	await process_frame
+	for l in (buf.call("push_chunk", fake.server_take_outbound_text()) as Array[String]):
+		sent.append(l)
+	if not T.require_true(self, sent.any(func(x: String) -> bool: return x == "AUTHENTICATE PLAIN"), "Expected AUTHENTICATE PLAIN after ACK"):
+		return
+
+	# AUTHENTICATE + -> client AUTHENTICATE <b64>
+	fake.server_push_line("AUTHENTICATE +")
+	client.call("poll")
+	await process_frame
+	var b64 := _sasl_plain_b64("u", "p")
+	var expected := "AUTHENTICATE %s" % b64
+	for l in (buf.call("push_chunk", fake.server_take_outbound_text()) as Array[String]):
+		sent.append(l)
+	if not T.require_true(self, sent.any(func(x: String) -> bool: return x == expected), "Expected SASL PLAIN payload"):
+		return
+
+	# SASL success numeric -> client CAP END (eventually).
+	fake.server_push_line(":srv 903 nick_test :SASL success")
 	while Time.get_ticks_msec() < deadline_ms:
 		client.call("poll")
 		await process_frame
-		var out: String = fake.server_take_outbound_text()
+		var out := fake.server_take_outbound_text()
 		if out != "":
 			for l in (buf.call("push_chunk", out) as Array[String]):
 				sent.append(l)
-		if sent.any(func(x: String) -> bool: return x == "CAP END") and sent.any(func(x: String) -> bool: return x.begins_with("NICK ")) and sent.any(func(x: String) -> bool: return x.begins_with("USER ")):
+		if sent.any(func(x: String) -> bool: return x == "CAP END"):
 			break
 
-	if not T.require_true(self, sent.any(func(x: String) -> bool: return x == "CAP END"), "Expected CAP END after ACK"):
+	if not T.require_true(self, sent.any(func(x: String) -> bool: return x == "CAP END"), "Expected CAP END after SASL success"):
 		return
 
+	# CAP END should not precede SASL payload.
 	var idx_end: int = sent.find("CAP END")
-	var idx_req: int = -1
-	var idx_nick: int = -1
-	var idx_user: int = -1
-	for i in range(sent.size()):
-		if idx_req == -1 and sent[i].begins_with("CAP REQ "):
-			idx_req = i
-		if idx_nick == -1 and sent[i].begins_with("NICK "):
-			idx_nick = i
-		if idx_user == -1 and sent[i].begins_with("USER "):
-			idx_user = i
-	if not T.require_true(self, idx_end != -1 and idx_req != -1 and idx_nick != -1 and idx_user != -1, "Expected CAP REQ + CAP END + NICK + USER"):
-		return
-	if not T.require_true(self, idx_req < idx_end, "CAP END must occur after CAP REQ"):
+	var idx_payload: int = sent.find(expected)
+	if not T.require_true(self, idx_payload != -1 and idx_end != -1 and idx_payload < idx_end, "CAP END must be after SASL payload"):
 		return
 
 	T.pass_and_quit(self)
+

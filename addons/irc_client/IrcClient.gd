@@ -45,6 +45,10 @@ func set_requested_caps(caps: Array) -> void:
 	_ensure_init()
 	_cap.call("set_requested_caps", caps)
 
+func set_sasl_plain(user: String, password: String) -> void:
+	_ensure_init()
+	_cap.call("set_sasl_plain", user, password)
+
 func set_nick(nick: String) -> void:
 	_nick = nick
 

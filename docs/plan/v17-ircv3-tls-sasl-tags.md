@@ -45,6 +45,7 @@ Extend the v16 IRC client addon to support TLS and the minimal IRCv3 feature set
 - Slice 3 (SASL):
   - **Red:** unit tests for SASL PLAIN happy-path.
   - **Green:** implement minimal SASL PLAIN flow.
+  - Evidence: `tests/test_irc_client_sasl_plain.gd`.
 
 - Slice 4 (TLS):
   - Prefer integration tests where environment permits; otherwise isolate transport wiring and cover state/branching.
