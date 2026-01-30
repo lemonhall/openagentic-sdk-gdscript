@@ -71,6 +71,10 @@ func _init() -> void:
 		return
 	if not await _expect_pong(client, fake, buf, "PING abc", "PONG abc"):
 		return
+	if not await _expect_pong(client, fake, buf, "PING a b", "PONG a b"):
+		return
+	if not await _expect_pong(client, fake, buf, "PING a b c", "PONG a b c"):
+		return
 	if not await _expect_pong(client, fake, buf, "PING", "PONG"):
 		return
 

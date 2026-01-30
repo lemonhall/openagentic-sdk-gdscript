@@ -24,6 +24,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 9. **Classic coverage (v16):** add explicit tests for JOIN/PART/PRIVMSG/NOTICE/QUIT and PING variants. (done)
 10. **Test diversity (v16):** random chunking + burst/split integration + wire token validation + fuzz roundtrips. (done)
 11. **Classic edge cases (v16):** empty trailing semantics + iterative partial-write flushing. (done)
+12. **Classic PING + inbound fuzz (v16):** mirror multi-param PING, tolerate leading spaces, add random inbound chunking test. (done)
 
 ## Plans (v16)
 
@@ -34,6 +35,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 - `docs/plan/v16-irc-client-classic-coverage.md`
 - `docs/plan/v16-irc-client-test-diversity.md`
 - `docs/plan/v16-irc-client-classic-edge-cases-2.md`
+- `docs/plan/v16-irc-client-classic-ping-and-random-inbound.md`
 
 ## Gap Review (Vision vs. Reality)
 
@@ -90,6 +92,14 @@ Protocol edge-case focus:
 - **Empty trailing semantics:** `PRIVMSG/NOTICE` now preserve the difference between “missing param” and “present-but-empty” via forced ` :` output when needed.
 - **Transport robustness:** partial-write flushing is iterative (no recursion), reducing worst-case stack risk under backpressure.
 
+### Eighth review (2026-01-30)
+
+Protocol semantics + test diversity focus:
+
+- **PING multi-param semantics:** `PING a b` / `PING a b c` now mirrors all params in `PONG ...` (best-effort, protocol-faithful).
+- **Parser robustness:** tolerate leading spaces (defensive parsing).
+- **Inbound fragmentation diversity:** new deterministic random chunking integration test exercises the full client read loop.
+
 ## Definition of Done (DoD)
 
 - Addon code lives under `addons/irc_client/` and is usable from game code via scripts/classes (pure GDScript).
@@ -127,6 +137,8 @@ Protocol edge-case focus:
   - `tests/test_irc_line_buffer_random_chunking.gd`
   - `tests/test_irc_wire_reject_invalid_tokens.gd`
   - `tests/test_irc_wire_parser_roundtrip_fuzz.gd`
+  - `tests/test_irc_parser_leading_spaces.gd`
+  - `tests/test_irc_client_random_inbound_chunking.gd`
 
 - Last verification (Linux headless):
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_parser.gd`
@@ -149,4 +161,5 @@ Protocol edge-case focus:
   - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer_random_chunking.gd`
   - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_parser_roundtrip_fuzz.gd`
   - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_burst_and_split.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_random_inbound_chunking.gd`
   - `for t in $(ls tests/test_irc_*.gd | sort); do echo "--- RUN $t"; timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"; done`

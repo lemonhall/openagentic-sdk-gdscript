@@ -15,8 +15,15 @@ func maybe_reply(msg: RefCounted, send_line: Callable) -> void:
 
 	var params = (msg as Object).get("params")
 	if params is Array and params.size() > 0:
-		send_line.call("PONG %s" % String(params[0]))
+		var parts: Array[String] = []
+		for p in params:
+			var s := String(p)
+			if s != "":
+				parts.append(s)
+		if parts.is_empty():
+			send_line.call("PONG")
+		else:
+			send_line.call("PONG %s" % " ".join(parts))
 		return
 
 	send_line.call("PONG")
-

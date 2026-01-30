@@ -16,13 +16,17 @@ func parse_line(line: String) -> RefCounted:
 
 	var i: int = 0
 
+	# Tolerate leading spaces (defensive parsing).
+	while i < s.length() and s.substr(i, 1) == " ":
+		i += 1
+
 	# IRCv3 message tags (optional): "@a=b;c :prefix CMD ..."
-	if s.begins_with("@"):
-		var tag_end: int = s.find(" ")
+	if i < s.length() and s.substr(i, 1) == "@":
+		var tag_end: int = s.find(" ", i)
 		if tag_end == -1:
-			msg.tags = _parse_tags(s.substr(1))
+			msg.tags = _parse_tags(s.substr(i + 1))
 			return msg
-		msg.tags = _parse_tags(s.substr(1, tag_end - 1))
+		msg.tags = _parse_tags(s.substr(i + 1, tag_end - (i + 1)))
 		i = tag_end + 1
 
 	# Skip extra spaces (after tags).
