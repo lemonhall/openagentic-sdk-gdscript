@@ -17,3 +17,12 @@ position = Vector3(0, 0.02, 0)
 position = Vector3(0, 0.05, 0)
 shape = SubResource("BoxShape3D_1")
 
+[node name="Walls" type="Node3D" parent="."]
+
+[node name="WallPosX" type="MeshInstance3D" parent="Walls"]
+
+[node name="WallNegX" type="MeshInstance3D" parent="Walls"]
+
+[node name="WallPosZ" type="MeshInstance3D" parent="Walls"]
+
+[node name="WallNegZ" type="MeshInstance3D" parent="Walls"]

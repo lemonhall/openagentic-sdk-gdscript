@@ -33,6 +33,16 @@ func _init() -> void:
 		return
 	if not T.require_eq(self, String(child.get("workspace_name")), "Team A", "Expected name on node"):
 		return
+	# Visual: workspace should have wall nodes (purely visual, no collision required).
+	var walls := child.get_node_or_null("Walls") as Node3D
+	if not T.require_true(self, walls != null, "Expected workspace Walls node"):
+		return
+	var px := walls.get_node_or_null("WallPosX") as Node
+	var nx := walls.get_node_or_null("WallNegX") as Node
+	var pz := walls.get_node_or_null("WallPosZ") as Node
+	var nz := walls.get_node_or_null("WallNegZ") as Node
+	if not T.require_true(self, px != null and nx != null and pz != null and nz != null, "Expected 4 wall mesh nodes"):
+		return
 
 	var wid := String(child.get("workspace_id"))
 	var del: Dictionary = mgr.call("delete_workspace", wid)
@@ -49,4 +59,3 @@ func _init() -> void:
 	root.free()
 	await process_frame
 	T.pass_and_quit(self)
-

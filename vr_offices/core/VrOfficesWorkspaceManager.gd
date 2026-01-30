@@ -92,6 +92,7 @@ func create_workspace(rect_xz: Rect2, name: String) -> Dictionary:
 	}
 	_workspaces.append(ws)
 	_spawn_node_for(ws)
+	_play_spawn_fx_for(ws)
 	return {"ok": true, "workspace": ws}
 
 func delete_workspace(workspace_id: String) -> Dictionary:
@@ -248,6 +249,25 @@ func _spawn_node_for(ws: Dictionary) -> void:
 		n.call("configure", r, color, false)
 	n.name = wid
 	_nodes_by_id[wid] = n
+
+func _play_spawn_fx_for(ws: Dictionary) -> void:
+	if ws == null:
+		return
+	if _workspace_root == null:
+		return
+	if _is_headless.is_valid() and bool(_is_headless.call()):
+		return
+	var wid := String(ws.get("id", "")).strip_edges()
+	if wid == "" or not _nodes_by_id.has(wid):
+		return
+	var n0: Variant = _nodes_by_id.get(wid)
+	if typeof(n0) != TYPE_OBJECT:
+		return
+	var n := n0 as Node
+	if n == null or not is_instance_valid(n):
+		return
+	if n.has_method("play_spawn_fx"):
+		n.call("play_spawn_fx")
 
 func _free_node_for_id(workspace_id: String) -> void:
 	var wid := workspace_id.strip_edges()
