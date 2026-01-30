@@ -4,20 +4,23 @@ signal connected
 signal disconnected
 signal raw_line_received(line: String)
 signal message_received(msg: RefCounted)
+signal ctcp_action_received(prefix: String, target: String, text: String)
 signal error(msg: String)
 
 const IrcLineBuffer := preload("res://addons/irc_client/IrcLineBuffer.gd")
 const IrcParser := preload("res://addons/irc_client/IrcParser.gd")
 const IrcClientCap := preload("res://addons/irc_client/IrcClientCap.gd")
+const IrcClientTls := preload("res://addons/irc_client/IrcClientTls.gd")
+const IrcClientPing := preload("res://addons/irc_client/IrcClientPing.gd")
+const IrcClientCtcp := preload("res://addons/irc_client/IrcClientCtcp.gd")
 
 var _peer: Object = null # StreamPeerTCP or test double implementing the same methods.
-var _tls_under: Object = null # Underlying stream for TLS, when _peer is StreamPeerTLS.
-var _tls_peer: StreamPeerTLS = null
-var _tls_server_name: String = ""
-var _tls_handshake_started: bool = false
+var _tls = null
 var _buf = null
 var _parser = null
 var _cap = null
+var _ping = null
+var _ctcp = null
 var _was_connected: bool = false
 
 var _nick: String = ""
@@ -26,23 +29,18 @@ var _user_mode: String = "0"
 var _user_unused: String = "*"
 var _user_realname: String = ""
 
-func _ready() -> void:
-	_ensure_init()
-
 func _ensure_init() -> void:
-	if _buf == null:
-		_buf = IrcLineBuffer.new()
-	if _parser == null:
-		_parser = IrcParser.new()
-	if _cap == null:
-		_cap = IrcClientCap.new()
+	if _buf == null: _buf = IrcLineBuffer.new()
+	if _parser == null: _parser = IrcParser.new()
+	if _cap == null: _cap = IrcClientCap.new()
+	if _tls == null: _tls = IrcClientTls.new()
+	if _ping == null: _ping = IrcClientPing.new()
+	if _ctcp == null: _ctcp = IrcClientCtcp.new()
 
 func set_peer(peer: Object) -> void:
+	_ensure_init()
 	_peer = peer
-	_tls_under = null
-	_tls_peer = null
-	_tls_server_name = ""
-	_tls_handshake_started = false
+	_tls.call("reset")
 	_was_connected = false
 
 func set_cap_enabled(enabled: bool) -> void:
@@ -67,23 +65,17 @@ func set_user(user: String, mode: String = "0", unused: String = "*", realname: 
 	_user_realname = realname
 
 func connect_to(host: String, port: int) -> void:
+	_ensure_init()
 	var tcp := StreamPeerTCP.new()
 	var err := tcp.connect_to_host(host, port)
 	if err != OK:
 		error.emit("connect_to_host failed: %s" % str(err))
 	_peer = tcp
-	_tls_under = null
-	_tls_peer = null
-	_tls_server_name = ""
-	_tls_handshake_started = false
+	_tls.call("reset")
 
 func connect_to_tls_over_stream(stream: StreamPeerTCP, server_name: String) -> void:
 	_ensure_init()
-	_tls_under = stream
-	_tls_peer = StreamPeerTLS.new()
-	_tls_server_name = server_name
-	_tls_handshake_started = false
-	_peer = _tls_peer
+	_peer = _tls.call("configure_over_stream", stream, server_name)
 
 func connect_to_tls(host: String, port: int, server_name: String = "") -> void:
 	var sn := server_name
@@ -100,35 +92,24 @@ func poll() -> void:
 	if _peer == null:
 		return
 
-	# If TLS is configured but handshake hasn't started yet, wait until the underlying TCP is connected.
-	if _tls_peer != null and _peer == _tls_peer and not _tls_handshake_started:
-		if _tls_under != null and _tls_under.has_method("poll"):
-			_tls_under.call("poll")
-		if _tls_under != null and _tls_under.has_method("get_status"):
-			var under_status: int = int(_tls_under.call("get_status"))
-			if under_status == StreamPeerTCP.STATUS_CONNECTED:
-				var err := _tls_peer.connect_to_stream(_tls_under as StreamPeer, _tls_server_name)
-				if err != OK:
-					error.emit("tls.connect_to_stream failed: %s" % str(err))
-				_tls_handshake_started = true
+	if not bool(_tls.call("poll_pre")):
+		var tls_err: int = int(_tls.call("take_last_err"))
+		if tls_err != OK:
+			error.emit("tls.connect_to_stream failed: %s" % str(tls_err))
 		return
 
-	if _tls_under != null and _tls_under.has_method("poll"):
-		_tls_under.call("poll")
 	if _peer.has_method("poll"):
 		_peer.call("poll")
 	var status: int = StreamPeerTCP.STATUS_ERROR
 	if _peer.has_method("get_status"):
 		status = int(_peer.call("get_status"))
 
-	if status == StreamPeerTCP.STATUS_CONNECTED and not _was_connected:
-		_was_connected = true
-		connected.emit()
-		_cap.call("on_connected", func(line: String) -> void:
-			send_raw_line(line)
-		)
-		if not bool(_cap.call("is_in_progress")):
-			_send_registration_if_ready()
+		if status == StreamPeerTCP.STATUS_CONNECTED and not _was_connected:
+			_was_connected = true
+			connected.emit()
+			_cap.call("on_connected", func(line: String) -> void: send_raw_line(line))
+			if not bool(_cap.call("is_in_progress")):
+				_send_registration_if_ready()
 
 	if status == StreamPeerTCP.STATUS_NONE or status == StreamPeerTCP.STATUS_ERROR:
 		if _was_connected:
@@ -173,6 +154,10 @@ func privmsg(target: String, text: String) -> void:
 func notice(target: String, text: String) -> void:
 	send_raw_line("NOTICE %s :%s" % [target, text])
 
+func ctcp_action(target: String, text: String) -> void:
+	_ensure_init()
+	_ctcp.call("send_action", target, text, func(out: String) -> void: send_raw_line(out))
+
 func _send_registration_if_ready() -> void:
 	_ensure_init()
 	if bool(_cap.call("is_in_progress")):
@@ -202,34 +187,7 @@ func _read_available() -> void:
 		raw_line_received.emit(line)
 		var msg = _parser.call("parse_line", line)
 		message_received.emit(msg)
-		if bool(_cap.call("on_message", msg, func(out: String) -> void:
-			send_raw_line(out)
-		)):
+		if bool(_cap.call("on_message", msg, func(out: String) -> void: send_raw_line(out))):
 			_send_registration_if_ready()
-		_maybe_auto_reply(msg)
-
-func _maybe_auto_reply(msg: RefCounted) -> void:
-	# Minimal keepalive: reply to server PING.
-	if msg == null:
-		return
-	var cmd: String = ""
-	if (msg as Object).has_method("get"):
-		cmd = String((msg as Object).get("command"))
-	if cmd != "PING":
-		return
-
-	var payload: String = ""
-	if (msg as Object).has_method("get"):
-		payload = String((msg as Object).get("trailing"))
-	if payload.strip_edges() != "":
-		send_raw_line("PONG :%s" % payload)
-		return
-
-	var params = []
-	if (msg as Object).has_method("get"):
-		params = (msg as Object).get("params")
-	if params is Array and params.size() > 0:
-		send_raw_line("PONG %s" % String(params[0]))
-		return
-
-	send_raw_line("PONG")
+		_ctcp.call("handle_message", msg, func(prefix: String, target: String, text: String) -> void: ctcp_action_received.emit(prefix, target, text))
+		_ping.call("maybe_reply", msg, func(out: String) -> void: send_raw_line(out))

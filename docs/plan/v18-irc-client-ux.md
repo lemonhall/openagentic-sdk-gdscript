@@ -25,4 +25,3 @@ Add the “client experience” layer on top of v16/v17: reconnection, state man
 - Start with reconnect unit tests and a fake/scripted server harness.
 - Add CTCP tests next.
 - Add history last (opt-in, bounded, safe).
-

@@ -3,8 +3,12 @@ extends RefCounted
 const IrcMessage := preload("res://addons/irc_client/IrcMessage.gd")
 
 func parse_line(line: String) -> RefCounted:
-	# Accept lines with or without CRLF, but parse the content only.
-	var s := line.strip_edges(false, true)
+	# Accept lines with or without CRLF, but only strip line terminators.
+	# Do NOT use strip_edges() here: IRC payloads may contain CTCP delimiter (SOH, \u0001),
+	# which Godot treats as whitespace and would strip from the right side.
+	var s := line
+	if s.ends_with("\n"):
+		s = s.substr(0, s.length() - 1)
 	if s.ends_with("\r"):
 		s = s.substr(0, s.length() - 1)
 
