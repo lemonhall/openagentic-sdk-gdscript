@@ -20,12 +20,14 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 5. **Verify:** headless test run evidence. (done)
 6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (done)
 7. **Hardening (v16 robustness):** partial-write safe output queue + line length limits + bounded buffers. (done)
+8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (doing)
 
 ## Plans (v16)
 
 - `docs/plan/v16-irc-client-core.md`
 - `docs/plan/v16-irc-client-core-polish.md`
 - `docs/plan/v16-irc-client-core-hardening.md`
+- `docs/plan/v16-irc-client-classic-completeness.md`
 
 ## Gap Review (Vision vs. Reality)
 
