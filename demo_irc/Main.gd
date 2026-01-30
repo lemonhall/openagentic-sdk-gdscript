@@ -3,6 +3,7 @@ extends Control
 const IrcClient := preload("res://addons/irc_client/IrcClient.gd")
 const DemoIrcConfig := preload("res://demo_irc/DemoIrcConfig.gd")
 const DemoIrcInbound := preload("res://demo_irc/DemoIrcInbound.gd")
+const DemoIrcLogFormat := preload("res://demo_irc/DemoIrcLogFormat.gd")
 
 @onready var _host: LineEdit = $"Root/ConnectionPanel/VBox/Fields/Host"
 @onready var _port: SpinBox = $"Root/ConnectionPanel/VBox/Fields/Port"
@@ -173,7 +174,8 @@ func _append_status(line: String) -> void:
 func _append_chat(line: String) -> void:
 	if _chat_log == null:
 		return
-	_chat_log.append_text(line + "\n")
+	var stamped := String(DemoIrcLogFormat.prepend(Time.get_time_string_from_system(), line))
+	_chat_log.append_text(stamped + "\n")
 
 func _update_buttons() -> void:
 	_connect.disabled = _connected
