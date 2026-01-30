@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://assets/office_pack_glb/Standing Desk.glb" id="2"]
 
 [node name="StandingDesk" type="Node3D"]
+scale = Vector3(1.5, 1.5, 1.5)
 script = ExtResource("1")
 
 [node name="Model" parent="." instance=ExtResource("2")]
-

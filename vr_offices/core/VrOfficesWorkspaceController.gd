@@ -1,12 +1,14 @@
 extends RefCounted
 
 const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.tscn")
+const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tscn")
 
 var owner: Node = null
 var camera_rig: Node = null
 var workspace_manager: RefCounted = null
 var desk_manager: RefCounted = null
 var overlay: Control = null
+var action_hint: Control = null
 var autosave: Callable = Callable()
 
 var _armed := false
@@ -25,6 +27,7 @@ var _placing_yaw := 0.0
 var _desk_preview_root: Node3D = null
 var _desk_preview_mesh: MeshInstance3D = null
 var _desk_preview_mat: StandardMaterial3D = null
+var _desk_preview_model: Node3D = null
 
 func _init(
 	owner_in: Node,
@@ -32,6 +35,7 @@ func _init(
 	manager_in: RefCounted,
 	desk_manager_in: RefCounted,
 	overlay_in: Control,
+	action_hint_in: Control,
 	autosave_in: Callable
 ) -> void:
 	owner = owner_in
@@ -39,6 +43,7 @@ func _init(
 	workspace_manager = manager_in
 	desk_manager = desk_manager_in
 	overlay = overlay_in
+	action_hint = action_hint_in
 	autosave = autosave_in
 
 	if overlay != null:
@@ -277,14 +282,16 @@ func _begin_desk_placement(workspace_id: String, rect_xz: Rect2) -> void:
 	_last_screen = owner.get_viewport().get_mouse_position()
 	var center_xz := rect_xz.position + rect_xz.size * 0.5
 	_set_desk_preview_center_xz(center_xz)
-	if overlay != null and overlay.has_method("show_toast"):
-		overlay.call("show_toast", "Place Standing Desk: LMB confirm, RMB/Esc cancel, R rotate", 3.0)
+	if action_hint != null and action_hint.has_method("show_hint"):
+		action_hint.call("show_hint", "Place Standing Desk: LMB confirm · RMB/Esc cancel · R rotate")
 
 func _end_desk_placement(toast_msg: String = "") -> void:
 	_placing_workspace_id = ""
 	_placing_workspace_rect = Rect2()
 	_placing_yaw = 0.0
 	_free_desk_preview()
+	if action_hint != null and action_hint.has_method("hide_hint"):
+		action_hint.call("hide_hint")
 	if toast_msg.strip_edges() != "" and overlay != null and overlay.has_method("show_toast"):
 		overlay.call("show_toast", toast_msg)
 
@@ -295,7 +302,7 @@ func _ensure_desk_preview() -> void:
 		return
 	_desk_preview_root = Node3D.new()
 	_desk_preview_root.name = "DeskPreview"
-	_desk_preview_root.position = Vector3(0, 0.05, 0)
+	_desk_preview_root.position = Vector3(0, 0.0, 0)
 	owner.add_child(_desk_preview_root)
 
 	var mi := MeshInstance3D.new()
@@ -303,6 +310,7 @@ func _ensure_desk_preview() -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3(1, 0.05, 1)
 	mi.mesh = box
+	mi.position = Vector3(0, 0.03, 0)
 	_desk_preview_mat = StandardMaterial3D.new()
 	_desk_preview_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_desk_preview_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -311,12 +319,23 @@ func _ensure_desk_preview() -> void:
 	_desk_preview_root.add_child(mi)
 	_desk_preview_mesh = mi
 
+	var ghost0 := _StandingDeskScene.instantiate()
+	var ghost := ghost0 as Node3D
+	if ghost != null:
+		ghost.name = "GhostStandingDesk"
+		ghost.process_mode = Node.PROCESS_MODE_DISABLED
+		if ghost.has_method("set_preview"):
+			ghost.call("set_preview", true)
+		_desk_preview_root.add_child(ghost)
+		_desk_preview_model = ghost
+
 func _free_desk_preview() -> void:
 	if _desk_preview_root != null and is_instance_valid(_desk_preview_root):
 		_desk_preview_root.queue_free()
 	_desk_preview_root = null
 	_desk_preview_mesh = null
 	_desk_preview_mat = null
+	_desk_preview_model = null
 
 func _update_desk_preview(screen_pos: Vector2) -> void:
 	if owner == null or desk_manager == null or _placing_workspace_id == "":
@@ -346,11 +365,12 @@ func _update_desk_preview(screen_pos: Vector2) -> void:
 	var can: Dictionary = desk_manager.call("can_place_standing_desk", _placing_workspace_id, rect, center_xz, yaw)
 	var ok := bool(can.get("ok", false))
 
-	_desk_preview_root.position = Vector3(cx, 0.05, cz)
-	_desk_preview_root.rotation = Vector3(0.0, yaw, 0.0)
+	_desk_preview_root.position = Vector3(cx, 0.0, cz)
 	var box := _desk_preview_mesh.mesh as BoxMesh
 	if box != null:
 		box.size = Vector3(size_xz.x, 0.05, size_xz.y)
+	if _desk_preview_model != null and is_instance_valid(_desk_preview_model):
+		_desk_preview_model.rotation = Vector3(0.0, yaw, 0.0)
 	if _desk_preview_mat != null:
 		_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45) if ok else Color(0.95, 0.35, 0.35, 0.45)
 
@@ -368,11 +388,12 @@ func _set_desk_preview_center_xz(center_xz: Vector2) -> void:
 	var can: Dictionary = desk_manager.call("can_place_standing_desk", _placing_workspace_id, rect, center_xz, yaw)
 	var ok := bool(can.get("ok", false))
 
-	_desk_preview_root.position = Vector3(center_xz.x, 0.05, center_xz.y)
-	_desk_preview_root.rotation = Vector3(0.0, yaw, 0.0)
+	_desk_preview_root.position = Vector3(center_xz.x, 0.0, center_xz.y)
 	var box := _desk_preview_mesh.mesh as BoxMesh
 	if box != null:
 		box.size = Vector3(size_xz.x, 0.05, size_xz.y)
+	if _desk_preview_model != null and is_instance_valid(_desk_preview_model):
+		_desk_preview_model.rotation = Vector3(0.0, yaw, 0.0)
 	if _desk_preview_mat != null:
 		_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45) if ok else Color(0.95, 0.35, 0.35, 0.45)
 

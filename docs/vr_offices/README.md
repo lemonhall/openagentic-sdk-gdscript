@@ -91,6 +91,7 @@ Controls:
 - Move selected NPC: **Right Click** on the floor
 - Talk: select an NPC, press **E** to open a modern chat overlay (**Esc twice** to close while typing)
 - Full control reference: `docs/vr_offices/controls.md` (English) / `docs/vr_offices/controls.zh-CN.md` (中文)
+- Action hint overlay (for temporary modes): `docs/vr_offices/action_hints.md` / `docs/vr_offices/action_hints.zh-CN.md`
 
 ## BGM
 

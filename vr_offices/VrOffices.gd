@@ -33,6 +33,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var dialogue: Control = $UI/DialogueOverlay
 @onready var saving_overlay: Control = $UI/SavingOverlay
 @onready var workspace_overlay: Control = $UI/WorkspaceOverlay
+@onready var action_hint_overlay: Control = $UI/ActionHintOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _agent: RefCounted = null
@@ -116,6 +117,7 @@ func _ready() -> void:
 		_workspace_manager,
 		_desk_manager,
 		workspace_overlay,
+		action_hint_overlay,
 		Callable(self, "autosave")
 	)
 	_input_ctrl = _InputControllerScript.new(

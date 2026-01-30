@@ -30,14 +30,38 @@ func _init() -> void:
 
 	# Too many desks should be rejected.
 	var max_per_ws := int(mgr.call("get_max_desks_per_workspace"))
-	for i in range(max_per_ws - 1):
-		var x := -2.0 + float(i) * 2.0
-		var ok_add: Dictionary = mgr.call("add_standing_desk", "ws_1", ws_rect, Vector3(x, 0, -2), 0.0)
-		if not T.require_true(self, bool(ok_add.get("ok", false)), "Expected desk placement ok until reaching limit"):
-			return
-	var too_many: Dictionary = mgr.call("add_standing_desk", "ws_1", ws_rect, Vector3(2, 0, 2), 0.0)
+	var size0: Vector2 = mgr.call("get_standing_desk_footprint_size_xz", 0.0)
+	var start_x := float(ws_rect.position.x + size0.x * 0.5)
+	var end_x := float(ws_rect.position.x + ws_rect.size.x - size0.x * 0.5)
+	var start_z := float(ws_rect.position.y + size0.y * 0.5)
+	var end_z := float(ws_rect.position.y + ws_rect.size.y - size0.y * 0.5)
+	var step_x := float(size0.x + 0.25)
+	var step_z := float(size0.y + 0.25)
+
+	var target_count := max_per_ws
+	var added := 1
+	for zi in range(50):
+		var cz := start_z + float(zi) * step_z
+		if cz > end_z:
+			break
+		for xi in range(50):
+			var cx := start_x + float(xi) * step_x
+			if cx > end_x:
+				break
+			if absf(cx) < 0.2 and absf(cz) < 0.2:
+				continue
+			var ok_add: Dictionary = mgr.call("add_standing_desk", "ws_1", ws_rect, Vector3(cx, 0, cz), 0.0)
+			if bool(ok_add.get("ok", false)):
+				added += 1
+				if added >= target_count:
+					break
+		if added >= target_count:
+			break
+	if not T.require_eq(self, added, target_count, "Expected to place desks up to the per-workspace limit"):
+		return
+
+	var too_many: Dictionary = mgr.call("add_standing_desk", "ws_1", ws_rect, Vector3(0, 0, 0), 0.0)
 	if not T.require_true(self, bool(too_many.get("ok", false)) == false, "Expected desk placement rejected when exceeding limit"):
 		return
 
 	T.pass_and_quit(self)
-

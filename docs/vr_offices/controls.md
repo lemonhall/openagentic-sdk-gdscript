@@ -15,6 +15,20 @@ This document lists the current keyboard/mouse bindings in `vr_offices/`.
 - Talk: **Double Left Click** on an NPC (same as pressing **E**)
 - Talk (keyboard): select an NPC, press **E**
 
+## Workspaces (when dialogue is closed)
+
+- Create workspace: **Left Click + Drag** on the floor, release to name the workspace
+- Delete workspace: **Right Click** a workspace → **Delete workspace**
+
+## Workspace furniture: Standing Desk
+
+- Start placement: **Right Click** a workspace → **Add Standing Desk…**
+- Placement mode (see on-screen action hint while active):
+  - Move preview: move mouse over the floor
+  - Confirm placement: **Left Click**
+  - Cancel placement: **Right Click** (without dragging) or **Esc**
+  - Rotate: press **R** (90°)
+
 ## Dialogue overlay (when dialogue is open)
 
 - Exit dialogue (keyboard): press **Esc twice**

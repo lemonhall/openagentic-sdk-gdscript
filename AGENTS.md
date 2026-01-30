@@ -212,3 +212,7 @@ scripts/setup_kenney_mini_characters.sh
 Main scene:
 
 - `res://vr_offices/VrOffices.tscn`
+
+Interaction hint UI (recommended for temporary modes like placement):
+
+- `res://vr_offices/ui/ActionHintOverlay.tscn` (docs: `docs/vr_offices/action_hints.md`)
