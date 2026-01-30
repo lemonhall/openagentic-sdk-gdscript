@@ -3,9 +3,9 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var Script0 := load("res://vr_offices/core/VrOfficesWorkspaceManager.gd")
+	var Script0 := load("res://vr_offices/core/workspaces/VrOfficesWorkspaceManager.gd")
 	if Script0 == null:
-		T.fail_and_quit(self, "Missing res://vr_offices/core/VrOfficesWorkspaceManager.gd")
+		T.fail_and_quit(self, "Missing res://vr_offices/core/workspaces/VrOfficesWorkspaceManager.gd")
 		return
 
 	var bounds := Rect2(Vector2(-10, -10), Vector2(20, 20))
@@ -48,4 +48,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

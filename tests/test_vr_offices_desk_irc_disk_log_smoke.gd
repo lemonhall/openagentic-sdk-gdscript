@@ -3,9 +3,9 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var LinkScript := load("res://vr_offices/core/VrOfficesDeskIrcLink.gd")
+	var LinkScript := load("res://vr_offices/core/desks/VrOfficesDeskIrcLink.gd")
 	if LinkScript == null or not (LinkScript is Script) or not (LinkScript as Script).can_instantiate():
-		T.fail_and_quit(self, "Missing or invalid res://vr_offices/core/VrOfficesDeskIrcLink.gd")
+		T.fail_and_quit(self, "Missing or invalid res://vr_offices/core/desks/VrOfficesDeskIrcLink.gd")
 		return
 
 	var link := (LinkScript as Script).new() as Node
@@ -58,4 +58,3 @@ func _init() -> void:
 	link.free()
 	await process_frame
 	T.pass_and_quit(self)
-

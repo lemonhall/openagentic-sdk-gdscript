@@ -3,7 +3,7 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var ManagerScript := load("res://vr_offices/core/VrOfficesWorkspaceManager.gd")
+	var ManagerScript := load("res://vr_offices/core/workspaces/VrOfficesWorkspaceManager.gd")
 	var AreaScene0 := load("res://vr_offices/workspaces/WorkspaceArea.tscn")
 	if ManagerScript == null or AreaScene0 == null or not (AreaScene0 is PackedScene):
 		T.fail_and_quit(self, "Missing workspace manager / area scene")

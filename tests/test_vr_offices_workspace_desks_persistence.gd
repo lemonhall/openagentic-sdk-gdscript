@@ -3,8 +3,8 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var DeskScript := load("res://vr_offices/core/VrOfficesDeskManager.gd")
-	var WorldStateScript := load("res://vr_offices/core/VrOfficesWorldState.gd")
+	var DeskScript := load("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
+	var WorldStateScript := load("res://vr_offices/core/state/VrOfficesWorldState.gd")
 	if DeskScript == null or WorldStateScript == null:
 		T.fail_and_quit(self, "Missing desk manager / world state scripts")
 		return

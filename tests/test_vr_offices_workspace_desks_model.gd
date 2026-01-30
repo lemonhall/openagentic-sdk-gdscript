@@ -3,9 +3,9 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var DeskScript := load("res://vr_offices/core/VrOfficesDeskManager.gd")
+	var DeskScript := load("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 	if DeskScript == null:
-		T.fail_and_quit(self, "Missing res://vr_offices/core/VrOfficesDeskManager.gd")
+		T.fail_and_quit(self, "Missing res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 		return
 
 	var mgr := (DeskScript as Script).new() as RefCounted

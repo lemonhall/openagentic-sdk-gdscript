@@ -12,9 +12,9 @@ static func _is_safe_irc_token(s: String) -> bool:
 	return true
 
 func _init() -> void:
-	var NamesScript := load("res://vr_offices/core/VrOfficesIrcNames.gd")
+	var NamesScript := load("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 	if NamesScript == null or not (NamesScript is Script) or not (NamesScript as Script).can_instantiate():
-		T.fail_and_quit(self, "Missing or invalid res://vr_offices/core/VrOfficesIrcNames.gd")
+		T.fail_and_quit(self, "Missing or invalid res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 		return
 
 	var names = (NamesScript as Script).new()

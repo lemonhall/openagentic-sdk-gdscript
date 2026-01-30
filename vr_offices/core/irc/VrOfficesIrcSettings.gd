@@ -1,6 +1,6 @@
 extends RefCounted
 
-const _Defaults := preload("res://vr_offices/core/VrOfficesIrcConfig.gd")
+const _Defaults := preload("res://vr_offices/core/irc/VrOfficesIrcConfig.gd")
 
 var _config: Dictionary = {}
 

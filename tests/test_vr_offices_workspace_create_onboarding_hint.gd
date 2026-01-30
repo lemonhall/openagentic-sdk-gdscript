@@ -19,7 +19,7 @@ func _init() -> void:
 	get_root().add_child(owner)
 	await process_frame
 
-	var WorkspaceManagerScript := load("res://vr_offices/core/VrOfficesWorkspaceManager.gd")
+	var WorkspaceManagerScript := load("res://vr_offices/core/workspaces/VrOfficesWorkspaceManager.gd")
 	if WorkspaceManagerScript == null or not (WorkspaceManagerScript is Script):
 		T.fail_and_quit(self, "Missing VrOfficesWorkspaceManager.gd")
 		return
@@ -29,7 +29,7 @@ func _init() -> void:
 		T.fail_and_quit(self, "Failed to instantiate workspace manager")
 		return
 
-	var WorkspaceCtrlScript := load("res://vr_offices/core/VrOfficesWorkspaceController.gd")
+	var WorkspaceCtrlScript := load("res://vr_offices/core/workspaces/VrOfficesWorkspaceController.gd")
 	if WorkspaceCtrlScript == null or not (WorkspaceCtrlScript is Script):
 		T.fail_and_quit(self, "Missing VrOfficesWorkspaceController.gd")
 		return
@@ -52,7 +52,7 @@ func _init() -> void:
 
 	# Simulate a pending create rect and confirm creation.
 	var rect := Rect2(Vector2(-2, -2), Vector2(4, 4))
-	ctrl.set("_pending_rect", rect)
+	ctrl.call("debug_set_pending_rect", rect)
 	ctrl.call("_on_create_confirmed", "Test Workspace")
 	await process_frame
 

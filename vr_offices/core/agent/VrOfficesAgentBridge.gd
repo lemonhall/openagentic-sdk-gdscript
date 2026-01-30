@@ -1,6 +1,6 @@
 extends RefCounted
 
-const _OAData := preload("res://vr_offices/core/VrOfficesData.gd")
+const _OAData := preload("res://vr_offices/core/data/VrOfficesData.gd")
 
 var _owner: Node
 var _find_npc_by_id: Callable
@@ -131,4 +131,3 @@ func _after_turn_hook(payload: Dictionary) -> Dictionary:
 		npc.call("stop_override_animation")
 		return {"action": "npc_anim:stop_override"}
 	return {}
-

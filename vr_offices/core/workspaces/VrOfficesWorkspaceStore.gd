@@ -1,28 +1,14 @@
 extends RefCounted
 
-const PASTEL_COLORS: Array[Color] = [
-	Color(0.98, 0.80, 0.82, 0.35), # pink
-	Color(0.80, 0.92, 0.98, 0.35), # blue
-	Color(0.86, 0.98, 0.84, 0.35), # mint
-	Color(0.99, 0.93, 0.77, 0.35), # peach
-	Color(0.88, 0.83, 0.98, 0.35), # lavender
-	Color(0.82, 0.98, 0.96, 0.35), # aqua
-]
+const _Palette := preload("res://vr_offices/core/workspaces/VrOfficesWorkspacePalette.gd")
 
 var floor_bounds_xz: Rect2
 
 var _workspace_counter := 0
 var _workspaces: Array[Dictionary] = []
-var _workspace_root: Node3D = null
-var _workspace_scene: PackedScene = null
-var _is_headless: Callable = Callable()
-var _nodes_by_id: Dictionary = {}
 
-func _init(bounds_xz: Rect2, workspace_root: Node3D = null, workspace_scene: PackedScene = null, is_headless: Callable = Callable()) -> void:
+func _init(bounds_xz: Rect2) -> void:
 	floor_bounds_xz = bounds_xz
-	_workspace_root = workspace_root
-	_workspace_scene = workspace_scene
-	_is_headless = is_headless
 
 func get_workspace_counter() -> int:
 	return _workspace_counter
@@ -30,6 +16,9 @@ func get_workspace_counter() -> int:
 func list_workspaces() -> Array:
 	# Intentionally untyped return for caller flexibility.
 	return _workspaces.duplicate(true)
+
+func list_workspaces_ref() -> Array[Dictionary]:
+	return _workspaces
 
 func get_workspace(workspace_id: String) -> Dictionary:
 	var wid := workspace_id.strip_edges()
@@ -47,12 +36,6 @@ func get_workspace_rect_xz(workspace_id: String) -> Rect2:
 	var ws := get_workspace(workspace_id)
 	var r0: Variant = ws.get("rect_xz")
 	return r0 as Rect2 if (r0 is Rect2) else Rect2()
-
-func bind_scene(workspace_root: Node3D, workspace_scene: PackedScene, is_headless: Callable) -> void:
-	_workspace_root = workspace_root
-	_workspace_scene = workspace_scene
-	_is_headless = is_headless
-	_rebuild_nodes()
 
 func clamp_rect_to_floor(r: Rect2) -> Rect2:
 	var min_x := float(floor_bounds_xz.position.x)
@@ -83,7 +66,7 @@ func create_workspace(rect_xz: Rect2, name: String) -> Dictionary:
 		return {"ok": false, "reason": "overlap"}
 
 	_workspace_counter += 1
-	var color_index := (_workspace_counter - 1) % PASTEL_COLORS.size()
+	var color_index := (_workspace_counter - 1) % _Palette.PASTEL_COLORS.size()
 	var ws := {
 		"id": "ws_%d" % _workspace_counter,
 		"name": name.strip_edges(),
@@ -91,8 +74,6 @@ func create_workspace(rect_xz: Rect2, name: String) -> Dictionary:
 		"color_index": color_index,
 	}
 	_workspaces.append(ws)
-	_spawn_node_for(ws)
-	_play_spawn_fx_for(ws)
 	return {"ok": true, "workspace": ws}
 
 func delete_workspace(workspace_id: String) -> Dictionary:
@@ -111,8 +92,7 @@ func delete_workspace(workspace_id: String) -> Dictionary:
 	if idx < 0:
 		return {"ok": false, "reason": "not_found"}
 	_workspaces.remove_at(idx)
-	_free_node_for_id(wid)
-	return {"ok": true}
+	return {"ok": true, "workspace_id": wid}
 
 func to_state_array() -> Array:
 	var arr: Array = []
@@ -167,19 +147,6 @@ func load_from_state_dict(state: Dictionary) -> void:
 			"color_index": int(e.get("color_index", 0)),
 		}
 		_workspaces.append(ws)
-	_rebuild_nodes()
-
-func workspace_id_from_collider(obj: Object) -> String:
-	var cur := obj
-	while cur != null and cur is Node:
-		var n := cur as Node
-		if n.is_in_group("vr_offices_workspace") and n.has_method("get"):
-			var v: Variant = n.get("workspace_id")
-			if v != null:
-				return String(v)
-			return n.name
-		cur = n.get_parent()
-	return ""
 
 func _overlaps_any(r: Rect2) -> bool:
 	for ws0 in _workspaces:
@@ -208,75 +175,3 @@ static func _rects_overlap_exclusive(a: Rect2, b: Rect2) -> bool:
 
 	return (ax0 < bx1) and (ax1 > bx0) and (az0 < bz1) and (az1 > bz0)
 
-func _rebuild_nodes() -> void:
-	# Keep state logic functional in headless/test environments even if visuals are unavailable.
-	_nodes_by_id.clear()
-	if _workspace_root == null or _workspace_scene == null:
-		return
-
-	for c0 in _workspace_root.get_children():
-		var c := c0 as Node
-		if c != null:
-			c.queue_free()
-
-	for ws in _workspaces:
-		_spawn_node_for(ws)
-
-func _spawn_node_for(ws: Dictionary) -> void:
-	if _workspace_root == null or _workspace_scene == null:
-		return
-	if ws == null:
-		return
-	var wid := String(ws.get("id", "")).strip_edges()
-	if wid == "" or _nodes_by_id.has(wid):
-		return
-	var rect0: Variant = ws.get("rect_xz")
-	if not (rect0 is Rect2):
-		return
-	var r := rect0 as Rect2
-	var color_index := int(ws.get("color_index", 0))
-	var color := PASTEL_COLORS[wrapi(color_index, 0, PASTEL_COLORS.size())]
-
-	var node0 := _workspace_scene.instantiate()
-	var n := node0 as Node
-	if n == null:
-		return
-	_workspace_root.add_child(n)
-	if n.has_method("set"):
-		n.set("workspace_id", wid)
-		n.set("workspace_name", String(ws.get("name", "")))
-	if n.has_method("configure"):
-		n.call("configure", r, color, false)
-	n.name = wid
-	_nodes_by_id[wid] = n
-
-func _play_spawn_fx_for(ws: Dictionary) -> void:
-	if ws == null:
-		return
-	if _workspace_root == null:
-		return
-	if _is_headless.is_valid() and bool(_is_headless.call()):
-		return
-	var wid := String(ws.get("id", "")).strip_edges()
-	if wid == "" or not _nodes_by_id.has(wid):
-		return
-	var n0: Variant = _nodes_by_id.get(wid)
-	if typeof(n0) != TYPE_OBJECT:
-		return
-	var n := n0 as Node
-	if n == null or not is_instance_valid(n):
-		return
-	if n.has_method("play_spawn_fx"):
-		n.call("play_spawn_fx")
-
-func _free_node_for_id(workspace_id: String) -> void:
-	var wid := workspace_id.strip_edges()
-	if wid == "" or not _nodes_by_id.has(wid):
-		return
-	var n0: Variant = _nodes_by_id.get(wid)
-	_nodes_by_id.erase(wid)
-	if typeof(n0) != TYPE_OBJECT:
-		return
-	var n := n0 as Node
-	if n != null and is_instance_valid(n):
-		n.queue_free()

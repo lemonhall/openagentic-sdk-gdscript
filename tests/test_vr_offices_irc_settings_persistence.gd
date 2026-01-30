@@ -3,13 +3,13 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var WorldStateScript := load("res://vr_offices/core/VrOfficesWorldState.gd")
+	var WorldStateScript := load("res://vr_offices/core/state/VrOfficesWorldState.gd")
 	if WorldStateScript == null or not (WorldStateScript is Script) or not (WorldStateScript as Script).can_instantiate():
-		T.fail_and_quit(self, "Missing res://vr_offices/core/VrOfficesWorldState.gd")
+		T.fail_and_quit(self, "Missing res://vr_offices/core/state/VrOfficesWorldState.gd")
 		return
-	var IrcSettingsScript := load("res://vr_offices/core/VrOfficesIrcSettings.gd")
+	var IrcSettingsScript := load("res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
 	if IrcSettingsScript == null or not (IrcSettingsScript is Script) or not (IrcSettingsScript as Script).can_instantiate():
-		T.fail_and_quit(self, "Missing res://vr_offices/core/VrOfficesIrcSettings.gd")
+		T.fail_and_quit(self, "Missing res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
 		return
 
 	var ws = (WorldStateScript as Script).new()

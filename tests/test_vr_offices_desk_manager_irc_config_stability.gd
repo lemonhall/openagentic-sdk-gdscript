@@ -6,9 +6,9 @@ func _is_not_headless() -> bool:
 	return false
 
 func _init() -> void:
-	var DeskManagerScript := load("res://vr_offices/core/VrOfficesDeskManager.gd")
+	var DeskManagerScript := load("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 	if DeskManagerScript == null or not (DeskManagerScript is Script) or not (DeskManagerScript as Script).can_instantiate():
-		T.fail_and_quit(self, "Missing or invalid res://vr_offices/core/VrOfficesDeskManager.gd")
+		T.fail_and_quit(self, "Missing or invalid res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 		return
 
 	var desk_scene := load("res://vr_offices/furniture/StandingDesk.tscn")

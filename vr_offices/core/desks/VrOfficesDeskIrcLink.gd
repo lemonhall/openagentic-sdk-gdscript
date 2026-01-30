@@ -6,8 +6,9 @@ signal message_received(msg: RefCounted)
 signal error(msg: String)
 
 const IrcClient := preload("res://addons/irc_client/IrcClient.gd")
-const IrcNames := preload("res://vr_offices/core/VrOfficesIrcNames.gd")
-const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+const IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
+const _DeskIrcLog := preload("res://vr_offices/core/desks/VrOfficesDeskIrcLog.gd")
+const _JoinTracker := preload("res://vr_offices/core/desks/VrOfficesDeskIrcJoinTracker.gd")
 
 var _config: Dictionary = {}
 var _save_id: String = ""
@@ -18,10 +19,8 @@ var _client: Node = null
 var _status: String = "idle"
 var _ready: bool = false
 var _desired_channel: String = ""
-var _joined_this_session: bool = false
-var _log_lines: Array[String] = []
-var _max_log_lines := 200
-var _max_log_file_bytes := 256 * 1024
+var _join_tracker := _JoinTracker.new()
+var _log: RefCounted = null
 
 func configure(config: Dictionary, save_id: String, workspace_id: String, desk_id: String) -> void:
 	_config = config if config != null else {}
@@ -35,10 +34,12 @@ func configure(config: Dictionary, save_id: String, workspace_id: String, desk_i
 	_desired_channel = String(IrcNames.derive_channel_for_workspace(_save_id, _workspace_id, _desk_id, channellen))
 
 	_ensure_client()
-	_joined_this_session = false
+	_join_tracker.reset()
 	_set_ready(false)
-	_clear_log()
-	_log("config desk=%s ws=%s ch=%s" % [_desk_id, _workspace_id, _desired_channel])
+	_ensure_logger()
+	_log.call("configure", _save_id, _desk_id)
+	_log.call("clear")
+	_log_line("config desk=%s ws=%s ch=%s" % [_desk_id, _workspace_id, _desired_channel])
 
 	_client.call("set_cap_enabled", false)
 	_client.call("set_auto_reconnect_enabled", true)
@@ -63,7 +64,10 @@ func is_ready() -> bool:
 	return _ready
 
 func get_debug_lines() -> Array[String]:
-	return _log_lines.duplicate()
+	if _log == null:
+		return []
+	var v: Variant = _log.call("get_lines")
+	return v as Array[String] if (v is Array) else []
 
 func get_debug_snapshot() -> Dictionary:
 	return {
@@ -73,8 +77,8 @@ func get_debug_snapshot() -> Dictionary:
 		"desired_channel": _desired_channel,
 		"status": _status,
 		"ready": _ready,
-		"log_file_user": _log_file_user_path(),
-		"log_file_abs": _log_file_abs_path(),
+		"log_file_user": "" if _log == null else String(_log.call("get_log_file_user_path")),
+		"log_file_abs": "" if _log == null else String(_log.call("get_log_file_abs_path")),
 		"log_lines": get_debug_lines(),
 	}
 
@@ -88,7 +92,7 @@ func send_channel_message(text: String) -> void:
 
 func reconnect_now() -> void:
 	_ensure_client()
-	_joined_this_session = false
+	_join_tracker.reset()
 	_set_ready(false)
 	if _client != null:
 		_client.call("close_connection")
@@ -139,18 +143,18 @@ func _set_status(s: String) -> void:
 	if ss == _status:
 		return
 	_status = ss
-	_log("status=%s" % _status)
+	_log_line("status=%s" % _status)
 	status_changed.emit(_status)
 
 func _set_ready(v: bool) -> void:
 	if v == _ready:
 		return
 	_ready = v
-	_log("ready=%s" % ("true" if _ready else "false"))
+	_log_line("ready=%s" % ("true" if _ready else "false"))
 	ready_changed.emit(_ready)
 
 func _on_connected() -> void:
-	_joined_this_session = false
+	_join_tracker.reset()
 	_set_status("tcp_connected")
 
 func _on_disconnected() -> void:
@@ -158,12 +162,12 @@ func _on_disconnected() -> void:
 	_set_status("disconnected")
 
 func _on_error(msg: String) -> void:
-	_log("error: %s" % msg)
+	_log_line("error: %s" % msg)
 	error.emit(msg)
 
 func _on_raw_line_received(line: String) -> void:
 	# Keep a copy for debugging/verification.
-	_log(line)
+	_log_line(line)
 
 func _on_message_received(msg: RefCounted) -> void:
 	message_received.emit(msg)
@@ -173,105 +177,19 @@ func _on_message_received(msg: RefCounted) -> void:
 	var cmd := String(obj.get("command"))
 	if cmd == "001":
 		_set_status("registered")
-		_try_join_after_welcome()
+		_join_tracker.try_join_after_welcome(_client, _desired_channel)
 	elif cmd == "JOIN":
-		_maybe_mark_joined(obj)
-
-func _try_join_after_welcome() -> void:
-	if _client == null:
-		return
-	if _joined_this_session:
-		return
-	var ch := _desired_channel.strip_edges()
-	if ch == "":
-		return
-	_joined_this_session = true
-	_client.call("join", ch)
-
-func _maybe_mark_joined(msg: Object) -> void:
-	if msg == null:
-		return
-	var ch := ""
-
-	var params0: Variant = msg.get("params")
-	if params0 is Array:
-		var params := params0 as Array
-		if not params.is_empty():
-			ch = String(params[0]).strip_edges()
-
-	# Some servers send `JOIN :#channel` (channel ends up in `trailing` for our parser).
-	if ch == "":
-		var trailing0: Variant = msg.get("trailing")
-		if trailing0 == null:
-			ch = ""
-		else:
-			ch = String(trailing0).strip_edges()
-	if ch == "":
-		return
-
-	var desired := _desired_channel.strip_edges()
-	if desired == "":
-		return
-
-	for part0 in ch.split(",", false):
-		var part := String(part0).strip_edges()
-		if part == desired:
+		if _join_tracker.join_matches_desired(obj, _desired_channel):
 			_set_status("joined")
 			_set_ready(true)
-			return
 
-func _clear_log() -> void:
-	_log_lines = []
-
-func _log(line: String) -> void:
-	var t := line.strip_edges()
-	if t == "":
+func _ensure_logger() -> void:
+	if _log != null and is_instance_valid(_log):
 		return
-	var entry := "[%s] %s" % [Time.get_time_string_from_system(), t]
-	_log_lines.append(entry)
-	while _log_lines.size() > _max_log_lines:
-		_log_lines.pop_front()
-	_append_log_to_disk(entry + "\n")
+	_log = _DeskIrcLog.new()
 
-func _log_file_user_path() -> String:
-	if _save_id == "" or _desk_id == "":
-		return ""
-	return "%s/vr_offices/desks/%s/irc.log" % [_OAPaths.save_root(_save_id), _desk_id]
-
-func _log_file_abs_path() -> String:
-	var p := _log_file_user_path()
-	if p == "":
-		return ""
-	return ProjectSettings.globalize_path(p)
-
-func _append_log_to_disk(text: String) -> void:
-	var path := _log_file_user_path()
-	if path == "":
+func _log_line(line: String) -> void:
+	if line.strip_edges() == "":
 		return
-	var abs_dir := ProjectSettings.globalize_path(path.get_base_dir())
-	DirAccess.make_dir_recursive_absolute(abs_dir)
-
-	var f: FileAccess = null
-	var append := FileAccess.file_exists(path)
-	if append:
-		f = FileAccess.open(path, FileAccess.READ_WRITE)
-	else:
-		# Create the file first (READ_WRITE may fail if the file doesn't exist).
-		f = FileAccess.open(path, FileAccess.WRITE)
-	if f == null:
-		return
-	if append:
-		f.seek_end()
-	f.store_string(text)
-	var size := int(f.get_length())
-	f.close()
-	if size <= _max_log_file_bytes:
-		return
-
-	# Keep disk logs bounded by rewriting the last in-memory lines.
-	var f2 := FileAccess.open(path, FileAccess.WRITE)
-	if f2 == null:
-		return
-	for line in _log_lines:
-		f2.store_string(String(line) + "\n")
-	f2.close()
+	_ensure_logger()
+	_log.call("append", line)
