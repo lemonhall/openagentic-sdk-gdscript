@@ -13,7 +13,8 @@ func format_with_max_bytes(command: String, params: Array = [], trailing: String
 	for p in params:
 		var tok := _sanitize_token(String(p))
 		if tok == "":
-			continue
+			# Reject invalid middle parameters rather than silently mutating/dropping them.
+			return ""
 		parts.append(tok)
 
 	var fixed := " ".join(parts)
@@ -50,8 +51,13 @@ func format_message(msg: RefCounted) -> String:
 func _sanitize_token(s: String) -> String:
 	var t := s.strip_edges()
 	t = t.replace("\r", "").replace("\n", "")
-	# Middle tokens must not contain spaces.
-	t = t.replace(" ", "")
+	if t == "":
+		return ""
+	# Middle tokens must not contain whitespace or start with ':' (that would change meaning).
+	if t.begins_with(":"):
+		return ""
+	if t.find(" ") != -1 or t.find("\t") != -1:
+		return ""
 	return t
 
 func _sanitize_trailing(s: String) -> String:

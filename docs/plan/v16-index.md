@@ -22,6 +22,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 7. **Hardening (v16 robustness):** partial-write safe output queue + line length limits + bounded buffers. (done)
 8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (done)
 9. **Classic coverage (v16):** add explicit tests for JOIN/PART/PRIVMSG/NOTICE/QUIT and PING variants. (done)
+10. **Test diversity (v16):** random chunking + burst/split integration + wire token validation + fuzz roundtrips. (done)
 
 ## Plans (v16)
 
@@ -30,6 +31,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 - `docs/plan/v16-irc-client-core-hardening.md`
 - `docs/plan/v16-irc-client-classic-completeness.md`
 - `docs/plan/v16-irc-client-classic-coverage.md`
+- `docs/plan/v16-irc-client-test-diversity.md`
 
 ## Gap Review (Vision vs. Reality)
 
@@ -70,6 +72,15 @@ Coverage focus:
 
 - Add missing regression coverage for classic command helpers (`JOIN/PART/PRIVMSG/NOTICE/QUIT`) and PING edge forms.
 
+### Sixth review (2026-01-30)
+
+Test diversity focus:
+
+- **Random chunking framing:** deterministic seeds cover many TCP fragmentation patterns for `IrcLineBuffer.push_bytes`.
+- **Burst+split integration:** multi-line server bursts split into odd chunks still preserve ordering and produce correct `PONG`.
+- **Wire token correctness:** `IrcWire` no longer silently mutates middle tokens (e.g. `"#a b"` → `"#ab"`); it now rejects invalid tokens to avoid sending incorrect protocol lines.
+- **Wire→Parse fuzz:** deterministic random roundtrips validate `format` + `parse_line` across many combinations (including UTF-8 trailing).
+
 ## Definition of Done (DoD)
 
 - Addon code lives under `addons/irc_client/` and is usable from game code via scripts/classes (pure GDScript).
@@ -103,6 +114,10 @@ Coverage focus:
   - `tests/test_irc_client_server_error_disconnect.gd`
   - `tests/test_irc_client_basic_commands.gd`
   - `tests/test_irc_client_ping_pong_edges.gd`
+  - `tests/test_irc_client_burst_and_split.gd`
+  - `tests/test_irc_line_buffer_random_chunking.gd`
+  - `tests/test_irc_wire_reject_invalid_tokens.gd`
+  - `tests/test_irc_wire_parser_roundtrip_fuzz.gd`
 
 - Last verification (Linux headless):
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_parser.gd`
@@ -121,3 +136,8 @@ Coverage focus:
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_server_error_disconnect.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_basic_commands.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_ping_pong_edges.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_reject_invalid_tokens.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer_random_chunking.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_parser_roundtrip_fuzz.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_burst_and_split.gd`
+  - `for t in $(ls tests/test_irc_*.gd | sort); do echo "--- RUN $t"; timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"; done`
