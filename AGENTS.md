@@ -6,7 +6,14 @@ If WSL interop to a Windows `.exe` is flaky (or prompts too much), run tests usi
 
 Important: this environment may not allow writing to your real `$HOME`, so set `HOME`/`XDG_*` to a writable temp dir (otherwise Godot may crash when creating `user://`).
 
-One-time setup (example uses the zip you placed at `/home/lemonhall/Godot_v4.6-stable_linux.x86_64.zip`):
+Preferred setup: use the pre-extracted Linux Godot binary:
+
+```bash
+export GODOT_LINUX_EXE=/home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64
+"$GODOT_LINUX_EXE" --version
+```
+
+Fallback (extract from zip if you don't have a ready binary):
 
 ```bash
 mkdir -p /tmp/godot-4.6
@@ -18,6 +25,7 @@ chmod +x /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64
 Run the full test suite:
 
 ```bash
+export GODOT_LINUX_EXE=${GODOT_LINUX_EXE:-/home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64}
 export HOME=/tmp/oa-home
 export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
@@ -25,19 +33,20 @@ mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
 for t in tests/test_*.gd; do
   echo "--- RUN $t"
-  timeout 120s /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
+  timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
 done
 ```
 
 Run a single test:
 
 ```bash
+export GODOT_LINUX_EXE=${GODOT_LINUX_EXE:-/home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64}
 export HOME=/tmp/oa-home
 export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-timeout 120s /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_sse_parser.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_sse_parser.gd
 ```
 
 ## Running tests (WSL2 + Windows Godot)
