@@ -1,6 +1,10 @@
 extends RefCounted
 
 func format(command: String, params: Array = [], trailing: String = "") -> String:
+	# Unlimited formatting helper; v16 typically uses format_with_max_bytes(…, 510).
+	return format_with_max_bytes(command, params, trailing, 1024 * 1024)
+
+func format_with_max_bytes(command: String, params: Array = [], trailing: String = "", max_bytes: int = 510) -> String:
 	var cmd := _sanitize_token(command)
 	if cmd == "":
 		return ""
@@ -12,14 +16,24 @@ func format(command: String, params: Array = [], trailing: String = "") -> Strin
 			continue
 		parts.append(tok)
 
-	var out := " ".join(parts)
-	var tr := _sanitize_trailing(trailing)
-	if tr != "":
-		out += " :" + tr
-
+	var fixed := " ".join(parts)
 	# Defense-in-depth: never allow line breaks in wire output.
-	out = out.replace("\r", "").replace("\n", "")
-	return out
+	fixed = fixed.replace("\r", "").replace("\n", "")
+	if fixed.to_utf8_buffer().size() > max_bytes:
+		return ""
+
+	var tr := _sanitize_trailing(trailing)
+	if tr == "":
+		return fixed
+
+	var prefix := fixed + " :"
+	var prefix_bytes: int = prefix.to_utf8_buffer().size()
+	if prefix_bytes > max_bytes:
+		return ""
+
+	var allowed_trailing_bytes: int = max_bytes - prefix_bytes
+	var kept := _truncate_utf8_by_bytes(tr, allowed_trailing_bytes)
+	return prefix + kept
 
 func format_message(msg: RefCounted) -> String:
 	if msg == null:
@@ -43,3 +57,19 @@ func _sanitize_token(s: String) -> String:
 func _sanitize_trailing(s: String) -> String:
 	# Trailing may contain spaces, but must not contain line breaks.
 	return s.replace("\r", "").replace("\n", "")
+
+func _truncate_utf8_by_bytes(s: String, max_bytes: int) -> String:
+	if max_bytes <= 0:
+		return ""
+	var out := ""
+	var used: int = 0
+	var i: int = 0
+	while i < s.length():
+		var ch: String = s.substr(i, 1)
+		var ch_bytes: int = ch.to_utf8_buffer().size()
+		if used + ch_bytes > max_bytes:
+			break
+		out += ch
+		used += ch_bytes
+		i += 1
+	return out

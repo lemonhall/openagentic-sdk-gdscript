@@ -7,6 +7,8 @@ var _peer: Object = null # StreamPeerTCP/StreamPeerTLS or test double.
 var _buf = null
 var _tls = null
 var _last_error: String = ""
+var _out_queue: PackedByteArray = PackedByteArray()
+var _max_out_queue_bytes: int = 1024 * 1024 # 1 MiB safety bound.
 
 func _ensure_init() -> void:
 	if _buf == null: _buf = IrcLineBuffer.new()
@@ -19,6 +21,7 @@ func set_peer(peer: Object) -> void:
 	_ensure_init()
 	_peer = peer
 	_tls.call("reset")
+	_out_queue = PackedByteArray()
 
 func connect_to(host: String, port: int) -> int:
 	_ensure_init()
@@ -58,6 +61,7 @@ func take_tls_last_err() -> int:
 func poll_peer() -> void:
 	if _peer != null and _peer.has_method("poll"):
 		_peer.call("poll")
+	_flush_writes()
 
 func get_status() -> int:
 	if _peer == null:
@@ -71,7 +75,7 @@ func send_line(line: String) -> void:
 		return
 	if not _peer.has_method("get_status") or int(_peer.call("get_status")) != StreamPeerTCP.STATUS_CONNECTED:
 		return
-	if not _peer.has_method("put_data"):
+	if not _peer.has_method("put_partial_data") and not _peer.has_method("put_data"):
 		return
 	var s := line
 	if s.ends_with("\r\n"):
@@ -80,7 +84,46 @@ func send_line(line: String) -> void:
 		s = s.substr(0, s.length() - 1) + "\r\n"
 	else:
 		s += "\r\n"
-	_peer.call("put_data", s.to_utf8_buffer())
+	var bytes: PackedByteArray = s.to_utf8_buffer()
+	if _out_queue.size() + bytes.size() > _max_out_queue_bytes:
+		_last_error = "send queue overflow"
+		return
+	_out_queue.append_array(bytes)
+	_flush_writes()
+
+func _flush_writes() -> void:
+	if _peer == null:
+		return
+	if _out_queue.size() == 0:
+		return
+	if not _peer.has_method("get_status") or int(_peer.call("get_status")) != StreamPeerTCP.STATUS_CONNECTED:
+		return
+
+	# Prefer partial writes when supported.
+	if _peer.has_method("put_partial_data"):
+		var res = _peer.call("put_partial_data", _out_queue)
+		if res is Array and res.size() >= 2:
+			var err: int = int(res[0])
+			var sent: int = int(res[1])
+			if err != OK:
+				_last_error = "put_partial_data failed: %s" % str(err)
+				return
+			if sent > 0:
+				_out_queue = _out_queue.slice(sent)
+				# Keep flushing this frame if the peer keeps accepting.
+				if _out_queue.size() > 0:
+					_flush_writes()
+				return
+		_last_error = "put_partial_data failed"
+		return
+
+	# Fallback to put_data (assumed to write the entire buffer or error).
+	if _peer.has_method("put_data"):
+		var err2: int = int(_peer.call("put_data", _out_queue))
+		if err2 != OK:
+			_last_error = "put_data failed: %s" % str(err2)
+			return
+		_out_queue = PackedByteArray()
 
 func read_lines() -> Array[String]:
 	_last_error = ""
@@ -96,7 +139,13 @@ func read_lines() -> Array[String]:
 		_last_error = "get_data failed"
 		return []
 	var bytes: PackedByteArray = got[1]
-	return _buf.call("push_bytes", bytes)
+	var lines: Array[String] = _buf.call("push_bytes", bytes)
+	var overflowed: bool = bool(_buf.call("take_overflowed"))
+	if overflowed:
+		_last_error = "incoming line buffer overflow"
+		close()
+		return []
+	return lines
 
 func take_last_error() -> String:
 	var e := _last_error
@@ -117,4 +166,3 @@ func close() -> int:
 	_peer = null
 	_tls.call("reset")
 	return status
-

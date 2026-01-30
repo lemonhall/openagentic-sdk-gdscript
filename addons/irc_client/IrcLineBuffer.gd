@@ -1,10 +1,25 @@
 extends RefCounted
 
 var _buf: PackedByteArray = PackedByteArray()
+var _max_buffer_bytes: int = 64 * 1024
+var _overflowed: bool = false
+
+func set_max_buffer_bytes(n: int) -> void:
+	_max_buffer_bytes = max(0, n)
+
+func take_overflowed() -> bool:
+	var v := _overflowed
+	_overflowed = false
+	return v
 
 func push_bytes(chunk: PackedByteArray) -> Array[String]:
+	_overflowed = false
 	if chunk.size() > 0:
 		_buf.append_array(chunk)
+		if _max_buffer_bytes > 0 and _buf.size() > _max_buffer_bytes:
+			_buf = PackedByteArray()
+			_overflowed = true
+			return []
 
 	var out: Array[String] = []
 

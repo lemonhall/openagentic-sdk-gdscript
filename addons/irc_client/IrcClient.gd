@@ -134,7 +134,7 @@ func quit(reason: String = "") -> void:
 
 func send_message(command: String, params: Array = [], trailing: String = "") -> void:
 	_ensure_init()
-	var line: String = _wire.call("format", command, params, trailing)
+	var line: String = _wire.call("format_with_max_bytes", command, params, trailing, 510)
 	if line.strip_edges() == "":
 		return
 	send_raw_line(line)
@@ -175,6 +175,11 @@ func _read_available() -> void:
 	var read_err: String = String(_transport.call("take_last_error"))
 	if read_err.strip_edges() != "":
 		error.emit(read_err)
+		# Transport may have closed itself (e.g. safety overflow). Mirror that as a disconnect event.
+		if _was_connected and not bool(_transport.call("has_peer")):
+			_was_connected = false
+			disconnected.emit()
+			return
 	for line in lines:
 		raw_line_received.emit(line)
 		var msg = _parser.call("parse_line", line)
