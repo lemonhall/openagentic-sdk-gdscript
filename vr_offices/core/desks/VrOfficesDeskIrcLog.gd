@@ -52,15 +52,15 @@ func _append_to_disk(text: String) -> void:
 	DirAccess.make_dir_recursive_absolute(abs_dir)
 
 	var f: FileAccess = null
-	var append := FileAccess.file_exists(path)
-	if append:
+	var append_mode := FileAccess.file_exists(path)
+	if append_mode:
 		f = FileAccess.open(path, FileAccess.READ_WRITE)
 	else:
 		# Create the file first (READ_WRITE may fail if the file doesn't exist).
 		f = FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
 		return
-	if append:
+	if append_mode:
 		f.seek_end()
 	f.store_string(text)
 	var size := int(f.get_length())
@@ -75,4 +75,3 @@ func _append_to_disk(text: String) -> void:
 	for line in _log_lines:
 		f2.store_string(String(line) + "\n")
 	f2.close()
-

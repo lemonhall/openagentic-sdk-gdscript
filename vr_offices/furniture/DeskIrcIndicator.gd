@@ -103,8 +103,8 @@ func _on_status_changed(status: String) -> void:
 	_status = status
 	_update(false)
 
-func _on_ready_changed(ready: bool) -> void:
-	_link_ready = ready
+func _on_ready_changed(is_ready: bool) -> void:
+	_link_ready = is_ready
 	_update(false)
 
 func _on_error(_msg: String) -> void:
