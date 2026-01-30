@@ -11,13 +11,28 @@ func parse_line(line: String) -> RefCounted:
 	var msg: RefCounted = IrcMessage.new()
 
 	var i: int = 0
-	if s.begins_with(":"):
-		var space: int = s.find(" ")
+
+	# IRCv3 message tags (optional): "@a=b;c :prefix CMD ..."
+	if s.begins_with("@"):
+		var tag_end: int = s.find(" ")
+		if tag_end == -1:
+			msg.tags = _parse_tags(s.substr(1))
+			return msg
+		msg.tags = _parse_tags(s.substr(1, tag_end - 1))
+		i = tag_end + 1
+
+	# Skip extra spaces (after tags).
+	while i < s.length() and s.substr(i, 1) == " ":
+		i += 1
+
+	# Prefix (optional).
+	if i < s.length() and s.substr(i, 1) == ":":
+		var space: int = s.find(" ", i)
 		if space == -1:
 			# Degenerate line like ":prefix" (treat as command-less).
-			msg.prefix = s.substr(1)
+			msg.prefix = s.substr(i + 1)
 			return msg
-		msg.prefix = s.substr(1, space - 1)
+		msg.prefix = s.substr(i + 1, space - (i + 1))
 		i = space + 1
 
 	# Skip extra spaces.
@@ -49,3 +64,52 @@ func parse_line(line: String) -> RefCounted:
 		i = next_space + 1
 
 	return msg
+
+func _parse_tags(s: String) -> Dictionary:
+	var out: Dictionary = {}
+	if s.strip_edges() == "":
+		return out
+	var parts: PackedStringArray = s.split(";", false)
+	for p in parts:
+		var entry: String = String(p)
+		if entry == "":
+			continue
+		var eq: int = entry.find("=")
+		if eq == -1:
+			out[entry] = ""
+			continue
+		var key: String = entry.substr(0, eq)
+		var val: String = entry.substr(eq + 1)
+		out[key] = _unescape_tag_value(val)
+	return out
+
+func _unescape_tag_value(s: String) -> String:
+	# IRCv3 tag value escapes:
+	# \: -> ';'   \s -> ' '   \r -> CR   \n -> LF   \\ -> '\'
+	var out := ""
+	var i: int = 0
+	while i < s.length():
+		var ch := s.substr(i, 1)
+		if ch != "\\":
+			out += ch
+			i += 1
+			continue
+		i += 1
+		if i >= s.length():
+			break
+		var e := s.substr(i, 1)
+		i += 1
+		if e == ":":
+			out += ";"
+		elif e == "s":
+			out += " "
+		elif e == "r":
+			out += "\r"
+		elif e == "n":
+			out += "\n"
+		elif e == "\\":
+			out += "\\"
+		else:
+			# Unknown escape: keep the character (best-effort).
+			out += e
+	return out

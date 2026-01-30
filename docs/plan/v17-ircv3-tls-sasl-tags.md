@@ -13,8 +13,10 @@ Extend the v16 IRC client addon to support TLS and the minimal IRCv3 feature set
   - Enter “normal registration” after CAP ends.
 - SASL authentication (client credentials via config, no secrets in repo).
 - Message tags:
-  - Parse tags into a dictionary on the message.
-  - Preserve tags for roundtrip formatting (when sending).
+  - Parse tags into `IrcMessage.tags: Dictionary[String, String]`.
+  - Tags without `=` store as empty string (`""`).
+  - Unescape tag values per IRCv3 (at minimum): `\\:`→`;`, `\\s`→` `, `\\r`→CR, `\\n`→LF, `\\\\`→`\\`.
+  - (Roundtrip formatting can be a later slice; v17 first slice is parse + tests.)
 
 ## Non-Goals (v17)
 
@@ -31,7 +33,18 @@ Extend the v16 IRC client addon to support TLS and the minimal IRCv3 feature set
 
 ## Steps (塔山开发循环)
 
-- Write failing tests first for tags + CAP + SASL.
-- Implement minimal functionality to pass.
-- Refactor into small scripts if files approach ~200 LOC.
+- Slice 1 (Tags):
+  - **Red:** add `tests/test_irc_parser_tags.gd`.
+  - **Green:** extend `addons/irc_client/IrcMessage.gd` + `addons/irc_client/IrcParser.gd` to parse tags.
+  - **Verify:** run `tests/test_irc_parser.gd` and `tests/test_irc_parser_tags.gd` headless.
 
+- Slice 2 (CAP):
+  - **Red:** unit tests for CAP state transitions.
+  - **Green:** implement minimal CAP flow.
+
+- Slice 3 (SASL):
+  - **Red:** unit tests for SASL PLAIN happy-path.
+  - **Green:** implement minimal SASL PLAIN flow.
+
+- Slice 4 (TLS):
+  - Prefer integration tests where environment permits; otherwise isolate transport wiring and cover state/branching.

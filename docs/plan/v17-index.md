@@ -15,7 +15,7 @@ Build on v16 by adding modern interoperability features commonly expected in “
 2. **TLS:** `StreamPeerTLS` support + tests. (todo)
 3. **CAP:** capability negotiation flow + tests. (todo)
 4. **SASL:** auth flow + tests. (todo)
-5. **Tags:** parse/roundtrip message tags + tests. (todo)
+5. **Tags:** parse message tags + tests. (done)
 
 ## Plans (v17)
 
@@ -27,3 +27,7 @@ Build on v16 by adding modern interoperability features commonly expected in “
 - Client can perform CAP negotiation and SASL auth (where server supports it).
 - Parser supports message tags and preserves them in the parsed message structure.
 
+## Evidence
+
+- Tests:
+  - `tests/test_irc_parser_tags.gd`
