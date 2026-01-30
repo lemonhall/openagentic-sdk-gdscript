@@ -10,6 +10,7 @@ var _preview_overlay: StandardMaterial3D = null
 var _centered_once := false
 
 func _ready() -> void:
+	add_to_group("vr_offices_desk")
 	ensure_centered()
 
 func configure(desk_id_in: String, workspace_id_in: String) -> void:

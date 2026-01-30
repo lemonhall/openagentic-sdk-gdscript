@@ -107,6 +107,19 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 			var clicked := _try_select_from_click(mb.position)
 			if mb.double_click and clicked != null and dialogue_ctrl != null:
 				dialogue_ctrl.call("enter_talk", clicked)
+				return
+			if mb.double_click:
+				var desk := _try_find_desk_from_click(mb.position)
+				if desk != null and owner.has_method("open_irc_overlay_for_desk"):
+					var did: String = ""
+					if desk.has_method("get"):
+						var v: Variant = desk.get("desk_id")
+						if v != null:
+							did = String(v).strip_edges()
+					if did.strip_edges() == "":
+						did = desk.name
+					if did.strip_edges() != "":
+						owner.call("open_irc_overlay_for_desk", did)
 			return
 
 	if selected_npc != null and event is InputEventKey:
@@ -154,6 +167,45 @@ func _find_npc_owner(node: Object) -> Node:
 	while cur != null and cur is Node:
 		var n := cur as Node
 		if n.is_in_group("vr_offices_npc"):
+			return n
+		cur = n.get_parent()
+	return null
+
+func _try_find_desk_from_click(screen_pos: Vector2) -> Node:
+	if owner == null:
+		return null
+
+	var cam: Camera3D = null
+	if camera_rig != null and camera_rig.has_method("get_camera"):
+		cam = camera_rig.call("get_camera") as Camera3D
+	else:
+		cam = owner.get_viewport().get_camera_3d()
+	if cam == null:
+		return null
+
+	var from := cam.project_ray_origin(screen_pos)
+	var to := from + cam.project_ray_normal(screen_pos) * 200.0
+
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.collision_mask = 8 # desk pick layer
+
+	var world: World3D = owner.get_world_3d()
+	if world == null:
+		return null
+	var hit: Dictionary = world.direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return null
+
+	var collider: Object = hit.get("collider") as Object
+	return _find_desk_owner(collider)
+
+func _find_desk_owner(node: Object) -> Node:
+	var cur := node
+	while cur != null and cur is Node:
+		var n := cur as Node
+		if n.is_in_group("vr_offices_desk"):
 			return n
 		cur = n.get_parent()
 	return null

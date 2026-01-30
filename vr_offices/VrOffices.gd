@@ -219,6 +219,16 @@ func open_irc_overlay() -> void:
 	if irc_overlay.has_method("open"):
 		irc_overlay.call("open")
 
+func open_irc_overlay_for_desk(desk_id: String) -> void:
+	if irc_overlay == null:
+		return
+	if irc_overlay.has_method("set_config"):
+		irc_overlay.call("set_config", get_irc_config())
+	if irc_overlay.has_method("open_for_desk"):
+		irc_overlay.call("open_for_desk", desk_id)
+	else:
+		open_irc_overlay()
+
 func toggle_irc_overlay() -> void:
 	if irc_overlay == null:
 		return

@@ -4,6 +4,7 @@ const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
 @onready var close_button: Button = %CloseButton
+@onready var tabs: TabContainer = %Tabs
 
 @onready var enabled_check: CheckBox = %EnabledCheck
 @onready var host_edit: LineEdit = %HostEdit
@@ -84,6 +85,12 @@ func open() -> void:
 	_load_fields_from_config()
 	_refresh_desks()
 	call_deferred("_grab_focus")
+
+func open_for_desk(desk_id: String) -> void:
+	open()
+	if tabs != null:
+		tabs.current_tab = 2 # Desks
+	call_deferred("_focus_desk_id", desk_id)
 
 func close() -> void:
 	if not visible:
@@ -243,3 +250,15 @@ func _on_desk_selected(idx: int) -> void:
 	if lines0 is Array:
 		for l0 in lines0 as Array:
 			desk_log.text += String(l0) + "\n"
+
+func _focus_desk_id(desk_id: String) -> void:
+	var did := desk_id.strip_edges()
+	if did == "":
+		return
+	_refresh_desks()
+	for i in range(_desk_snapshots.size()):
+		var it := _desk_snapshots[i]
+		if String(it.get("desk_id", "")).strip_edges() == did:
+			desk_list.select(i)
+			_on_desk_selected(i)
+			return
