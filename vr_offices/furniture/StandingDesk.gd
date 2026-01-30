@@ -43,7 +43,7 @@ func ensure_centered() -> void:
 	if model == null:
 		return
 
-	var bounds := _compute_visual_bounds_local()
+	var bounds := _compute_visual_bounds_local(model)
 	if bounds.size == Vector3.ZERO:
 		return
 	var center := bounds.position + bounds.size * 0.5
@@ -66,7 +66,11 @@ func _apply_preview_visuals() -> void:
 	_preview_overlay.emission = Color(0.25, 0.90, 1.00, 1.0) if _preview_valid else Color(1.0, 0.15, 0.20, 1.0)
 	_preview_overlay.emission_energy_multiplier = 1.25 if _preview_valid else 2.0
 
-	for n0: Node in _iter_descendants(self):
+	var model := get_node_or_null("Model") as Node3D
+	if model == null:
+		return
+
+	for n0: Node in _iter_descendants(model):
 		if n0 is MeshInstance3D:
 			var mi: MeshInstance3D = n0 as MeshInstance3D
 			if mi != null:
@@ -104,7 +108,7 @@ func _iter_descendants(root: Node) -> Array[Node]:
 			stack.append(c)
 	return out
 
-func _compute_visual_bounds_local() -> AABB:
+func _compute_visual_bounds_local(root: Node) -> AABB:
 	# Returns bounds in this node's local space, based on MeshInstance3D AABBs.
 	var min_x := INF
 	var min_y := INF
@@ -114,7 +118,7 @@ func _compute_visual_bounds_local() -> AABB:
 	var max_z := -INF
 	var any := false
 
-	for n0: Node in _iter_descendants(self):
+	for n0: Node in _iter_descendants(root):
 		if not (n0 is MeshInstance3D):
 			continue
 		var mi := n0 as MeshInstance3D

@@ -48,6 +48,11 @@ func _init() -> void:
 	if not T.require_true(self, mat != null, "IrcIndicator Top must have StandardMaterial3D material_override"):
 		return
 
+	# Default/disabled should still be visible (avoid near-invisible alpha).
+	var a0 := float(mat.albedo_color.a)
+	if not T.require_true(self, a0 >= 0.65, "Default indicator alpha too low: %s" % [str(a0)]):
+		return
+
 	# Inject fake link after the desk is already in-tree (matches real spawn order).
 	var link := FakeDeskIrcLink.new()
 	link.name = "DeskIrcLink"
@@ -79,4 +84,3 @@ func _init() -> void:
 	desk.free()
 	await process_frame
 	T.pass_and_quit(self)
-

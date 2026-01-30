@@ -106,24 +106,24 @@ func _setup_material() -> void:
 	_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.emission_enabled = true
-	_mat.emission_energy_multiplier = 1.15
+	_mat.emission_energy_multiplier = 1.35
 	_top.material_override = _mat
 	_bottom.material_override = _mat
 
 func _update(force_error: bool) -> void:
 	if _mat == null:
 		return
-	var c := Color(0.7, 0.7, 0.7, 0.25) # default: disabled/unknown
+	var c := Color(0.85, 0.85, 0.85, 0.85) # default: disabled/unknown (still visible)
 	if _link != null and is_instance_valid(_link):
-		c = Color(1.0, 0.85, 0.20, 0.55) # connecting-ish
+		c = Color(1.0, 0.85, 0.20, 0.85) # connecting-ish
 		if _link_ready:
-			c = Color(0.15, 1.0, 0.25, 0.55)
+			c = Color(0.15, 1.0, 0.25, 0.85)
 		elif _status.find("disconnected") != -1:
-			c = Color(1.0, 0.20, 0.20, 0.55)
+			c = Color(1.0, 0.20, 0.20, 0.85)
 
 	var flash := force_error or (_error_flash_until_ms != 0 and Time.get_ticks_msec() < _error_flash_until_ms)
 	if flash:
-		c = Color(1.0, 0.15, 0.20, 0.65)
+		c = Color(1.0, 0.15, 0.20, 0.95)
 
 	_mat.albedo_color = c
 	_mat.emission = Color(c.r, c.g, c.b, 1.0)
