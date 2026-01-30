@@ -14,8 +14,8 @@ The mask is intended to be a **draft** you can quickly touch up (erase roads / a
 - Background image (example): `assets/kenney/roguelike-rpg-pack/Sample1.png`
 - Draft mask (example): `demo_rpg/collision/sample1_collision_mask.png`
 - Runtime collider builder: `demo_rpg/collision/OACollisionFromMask.gd`
-- Headless test: `tests/test_collision_from_mask.gd`
-- Mask quality regression test: `tests/test_collision_mask_quality.gd`
+- Headless test: `tests/projects/demo_rpg/test_collision_from_mask.gd`
+- Mask quality regression test: `tests/projects/demo_rpg/test_collision_mask_quality.gd`
 
 In the RPG demo, the collision node is wired in `demo_rpg/World.tscn` under `Ground/Collision`.
 

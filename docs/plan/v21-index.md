@@ -16,16 +16,16 @@ When `demo_irc` shows numeric/error diagnostics in the chat log, brackets must r
 
 ## Definition of Done (DoD)
 
-- `tests/test_demo_irc_bbcode_escape.gd` passes headless.
+- `tests/projects/demo_irc/test_demo_irc_bbcode_escape.gd` passes headless.
 - Rendering of numeric/error lines uses a safe escape routine (no self-corruption).
 
 ## Evidence
 
 - Tests:
-  - `tests/test_demo_irc_bbcode_escape.gd` (PASS)
-  - `tests/test_demo_irc_smoke.gd` (PASS)
-  - `tests/test_demo_irc_config_persistence.gd` (PASS)
-  - `tests/test_demo_irc_config_normalize.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_bbcode_escape.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_smoke.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_persistence.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_normalize.gd` (PASS)
 
 - Command (Linux Godot 4.6 headless):
-  - `HOME=/tmp/oa-home-v21 XDG_DATA_HOME=/tmp/oa-xdg-data-v21 XDG_CONFIG_HOME=/tmp/oa-xdg-config-v21 /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_demo_irc_bbcode_escape.gd`
+  - `HOME=/tmp/oa-home-v21 XDG_DATA_HOME=/tmp/oa-xdg-data-v21 XDG_CONFIG_HOME=/tmp/oa-xdg-config-v21 /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/demo_irc/test_demo_irc_bbcode_escape.gd`

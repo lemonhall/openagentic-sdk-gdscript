@@ -34,9 +34,9 @@ Extend the v16 IRC client addon to support TLS and the minimal IRCv3 feature set
 ## Steps (塔山开发循环)
 
 - Slice 1 (Tags):
-  - **Red:** add `tests/test_irc_parser_tags.gd`.
+  - **Red:** add `tests/addons/irc_client/test_irc_parser_tags.gd`.
   - **Green:** extend `addons/irc_client/IrcMessage.gd` + `addons/irc_client/IrcParser.gd` to parse tags.
-  - **Verify:** run `tests/test_irc_parser.gd` and `tests/test_irc_parser_tags.gd` headless.
+  - **Verify:** run `tests/addons/irc_client/test_irc_parser.gd` and `tests/addons/irc_client/test_irc_parser_tags.gd` headless.
 
 - Slice 2 (CAP):
   - **Red:** unit tests for CAP state transitions.
@@ -45,8 +45,8 @@ Extend the v16 IRC client addon to support TLS and the minimal IRCv3 feature set
 - Slice 3 (SASL):
   - **Red:** unit tests for SASL PLAIN happy-path.
   - **Green:** implement minimal SASL PLAIN flow.
-  - Evidence: `tests/test_irc_client_sasl_plain.gd`.
+  - Evidence: `tests/addons/irc_client/test_irc_client_sasl_plain.gd`.
 
 - Slice 4 (TLS):
   - Prefer integration tests where environment permits; otherwise isolate transport wiring and cover API branches.
-  - Evidence: `tests/test_irc_tls_api.gd`.
+  - Evidence: `tests/addons/irc_client/test_irc_tls_api.gd`.

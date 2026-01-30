@@ -11,13 +11,18 @@ usage() {
 Run Godot headless test scripts from WSL2 using a Windows Godot executable.
 
 Usage:
-  scripts/run_godot_tests.sh [--exe <linux-path-to-godot-exe>] [--one <test_script.gd>] [--timeout <seconds>]
+  scripts/run_godot_tests.sh [--exe <linux-path-to-godot-exe>] [--suite <name>] [--one <test_script.gd>] [--timeout <seconds>]
 
 Examples:
   scripts/run_godot_tests.sh
   scripts/run_godot_tests.sh --exe "/mnt/e/Godot_v4.6-stable_win64.exe/Godot_v4.6-stable_win64_console.exe"
-  scripts/run_godot_tests.sh --one tests/test_sse_parser.gd
+  scripts/run_godot_tests.sh --suite openagentic
+  scripts/run_godot_tests.sh --suite vr_offices
+  scripts/run_godot_tests.sh --one tests/addons/openagentic/test_sse_parser.gd
   scripts/run_godot_tests.sh --timeout 120
+
+Suites:
+  all (default), openagentic, irc_client, vr_offices, demo, demo_irc, demo_rpg, addons, projects
 
 Notes:
   - This uses WSL interop to run a Windows .exe, and may require elevated permissions in some sandboxes.
@@ -26,6 +31,7 @@ EOF
 }
 
 GODOT_EXE="${GODOT_WIN_EXE:-$DEFAULT_GODOT_EXE_LINUX}"
+SUITE="all"
 ONE=""
 TIMEOUT_SEC="${GODOT_TEST_TIMEOUT_SEC:-120}"
 
@@ -33,6 +39,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --exe)
       GODOT_EXE="$2"
+      shift 2
+      ;;
+    --suite)
+      SUITE="$2"
       shift 2
       ;;
     --one)
@@ -80,17 +90,48 @@ tests=(
 if [[ -n "$ONE" ]]; then
   tests=("$ONE")
 else
-  shopt -s nullglob
-  tests=(tests/test_*.gd)
-  shopt -u nullglob
+  suite_root="tests"
+  case "$SUITE" in
+    all)
+      suite_root="tests"
+      ;;
+    addons)
+      suite_root="tests/addons"
+      ;;
+    projects)
+      suite_root="tests/projects"
+      ;;
+    openagentic)
+      suite_root="tests/addons/openagentic"
+      ;;
+    irc_client)
+      suite_root="tests/addons/irc_client"
+      ;;
+    vr_offices)
+      suite_root="tests/projects/vr_offices"
+      ;;
+    demo)
+      suite_root="tests/projects/demo"
+      ;;
+    demo_irc)
+      suite_root="tests/projects/demo_irc"
+      ;;
+    demo_rpg)
+      suite_root="tests/projects/demo_rpg"
+      ;;
+    *)
+      echo "Unknown suite: $SUITE" >&2
+      echo "Valid suites: all, openagentic, irc_client, vr_offices, demo, demo_irc, demo_rpg, addons, projects" >&2
+      exit 2
+      ;;
+  esac
+
+  mapfile -t tests < <(find "$suite_root" -type f -name 'test_*.gd' | LC_ALL=C sort)
 
   if [[ ${#tests[@]} -eq 0 ]]; then
-    echo "No tests found under tests/test_*.gd" >&2
+    echo "No tests found under ${suite_root}/**/test_*.gd" >&2
     exit 2
   fi
-
-  IFS=$'\n' tests=($(printf '%s\n' "${tests[@]}" | LC_ALL=C sort))
-  unset IFS
 fi
 
 status=0

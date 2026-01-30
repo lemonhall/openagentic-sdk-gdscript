@@ -30,11 +30,11 @@ Strengthen v16 classic IRC correctness and test diversity by:
 ## Files
 
 Add tests:
-- `tests/test_irc_client_random_inbound_chunking.gd`
-- `tests/test_irc_parser_leading_spaces.gd`
+- `tests/addons/irc_client/test_irc_client_random_inbound_chunking.gd`
+- `tests/addons/irc_client/test_irc_parser_leading_spaces.gd`
 
 Modify tests:
-- `tests/test_irc_client_ping_pong_edges.gd`
+- `tests/addons/irc_client/test_irc_client_ping_pong_edges.gd`
 
 Modify code:
 - `addons/irc_client/IrcClientPing.gd`
@@ -47,6 +47,6 @@ Update index:
 
 1) Red: add the tests above; run them to red.
 2) Green: minimal fixes (PING params join, parser leading-space skip).
-3) Verify: run all `tests/test_irc_*.gd` with `timeout`.
+3) Verify: run all `tests/addons/irc_client/test_irc_*.gd` with `timeout`.
 4) Ship: commit + push.
 

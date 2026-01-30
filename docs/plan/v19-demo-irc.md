@@ -56,8 +56,8 @@ Create (v19):
 - `demo_irc/DemoIrcConfig.gd`
 
 Create tests (v19):
-- `tests/test_demo_irc_smoke.gd`
-- `tests/test_demo_irc_config_persistence.gd`
+- `tests/projects/demo_irc/test_demo_irc_smoke.gd`
+- `tests/projects/demo_irc/test_demo_irc_config_persistence.gd`
 
 Modify (only if needed):
 - `project.godot` (avoid; only if a project setting must be added for the new demo)
@@ -66,7 +66,7 @@ Modify (only if needed):
 
 ### 1) Red: demo smoke test
 
-- Add `tests/test_demo_irc_smoke.gd`:
+- Add `tests/projects/demo_irc/test_demo_irc_smoke.gd`:
   - `load("res://demo_irc/Main.tscn")` exists and instantiates.
   - Assert key nodes exist (connection controls + chat controls).
 - Run the test headless; expect FAIL (scene doesn’t exist yet).
@@ -78,7 +78,7 @@ Modify (only if needed):
 
 ### 3) Red: config persistence test
 
-- Add `tests/test_demo_irc_config_persistence.gd`:
+- Add `tests/projects/demo_irc/test_demo_irc_config_persistence.gd`:
   - Construct a config object, save, reload, assert values round-trip.
 - Run; expect FAIL (config file/class not implemented).
 
@@ -107,7 +107,7 @@ Modify (only if needed):
 
 ### 7) Verify: minimal suite run
 
-- Run `tests/test_demo_irc_*.gd` headless and record output in `docs/plan/v19-index.md` Evidence.
+- Run `tests/projects/demo_irc/test_demo_irc_*.gd` headless and record output in `docs/plan/v19-index.md` Evidence.
 
 ## Risks
 

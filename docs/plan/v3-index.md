@@ -55,7 +55,7 @@ Manual:
 
 Optional headless smoke test (requires a local Godot CLI):
 
-- `godot4 --headless --script tests/test_vr_offices_smoke.gd`
+- `godot4 --headless --script tests/projects/vr_offices/test_vr_offices_smoke.gd`
 - Windows PowerShell runner: `scripts\\run_godot_tests.ps1 -One tests\\test_vr_offices_smoke.gd`
 - More tests:
   - `scripts\\run_godot_tests.ps1 -One tests\\test_vr_offices_dialogue_ui.gd`

@@ -33,8 +33,8 @@ Out of scope:
 - `vr_offices/core/VrOfficesIrcConfig.gd`
 - `vr_offices/core/VrOfficesDeskManager.gd`
 - `vr_offices/core/VrOfficesDeskIrcLink.gd`
-- `tests/test_vr_offices_desk_manager_irc_config_stability.gd`
-- `tests/test_vr_offices_desk_irc_disk_log_smoke.gd`
+- `tests/projects/vr_offices/test_vr_offices_desk_manager_irc_config_stability.gd`
+- `tests/projects/vr_offices/test_vr_offices_desk_irc_disk_log_smoke.gd`
 
 ## Steps (塔山开发循环)
 
@@ -53,7 +53,7 @@ Out of scope:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_manager_irc_config_stability.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_irc_disk_log_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_manager_irc_config_stability.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_irc_disk_log_smoke.gd
 ```
 

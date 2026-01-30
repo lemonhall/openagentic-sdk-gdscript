@@ -17,8 +17,8 @@ Each desk shows a small “plumbob-style” indicator above it that reflects IRC
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Indicator node exists | StandingDesk has `IrcIndicator` nodes | `tests/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
-| M2 | Indicator reacts to link signals | Status/ready/error update indicator colors | `tests/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
+| M1 | Indicator node exists | StandingDesk has `IrcIndicator` nodes | `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
+| M2 | Indicator reacts to link signals | Status/ready/error update indicator colors | `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
 
 ## Plan Index
 

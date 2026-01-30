@@ -89,16 +89,18 @@ node proxy/server.mjs
 This repo includes headless test scripts under `tests/` (requires `godot4` locally):
 
 ```bash
-godot4 --headless --script tests/test_sse_parser.gd
-godot4 --headless --script tests/test_session_store.gd
-godot4 --headless --script tests/test_tool_runner.gd
-godot4 --headless --script tests/test_agent_runtime.gd
+godot4 --headless --script tests/addons/openagentic/test_sse_parser.gd
+godot4 --headless --script tests/addons/openagentic/test_session_store.gd
+godot4 --headless --script tests/addons/openagentic/test_tool_runner.gd
+godot4 --headless --script tests/addons/openagentic/test_agent_runtime.gd
 ```
 
 WSL2 + Windows Godot helper script:
 
 ```bash
 scripts/run_godot_tests.sh
+scripts/run_godot_tests.sh --suite openagentic
+scripts/run_godot_tests.sh --suite vr_offices
 ```
 
 WSL2 + Linux Godot (recommended):
@@ -112,10 +114,10 @@ export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-for t in tests/test_*.gd; do
+while IFS= read -r t; do
   echo "--- RUN $t"
   /tmp/godot-4.6/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
-done
+done < <(find tests -type f -name 'test_*.gd' | LC_ALL=C sort)
 ```
 
 ## Demo (talk to the first NPC)

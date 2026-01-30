@@ -17,9 +17,9 @@ VR Offices has an in-game UI that:
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Persist IRC config in save state | Save/load roundtrip keeps `state.irc` | `tests/test_vr_offices_irc_settings_persistence.gd` | todo |
-| M2 | In-game IRC overlay UI | Button + hotkey open overlay; edit/save config; test connect/join UI exists | `tests/test_vr_offices_irc_overlay_smoke.gd` | todo |
-| M3 | Desk status verification UI | Overlay lists desks and shows per-desk `DeskIrcLink` status/channel/logs | `tests/test_vr_offices_desk_irc_link_smoke.gd` + manual in-game check | todo |
+| M1 | Persist IRC config in save state | Save/load roundtrip keeps `state.irc` | `tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd` | todo |
+| M2 | In-game IRC overlay UI | Button + hotkey open overlay; edit/save config; test connect/join UI exists | `tests/projects/vr_offices/test_vr_offices_irc_overlay_smoke.gd` | todo |
+| M3 | Desk status verification UI | Overlay lists desks and shows per-desk `DeskIrcLink` status/channel/logs | `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd` + manual in-game check | todo |
 
 ## Plan Index
 

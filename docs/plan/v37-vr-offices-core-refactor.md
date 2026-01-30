@@ -24,7 +24,7 @@ Out of scope:
 
 ## Acceptance
 
-- `tests/test_vr_offices_core_layout_guard.gd` passes (core layout + max line count).
+- `tests/projects/vr_offices/test_vr_offices_core_layout_guard.gd` passes (core layout + max line count).
 - Desk/workspace related tests still pass (placement, persistence, overlay smoke).
 - No `.gd` files remain directly in `res://vr_offices/core/` (they live in subfolders).
 - No behavior regressions (existing tests are the contract).
@@ -43,12 +43,12 @@ Expected to move/refactor (non-exhaustive):
   - `vr_offices/core/VrOfficesInputController.gd`
 - Update call sites:
   - `vr_offices/VrOffices.gd`
-  - `tests/test_vr_offices_*.gd`
+  - `tests/projects/vr_offices/test_vr_offices_*.gd`
 
 ## Steps (塔山开发循环)
 
 1) **TDD Red**
-   - Add `tests/test_vr_offices_core_layout_guard.gd` asserting:
+   - Add `tests/projects/vr_offices/test_vr_offices_core_layout_guard.gd` asserting:
      - `res://vr_offices/core/` contains **no** `.gd` files
      - All `.gd` files under `res://vr_offices/core/**` are **≤ 200** lines
    - Run it and confirm it fails on current layout.
@@ -70,4 +70,3 @@ Expected to move/refactor (non-exhaustive):
 - Godot `preload()` path breakage (mitigation: `rg` all old paths; run smoke tests).
 - Over-extraction creating circular dependencies (mitigation: keep helpers “leafy”, pass data in).
 - Strict typing pitfalls (`null` inference) (mitigation: explicit nullable types in new modules).
-

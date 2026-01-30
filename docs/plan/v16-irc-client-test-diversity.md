@@ -37,10 +37,10 @@ Make v16 “classic IRC core” **more stable by testing it from more angles** (
 ## Files
 
 Add tests:
-- `tests/test_irc_line_buffer_random_chunking.gd`
-- `tests/test_irc_wire_reject_invalid_tokens.gd`
-- `tests/test_irc_wire_parser_roundtrip_fuzz.gd`
-- `tests/test_irc_client_burst_and_split.gd`
+- `tests/addons/irc_client/test_irc_line_buffer_random_chunking.gd`
+- `tests/addons/irc_client/test_irc_wire_reject_invalid_tokens.gd`
+- `tests/addons/irc_client/test_irc_wire_parser_roundtrip_fuzz.gd`
+- `tests/addons/irc_client/test_irc_client_burst_and_split.gd`
 
 Modify code (as needed by Red tests):
 - `addons/irc_client/IrcWire.gd`
@@ -54,6 +54,6 @@ Update index:
 1) Red: add the tests above; run them to red (at least one should fail before code changes).
 2) Green: implement minimal fixes to satisfy the tests.
 3) Refactor: keep scripts small and responsibilities tight (~200 LOC self-review trigger).
-4) Verify: run all `tests/test_irc_*.gd` with `timeout`.
+4) Verify: run all `tests/addons/irc_client/test_irc_*.gd` with `timeout`.
 5) Ship: commit + push.
 

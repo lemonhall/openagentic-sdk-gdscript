@@ -18,16 +18,16 @@ Make `demo_irc` logs easier to debug by prefixing all printed lines with a local
 ## Definition of Done (DoD)
 
 - Every line appended to the chat log is prefixed with `[HH:MM:SS]` (local system time).
-- `tests/test_demo_irc_timestamp_format.gd` passes headless.
+- `tests/projects/demo_irc/test_demo_irc_timestamp_format.gd` passes headless.
 
 ## Evidence
 
 - Tests:
-  - `tests/test_demo_irc_timestamp_format.gd` (PASS)
-  - `tests/test_demo_irc_smoke.gd` (PASS)
-  - `tests/test_demo_irc_config_persistence.gd` (PASS)
-  - `tests/test_demo_irc_config_normalize.gd` (PASS)
-  - `tests/test_demo_irc_bbcode_escape.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_timestamp_format.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_smoke.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_persistence.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_normalize.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_bbcode_escape.gd` (PASS)
 
 - Command (Linux Godot 4.6 headless):
-  - `HOME=/tmp/oa-home-v22 XDG_DATA_HOME=/tmp/oa-xdg-data-v22 XDG_CONFIG_HOME=/tmp/oa-xdg-config-v22 /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_demo_irc_timestamp_format.gd`
+  - `HOME=/tmp/oa-home-v22 XDG_DATA_HOME=/tmp/oa-xdg-data-v22 XDG_CONFIG_HOME=/tmp/oa-xdg-config-v22 /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/demo_irc/test_demo_irc_timestamp_format.gd`

@@ -25,13 +25,13 @@ Fix the workspace creation popup readability and add a short onboarding hint aft
   - `vr_offices/ui/WorkspaceOverlay.tscn`
   - `vr_offices/ui/WorkspaceOverlay.gd`
   - `vr_offices/core/VrOfficesWorkspaceController.gd`
-  - `tests/test_vr_offices_workspace_overlay.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_overlay.gd`
 - Add:
-  - `tests/test_vr_offices_workspace_create_onboarding_hint.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_create_onboarding_hint.gd`
 
 ## Steps (塔山开发循环)
 
-1) **Red:** add test asserting create popup min width in `tests/test_vr_offices_workspace_overlay.gd`.
+1) **Red:** add test asserting create popup min width in `tests/projects/vr_offices/test_vr_offices_workspace_overlay.gd`.
 2) **Red:** add a focused test that a workspace creation triggers an action hint.
 3) **Green:** widen popup in `.tscn` and enforce size in `prompt_create()`.
 4) **Green:** show 10s post-create hint from `VrOfficesWorkspaceController` after successful creation.

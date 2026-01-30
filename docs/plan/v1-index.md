@@ -37,10 +37,10 @@ Proxy:
 
 Godot headless scripts:
 
-- Run: `godot4 --headless --script tests/test_sse_parser.gd`
-- Run: `godot4 --headless --script tests/test_session_store.gd`
-- Run: `godot4 --headless --script tests/test_tool_runner.gd`
-- Run: `godot4 --headless --script tests/test_agent_runtime.gd`
+- Run: `godot4 --headless --script tests/addons/openagentic/test_sse_parser.gd`
+- Run: `godot4 --headless --script tests/addons/openagentic/test_session_store.gd`
+- Run: `godot4 --headless --script tests/addons/openagentic/test_tool_runner.gd`
+- Run: `godot4 --headless --script tests/addons/openagentic/test_agent_runtime.gd`
 
 WSL2 + Windows Godot helper:
 
@@ -56,5 +56,5 @@ Manual demo:
 - Retrieval (vector DB / embeddings) and long-term memory policies.
 - Rich “actor action” toolset; v1 focuses on minimal end-to-end.
 - Game-like demo UX (movement + proximity dialogue UI) is planned in v2.
-- Plan drift: `docs/plans/2026-01-28-openagentic-godot4-runtime.md` mentions `OAMemory.gd` + `tests/test_memory_injection.gd`, but v1 currently injects memory directly in `OAAgentRuntime.gd` and does not include that test script yet.
+- Plan drift: `docs/plans/2026-01-28-openagentic-godot4-runtime.md` mentions `OAMemory.gd` + `tests/addons/openagentic/test_memory_injection.gd`, but v1 currently injects memory directly in `OAAgentRuntime.gd` and does not include that test script yet.
 - Verification in this sandbox is limited (no `godot4`, and binding a local TCP port for the proxy can be blocked); run the verification commands locally.

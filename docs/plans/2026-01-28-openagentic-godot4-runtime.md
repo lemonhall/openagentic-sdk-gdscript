@@ -40,11 +40,11 @@ Run locally (outside this repo’s CI): open `demo/` with Godot, press Play, con
 **Files:**
 - Create: `addons/openagentic/core/OAJsonlNpcSessionStore.gd`
 - Create: `addons/openagentic/core/OAPaths.gd`
-- Create: `tests/test_session_store.gd`
+- Create: `tests/addons/openagentic/test_session_store.gd`
 
 **Step 1: Write failing test (RED)**
 
-`tests/test_session_store.gd`:
+`tests/addons/openagentic/test_session_store.gd`:
 - Create store for `save_id="slot1"`, append 2 events for `npc_id="npc_1"`, reload store, assert events read back in order and `seq` increases.
 
 Expected: fails because store class does not exist.
@@ -58,7 +58,7 @@ Implement:
 
 **Step 3: Manual verification**
 
-Run locally: `godot4 --headless --script tests/test_session_store.gd`
+Run locally: `godot4 --headless --script tests/addons/openagentic/test_session_store.gd`
 
 Expected: prints PASS and exits `0`.
 
@@ -71,7 +71,7 @@ Expected: prints PASS and exits `0`.
 - Create: `addons/openagentic/core/OAToolRegistry.gd`
 - Create: `addons/openagentic/core/OAAskOncePermissionGate.gd`
 - Create: `addons/openagentic/core/OAToolRunner.gd`
-- Create: `tests/test_tool_runner.gd`
+- Create: `tests/addons/openagentic/test_tool_runner.gd`
 
 **Step 1: Write failing test (RED)**
 
@@ -87,7 +87,7 @@ Expected: fails (missing classes).
 
 **Step 3: Manual verification**
 
-Run locally: `godot4 --headless --script tests/test_tool_runner.gd`
+Run locally: `godot4 --headless --script tests/addons/openagentic/test_tool_runner.gd`
 
 ---
 
@@ -96,7 +96,7 @@ Run locally: `godot4 --headless --script tests/test_tool_runner.gd`
 **Files:**
 - Create: `addons/openagentic/providers/OAOpenAIResponsesProvider.gd`
 - Create: `addons/openagentic/providers/OASseParser.gd`
-- Create: `tests/test_sse_parser.gd`
+- Create: `tests/addons/openagentic/test_sse_parser.gd`
 
 **Step 1: Write failing test (RED)**
 
@@ -114,7 +114,7 @@ Assert parsed callback yields `text_delta`, `tool_call`, and final `done`.
 
 **Step 3: Manual verification**
 
-Run locally: `godot4 --headless --script tests/test_sse_parser.gd`
+Run locally: `godot4 --headless --script tests/addons/openagentic/test_sse_parser.gd`
 
 ---
 
@@ -124,7 +124,7 @@ Run locally: `godot4 --headless --script tests/test_sse_parser.gd`
 - Create: `addons/openagentic/runtime/OAAgentRuntime.gd`
 - Create: `addons/openagentic/runtime/OAReplay.gd`
 - Modify: `addons/openagentic/OpenAgentic.gd`
-- Create: `tests/test_agent_runtime.gd`
+- Create: `tests/addons/openagentic/test_agent_runtime.gd`
 
 **Step 1: Write failing test (RED)**
 
@@ -150,7 +150,7 @@ Assert:
 
 **Step 3: Manual verification**
 
-Run locally: `godot4 --headless --script tests/test_agent_runtime.gd`
+Run locally: `godot4 --headless --script tests/addons/openagentic/test_agent_runtime.gd`
 
 ---
 
@@ -159,7 +159,7 @@ Run locally: `godot4 --headless --script tests/test_agent_runtime.gd`
 **Files:**
 - Modify: `addons/openagentic/runtime/OAAgentRuntime.gd`
 - Create: `addons/openagentic/runtime/OAMemory.gd`
-- Create: `tests/test_memory_injection.gd`
+- Create: `tests/addons/openagentic/test_memory_injection.gd`
 
 **Step 1: Write failing test (RED)**
 
@@ -176,4 +176,3 @@ Create `world_summary.txt` and `npcs/<npc_id>/memory/summary.txt` under the save
 
 - This repo environment may not have `godot4` installed; tests are designed to run locally.
 - v2+ can add automatic compacting (summaries + windowing + retrieval). Out of v1 scope.
-

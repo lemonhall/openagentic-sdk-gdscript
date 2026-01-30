@@ -39,9 +39,9 @@ Modify:
 - `addons/irc_client/IrcClientTransport.gd`
 
 Modify tests:
-- `tests/test_irc_wire_format.gd`
-- `tests/test_irc_client_basic_commands.gd`
-- `tests/test_irc_transport_partial_write.gd`
+- `tests/addons/irc_client/test_irc_wire_format.gd`
+- `tests/addons/irc_client/test_irc_client_basic_commands.gd`
+- `tests/addons/irc_client/test_irc_transport_partial_write.gd`
 
 Update index:
 - `docs/plan/v16-index.md`
@@ -51,6 +51,6 @@ Update index:
 1) Red: add failing tests for empty trailing + injection + multi-line partial writes.
 2) Green: minimal implementation changes to pass.
 3) Refactor: make transport flushing iterative; keep behavior identical; keep scripts small.
-4) Verify: run all `tests/test_irc_*.gd` with `timeout`.
+4) Verify: run all `tests/addons/irc_client/test_irc_*.gd` with `timeout`.
 5) Ship: commit + push.
 

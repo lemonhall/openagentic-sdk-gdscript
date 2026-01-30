@@ -29,14 +29,14 @@ Key behaviors:
 - `DemoIrcConfig.normalize()`:
   - Fills `user`/`realname` from `nick` when blank.
   - Adds `#` to `channel` when missing a standard prefix.
-- `tests/test_demo_irc_config_normalize.gd` passes headless.
+- `tests/projects/demo_irc/test_demo_irc_config_normalize.gd` passes headless.
 
 ## Evidence
 
 - Tests:
-  - `tests/test_demo_irc_config_normalize.gd` (PASS)
-  - `tests/test_demo_irc_smoke.gd` (PASS)
-  - `tests/test_demo_irc_config_persistence.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_normalize.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_smoke.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_persistence.gd` (PASS)
  
 - Command (Linux Godot 4.6 headless):
-  - `HOME=/tmp/oa-home-v20b XDG_DATA_HOME=/tmp/oa-xdg-data-v20b XDG_CONFIG_HOME=/tmp/oa-xdg-config-v20b /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_demo_irc_config_normalize.gd`
+  - `HOME=/tmp/oa-home-v20b XDG_DATA_HOME=/tmp/oa-xdg-data-v20b XDG_CONFIG_HOME=/tmp/oa-xdg-config-v20b /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/demo_irc/test_demo_irc_config_normalize.gd`

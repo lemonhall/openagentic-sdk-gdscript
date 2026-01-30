@@ -31,7 +31,7 @@ Refine the Standing Desk placement interaction so it feels predictable and does 
   - Workspace RMB menu remains reachable (documented modifier).
 - Ghost preview clearly communicates validity (visible tint difference).
 - Tests:
-  - `tests/test_vr_offices_right_click_move.gd` includes a regression case for RMB move inside a workspace.
+  - `tests/projects/vr_offices/test_vr_offices_right_click_move.gd` includes a regression case for RMB move inside a workspace.
 
 ## Verification
 
@@ -43,8 +43,8 @@ Refine the Standing Desk placement interaction so it feels predictable and does 
 ## Evidence
 
 - Headless tests (Linux Godot):
-  - `tests/test_vr_offices_right_click_move.gd`
-  - `tests/test_vr_offices_workspace_desks_model.gd`
-  - `tests/test_vr_offices_workspace_desks_persistence.gd`
-  - `tests/test_vr_offices_smoke.gd`
-  - `tests/test_vr_offices_workspace_overlay.gd`
+  - `tests/projects/vr_offices/test_vr_offices_right_click_move.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_model.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_persistence.gd`
+  - `tests/projects/vr_offices/test_vr_offices_smoke.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_overlay.gd`

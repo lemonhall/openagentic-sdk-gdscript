@@ -39,7 +39,7 @@ Manual:
 
 Headless smoke test (when using a local Godot CLI):
 
-- `godot4 --headless --script tests/test_demo_rpg_smoke.gd`
+- `godot4 --headless --script tests/projects/demo_rpg/test_demo_rpg_smoke.gd`
 
 ## Known gaps (v2 backlog)
 

@@ -40,7 +40,7 @@ Let the player create named rectangular “workspaces” on the office floor via
 ## Evidence
 
 - Tests added:
-  - `tests/test_vr_offices_workspaces_model.gd`
-  - `tests/test_vr_offices_workspaces_persistence.gd`
-  - `tests/test_vr_offices_workspaces_nodes.gd`
-  - `tests/test_vr_offices_workspace_overlay.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspaces_model.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspaces_persistence.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspaces_nodes.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_overlay.gd`

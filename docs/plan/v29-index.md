@@ -13,8 +13,8 @@
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Desk centering ignores non-model meshes | `ensure_centered()` centers only the GLB model subtree | `tests/test_vr_offices_standing_desk_centering.gd` | todo |
-| M2 | Indicator default visibility | Gray/unknown indicator is not near-invisible | `tests/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
+| M1 | Desk centering ignores non-model meshes | `ensure_centered()` centers only the GLB model subtree | `tests/projects/vr_offices/test_vr_offices_standing_desk_centering.gd` | todo |
+| M2 | Indicator default visibility | Gray/unknown indicator is not near-invisible | `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
 
 ## Plan Index
 

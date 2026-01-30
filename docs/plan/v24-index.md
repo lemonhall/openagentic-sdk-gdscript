@@ -25,8 +25,8 @@ Non-goals in v24:
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Parse IRC `005` ISUPPORT and expose limits | `IrcClient` exposes parsed ISUPPORT values used by higher layers | Run `tests/test_irc_isupport_parsing.gd` | todo |
-| M2 | Desk IRC link component with auto connect/reconnect | New desk child node connects + joins per-desk channel using safe nick/channel lengths | Run `tests/test_vr_offices_irc_names.gd` and `tests/test_vr_offices_desk_irc_link_smoke.gd` | todo |
+| M1 | Parse IRC `005` ISUPPORT and expose limits | `IrcClient` exposes parsed ISUPPORT values used by higher layers | Run `tests/addons/irc_client/test_irc_isupport_parsing.gd` | todo |
+| M2 | Desk IRC link component with auto connect/reconnect | New desk child node connects + joins per-desk channel using safe nick/channel lengths | Run `tests/projects/vr_offices/test_vr_offices_irc_names.gd` and `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd` | todo |
 
 ## Plan Index
 

@@ -34,11 +34,11 @@ This fifth review adds tests for the remaining classic core command surface that
 ## Files
 
 Add tests:
-- `tests/test_irc_client_basic_commands.gd`
-- `tests/test_irc_client_ping_pong_edges.gd`
+- `tests/addons/irc_client/test_irc_client_basic_commands.gd`
+- `tests/addons/irc_client/test_irc_client_ping_pong_edges.gd`
 
 Modify tests:
-- `tests/test_irc_client_registration_idempotent.gd` (also asserts PASS once)
+- `tests/addons/irc_client/test_irc_client_registration_idempotent.gd` (also asserts PASS once)
 
 Update index:
 - `docs/plan/v16-index.md`
@@ -47,6 +47,6 @@ Update index:
 
 1) Red: add the above tests; run them.
 2) Green: fix any discovered gaps with minimal changes.
-3) Verify: run full `tests/test_irc_*.gd` with `timeout`.
+3) Verify: run full `tests/addons/irc_client/test_irc_*.gd` with `timeout`.
 4) Ship: commit + push.
 

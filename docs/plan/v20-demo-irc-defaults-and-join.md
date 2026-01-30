@@ -43,7 +43,7 @@ Modify (v20):
 - `demo_irc/Main.tscn`
 
 Create tests (v20):
-- `tests/test_demo_irc_config_normalize.gd`
+- `tests/projects/demo_irc/test_demo_irc_config_normalize.gd`
 
 Docs (v20):
 - `docs/plan/v20-index.md`
@@ -53,7 +53,7 @@ Docs (v20):
 
 ### 1) Red: config normalization test
 
-- Add `tests/test_demo_irc_config_normalize.gd`:
+- Add `tests/projects/demo_irc/test_demo_irc_config_normalize.gd`:
   - Assert defaults.
   - Assert `normalize()` behavior for missing user/realname and missing channel prefix.
 - Run headless; expect FAIL (no normalize / wrong defaults).
@@ -74,9 +74,9 @@ Docs (v20):
 ### 4) Verify
 
 - Run:
-  - `tests/test_demo_irc_smoke.gd`
-  - `tests/test_demo_irc_config_persistence.gd`
-  - `tests/test_demo_irc_config_normalize.gd`
+  - `tests/projects/demo_irc/test_demo_irc_smoke.gd`
+  - `tests/projects/demo_irc/test_demo_irc_config_persistence.gd`
+  - `tests/projects/demo_irc/test_demo_irc_config_normalize.gd`
 
 ## Risks
 

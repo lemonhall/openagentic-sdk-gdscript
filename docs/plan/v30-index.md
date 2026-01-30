@@ -16,8 +16,8 @@ The desk IRC indicator is easy to notice and feels “alive”:
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Position/scale polish | Indicator position/scale updated in `StandingDesk.tscn` | `tests/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
-| M2 | Idle animation | Indicator bobs (Y) and spins (yaw) while visible | `tests/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
+| M1 | Position/scale polish | Indicator position/scale updated in `StandingDesk.tscn` | `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
+| M2 | Idle animation | Indicator bobs (Y) and spins (yaw) while visible | `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd` | todo |
 
 ## Plan Index
 

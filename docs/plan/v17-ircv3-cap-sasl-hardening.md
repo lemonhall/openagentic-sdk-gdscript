@@ -32,8 +32,8 @@ Make the v17 IRCv3 “real world” flows robust against common server behaviors
 ## Files
 
 - Add tests:
-  - `tests/test_irc_client_cap_multiline_and_values.gd`
-  - `tests/test_irc_client_sasl_plain_chunking.gd`
+  - `tests/addons/irc_client/test_irc_client_cap_multiline_and_values.gd`
+  - `tests/addons/irc_client/test_irc_client_sasl_plain_chunking.gd`
 - Update implementation:
   - `addons/irc_client/IrcCapNegotiation.gd`
   - `addons/irc_client/IrcClientCap.gd`
@@ -42,14 +42,14 @@ Make the v17 IRCv3 “real world” flows robust against common server behaviors
 
 1) **Red**
    - Run (expected fail):
-     - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_cap_multiline_and_values.gd`
-     - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_sasl_plain_chunking.gd`
+     - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_cap_multiline_and_values.gd`
+     - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_sasl_plain_chunking.gd`
 2) **Green**
    - Implement CAP multiline + `=value` normalization.
    - Implement SASL 400-char chunking + terminating `AUTHENTICATE +` rule.
 3) **Verify**
    - Run (expected pass):
-     - `for t in tests/test_irc_*.gd; do echo "--- RUN $t"; timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"; done`
+     - `for t in tests/addons/irc_client/test_irc_*.gd; do echo "--- RUN $t"; timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"; done`
 
 ## Risks
 

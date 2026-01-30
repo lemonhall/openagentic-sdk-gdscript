@@ -1,5 +1,6 @@
 Param(
   [string]$GodotExe = $env:GODOT_WIN_EXE,
+  [string]$Suite = "all",
   [string]$One = "",
   [int]$TimeoutSec = $(if ($env:GODOT_TEST_TIMEOUT_SEC) { [int]$env:GODOT_TEST_TIMEOUT_SEC } else { 120 }),
   [string[]]$ExtraArgs = @()
@@ -12,14 +13,19 @@ function Usage {
 Run Godot headless test scripts from Windows (PowerShell).
 
 Usage:
-  scripts/run_godot_tests.ps1 [-GodotExe <path-to-godot-console-exe>] [-One <test_script.gd>] [-TimeoutSec <seconds>] [-ExtraArgs <args...>]
+  scripts/run_godot_tests.ps1 [-GodotExe <path-to-godot-console-exe>] [-Suite <name>] [-One <test_script.gd>] [-TimeoutSec <seconds>] [-ExtraArgs <args...>]
 
 Examples:
   scripts/run_godot_tests.ps1
   scripts/run_godot_tests.ps1 -GodotExe "E:\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe"
-  scripts/run_godot_tests.ps1 -One tests\test_sse_parser.gd
+  scripts/run_godot_tests.ps1 -Suite openagentic
+  scripts/run_godot_tests.ps1 -Suite vr_offices
+  scripts/run_godot_tests.ps1 -One tests\addons\openagentic\test_sse_parser.gd
   scripts/run_godot_tests.ps1 -TimeoutSec 120
   scripts/run_godot_tests.ps1 -One tests\test_vr_offices_smoke.gd -ExtraArgs --verbose
+
+Suites:
+  all (default), openagentic, irc_client, vr_offices, demo, demo_irc, demo_rpg, addons, projects
 
 Notes:
   - Use the *console* exe for reliable headless output.
@@ -48,12 +54,30 @@ $tests = @()
 if (![string]::IsNullOrWhiteSpace($One)) {
   $tests = @($One)
 } else {
-  $tests = Get-ChildItem -Path (Join-Path $RootDir "tests") -Filter "test_*.gd" -File |
+  $suiteDir = Join-Path $RootDir "tests"
+  switch ($Suite) {
+    "all" { $suiteDir = Join-Path $RootDir "tests" }
+    "addons" { $suiteDir = Join-Path $RootDir "tests\\addons" }
+    "projects" { $suiteDir = Join-Path $RootDir "tests\\projects" }
+    "openagentic" { $suiteDir = Join-Path $RootDir "tests\\addons\\openagentic" }
+    "irc_client" { $suiteDir = Join-Path $RootDir "tests\\addons\\irc_client" }
+    "vr_offices" { $suiteDir = Join-Path $RootDir "tests\\projects\\vr_offices" }
+    "demo" { $suiteDir = Join-Path $RootDir "tests\\projects\\demo" }
+    "demo_irc" { $suiteDir = Join-Path $RootDir "tests\\projects\\demo_irc" }
+    "demo_rpg" { $suiteDir = Join-Path $RootDir "tests\\projects\\demo_rpg" }
+    default {
+      Write-Host ("Unknown suite: {0}" -f $Suite)
+      Usage
+      exit 2
+    }
+  }
+
+  $tests = Get-ChildItem -Path $suiteDir -Recurse -Filter "test_*.gd" -File |
     Sort-Object FullName |
     ForEach-Object { $_.FullName }
 
   if ($tests.Count -eq 0) {
-    Write-Host "No tests found under tests\test_*.gd"
+    Write-Host ("No tests found under {0}\\**\\test_*.gd" -f $suiteDir)
     exit 2
   }
 }

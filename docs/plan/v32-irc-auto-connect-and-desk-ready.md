@@ -35,9 +35,9 @@ Out of scope:
 - `vr_offices/core/VrOfficesIrcConfig.gd`
 - `vr_offices/core/VrOfficesDeskManager.gd`
 - `vr_offices/core/VrOfficesDeskIrcLink.gd`
-- `tests/test_vr_offices_irc_overlay_autosave.gd`
-- `tests/test_vr_offices_irc_settings_persistence.gd`
-- `tests/test_vr_offices_desk_irc_link_smoke.gd`
+- `tests/projects/vr_offices/test_vr_offices_irc_overlay_autosave.gd`
+- `tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd`
+- `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd`
 
 ## Steps (塔山开发循环)
 
@@ -56,8 +56,8 @@ Out of scope:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_irc_link_smoke.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_overlay_autosave.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_settings_persistence.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_autosave.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd
 ```
 

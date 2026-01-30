@@ -38,15 +38,15 @@ Note: “IRCv3 完整实现”在工程上需要收敛为可验收的 Profile；
 ## Evidence
 
 - Tests:
-  - `tests/test_irc_parser_tags.gd`
-  - `tests/test_irc_parser_tags_escapes.gd`
-  - `tests/test_irc_cap_negotiation_list_new_del.gd`
-  - `tests/test_irc_client_cap.gd`
-  - `tests/test_irc_client_cap_disabled_registers.gd`
-  - `tests/test_irc_client_cap_ls_without_trailing_colon.gd`
-  - `tests/test_irc_client_cap_multiline_and_values.gd`
-  - `tests/test_irc_client_cap_nak_still_registers.gd`
-  - `tests/test_irc_client_sasl_plain.gd`
-  - `tests/test_irc_client_sasl_plain_chunking.gd`
-  - `tests/test_irc_client_sasl_failure_ends_cap.gd`
-  - `tests/test_irc_tls_api.gd`
+  - `tests/addons/irc_client/test_irc_parser_tags.gd`
+  - `tests/addons/irc_client/test_irc_parser_tags_escapes.gd`
+  - `tests/addons/irc_client/test_irc_cap_negotiation_list_new_del.gd`
+  - `tests/addons/irc_client/test_irc_client_cap.gd`
+  - `tests/addons/irc_client/test_irc_client_cap_disabled_registers.gd`
+  - `tests/addons/irc_client/test_irc_client_cap_ls_without_trailing_colon.gd`
+  - `tests/addons/irc_client/test_irc_client_cap_multiline_and_values.gd`
+  - `tests/addons/irc_client/test_irc_client_cap_nak_still_registers.gd`
+  - `tests/addons/irc_client/test_irc_client_sasl_plain.gd`
+  - `tests/addons/irc_client/test_irc_client_sasl_plain_chunking.gd`
+  - `tests/addons/irc_client/test_irc_client_sasl_failure_ends_cap.gd`
+  - `tests/addons/irc_client/test_irc_tls_api.gd`

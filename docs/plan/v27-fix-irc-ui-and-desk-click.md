@@ -38,6 +38,6 @@ Address two UX bugs:
 ### 3) Review
 
 - Run focused tests:
-  - `tests/test_vr_offices_irc_overlay_smoke.gd`
-  - `tests/test_vr_offices_desk_pick_collider.gd`
+  - `tests/projects/vr_offices/test_vr_offices_irc_overlay_smoke.gd`
+  - `tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd`
 

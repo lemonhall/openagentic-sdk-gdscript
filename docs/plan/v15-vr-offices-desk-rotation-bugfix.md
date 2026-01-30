@@ -25,11 +25,11 @@ Fix a placement bug where the desk preview can rotate to 180°/270° but the pla
 
 - Modify:
   - `vr_offices/core/VrOfficesDeskManager.gd`
-  - `tests/test_vr_offices_workspace_desks_model.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_model.gd`
 
 ## Steps (塔山开发循环)
 
-1) **Red:** extend `tests/test_vr_offices_workspace_desks_model.gd` to assert 4-way yaw snapping and footprint swap for 270°.
+1) **Red:** extend `tests/projects/vr_offices/test_vr_offices_workspace_desks_model.gd` to assert 4-way yaw snapping and footprint swap for 270°.
 2) **Green:** update `_snap_yaw()` to snap to 4 steps, and update `_desk_footprint_size_xz()` swap logic.
 3) **Verify:** run Linux headless test(s) for desks model/persistence + smoke.
 

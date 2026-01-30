@@ -88,8 +88,8 @@ Create:
 - `vr_offices/furniture/StandingDesk.gd`
 - `vr_offices/core/VrOfficesDeskManager.gd`
 - Tests:
-  - `tests/test_vr_offices_workspace_desks_model.gd`
-  - `tests/test_vr_offices_workspace_desks_persistence.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_model.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_persistence.gd`
 
 Modify:
 
@@ -110,13 +110,13 @@ Modify:
 
 ### Task 2 — Desk model rules (TDD)
 
-**Red:** run `scripts/run_godot_tests.sh --one tests/test_vr_offices_workspace_desks_model.gd` (expect fail)
+**Red:** run `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_workspace_desks_model.gd` (expect fail)
 
 **Green:** implement `VrOfficesDeskManager` constraints + serialization.
 
 ### Task 3 — Desk persistence (TDD)
 
-**Red:** run `scripts/run_godot_tests.sh --one tests/test_vr_offices_workspace_desks_persistence.gd` (expect fail)
+**Red:** run `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_workspace_desks_persistence.gd` (expect fail)
 
 **Green:** extend world state/save controller, ensure desks round-trip.
 

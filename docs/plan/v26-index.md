@@ -15,7 +15,7 @@ In VR Offices, the player can verify a desk’s IRC connectivity *in-world*:
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Desk pick collider | Desk instances are ray-pickable without affecting physics | `tests/test_vr_offices_desk_pick_collider.gd` | todo |
+| M1 | Desk pick collider | Desk instances are ray-pickable without affecting physics | `tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd` | todo |
 | M2 | Double-click desk opens overlay | Double-click desk opens IRC overlay on Desks tab with that desk selected | Manual in-game check | todo |
 
 ## Plan Index

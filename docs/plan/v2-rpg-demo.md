@@ -31,7 +31,7 @@ Out of scope (v2):
   - Sending text streams the NPC response into the dialogue UI.
   - Pressing ESC (or a close button) exits talk mode and returns to movement.
 - Sessions continue to persist under `user://openagentic/saves/<save_id>/...` and are per-NPC continuous.
-- `tests/test_demo_rpg_smoke.gd` passes headless.
+- `tests/projects/demo_rpg/test_demo_rpg_smoke.gd` passes headless.
 
 ## Files
 
@@ -47,7 +47,7 @@ Create (planned):
 - `demo_rpg/ui/OADialogueBox.gd`
 - `demo_rpg/ui/InteractPrompt.tscn`
 - `demo_rpg/ui/InteractPrompt.gd`
-- `tests/test_demo_rpg_smoke.gd`
+- `tests/projects/demo_rpg/test_demo_rpg_smoke.gd`
 
 Assets (planned):
 
@@ -64,7 +64,7 @@ Modify (planned):
 
 ### Slice 1 — Scene skeleton + smoke test
 
-1) **RED**: Add `tests/test_demo_rpg_smoke.gd` that:
+1) **RED**: Add `tests/projects/demo_rpg/test_demo_rpg_smoke.gd` that:
    - loads `res://demo_rpg/World.tscn`
    - asserts required child nodes exist (`Player`, at least one `Npc`, UI nodes)
    - exits non-zero if anything is missing
@@ -72,7 +72,7 @@ Modify (planned):
 2) **GREEN**: Create the minimal `demo_rpg/World.tscn` with placeholder nodes + scripts so the smoke test passes.
 
 3) **Verify**:
-   - `godot4 --headless --script tests/test_demo_rpg_smoke.gd`
+   - `godot4 --headless --script tests/projects/demo_rpg/test_demo_rpg_smoke.gd`
 
 4) **Commit**:
    - `git commit -m "v2: add RPG demo scene skeleton"`

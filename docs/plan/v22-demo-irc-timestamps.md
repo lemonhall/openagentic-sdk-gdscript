@@ -24,7 +24,7 @@ Add a timestamp prefix to `demo_irc` chat log lines so debugging server replies 
 
 Create:
 - `demo_irc/DemoIrcLogFormat.gd`
-- `tests/test_demo_irc_timestamp_format.gd`
+- `tests/projects/demo_irc/test_demo_irc_timestamp_format.gd`
 
 Modify:
 - `demo_irc/Main.gd`
@@ -37,7 +37,7 @@ Docs:
 
 ### 1) Red
 
-- Add `tests/test_demo_irc_timestamp_format.gd`:
+- Add `tests/projects/demo_irc/test_demo_irc_timestamp_format.gd`:
   - Given `time_str="01:02:03"` and `line="Hello"`, output should be `[color=gray][lb]01:02:03[rb][/color] Hello`.
 - Run headless; expect FAIL.
 
@@ -49,5 +49,5 @@ Docs:
 
 ### 3) Verify
 
-- Run `tests/test_demo_irc_*.gd` headless.
+- Run `tests/projects/demo_irc/test_demo_irc_*.gd` headless.
 

@@ -129,11 +129,11 @@ Modify:
 
 Tests:
 
-- `tests/test_vr_offices_workspaces_model.gd`
+- `tests/projects/vr_offices/test_vr_offices_workspaces_model.gd`
   - clamp inside floor bounds
   - overlap rejection
   - color cycling
-- `tests/test_vr_offices_workspaces_persistence.gd`
+- `tests/projects/vr_offices/test_vr_offices_workspaces_persistence.gd`
   - save->load restores name + rect + color
 
 ## Tashan Loop Steps (v10)
@@ -152,8 +152,8 @@ Tests:
 - Create: `vr_offices/core/VrOfficesWorkspaceManager.gd`
 - Modify: `vr_offices/core/VrOfficesWorldState.gd`
 - Modify: `vr_offices/core/VrOfficesSaveController.gd`
-- Test: `tests/test_vr_offices_workspaces_model.gd`
-- Test: `tests/test_vr_offices_workspaces_persistence.gd`
+- Test: `tests/projects/vr_offices/test_vr_offices_workspaces_model.gd`
+- Test: `tests/projects/vr_offices/test_vr_offices_workspaces_persistence.gd`
 
 **Red:** run `scripts/run_godot_tests.ps1 -One tests\\test_vr_offices_workspaces_model.gd` (expect fail)
 

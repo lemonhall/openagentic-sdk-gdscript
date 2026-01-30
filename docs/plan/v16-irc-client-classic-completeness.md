@@ -37,15 +37,15 @@ Modify:
 - `docs/plan/v16-index.md`
 
 Add tests:
-- `tests/test_irc_client_registration_order.gd`
-- `tests/test_irc_client_registration_idempotent.gd`
-- `tests/test_irc_client_user_realname.gd`
-- `tests/test_irc_client_server_error_disconnect.gd`
+- `tests/addons/irc_client/test_irc_client_registration_order.gd`
+- `tests/addons/irc_client/test_irc_client_registration_idempotent.gd`
+- `tests/addons/irc_client/test_irc_client_user_realname.gd`
+- `tests/addons/irc_client/test_irc_client_server_error_disconnect.gd`
 
 ## Steps (塔山开发循环)
 
 1) Red: add failing tests for PASS/order, idempotence, USER realname, and ERROR disconnect.
 2) Green: implement the missing behaviors with minimal changes.
 3) Refactor: keep scripts small and avoid extra responsibilities in `IrcClient`.
-4) Verify: run all `tests/test_irc_*.gd` with timeouts; record evidence in `v16-index`.
+4) Verify: run all `tests/addons/irc_client/test_irc_*.gd` with timeouts; record evidence in `v16-index`.
 

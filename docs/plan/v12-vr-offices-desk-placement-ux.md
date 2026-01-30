@@ -43,11 +43,11 @@ Improve desk placement usability and restore “RMB move selected NPC” even wh
   - `vr_offices/furniture/StandingDesk.gd`
   - `docs/vr_offices/controls.md`
   - `docs/vr_offices/controls.zh-CN.md`
-  - `tests/test_vr_offices_right_click_move.gd`
+  - `tests/projects/vr_offices/test_vr_offices_right_click_move.gd`
 
 ## Steps (塔山开发循环)
 
-1) **Red:** extend `tests/test_vr_offices_right_click_move.gd` to reproduce the conflict:
+1) **Red:** extend `tests/projects/vr_offices/test_vr_offices_right_click_move.gd` to reproduce the conflict:
    - Create a workspace.
    - RMB click inside the workspace.
    - Expect a move indicator (and no early consume by menu).

@@ -13,8 +13,8 @@
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Copy diagnostics | Desks panel has a Copy button that copies the top diagnostics text | `tests/test_vr_offices_irc_overlay_desks_copy_smoke.gd` | todo |
-| M2 | Divider | Desks panel has a visible divider between diagnostics and log | `tests/test_vr_offices_irc_overlay_desks_copy_smoke.gd` | todo |
+| M1 | Copy diagnostics | Desks panel has a Copy button that copies the top diagnostics text | `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd` | todo |
+| M2 | Divider | Desks panel has a visible divider between diagnostics and log | `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd` | todo |
 
 ## Plan Index
 

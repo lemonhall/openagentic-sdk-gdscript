@@ -14,8 +14,8 @@
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Reconnect on pre-connected failure | A connect attempt that reaches `STATUS_ERROR/STATUS_NONE` before first `STATUS_CONNECTED` schedules retry | `tests/test_irc_reconnect_initial_connect_failure.gd` | todo |
-| M2 | Reconnect after server `ERROR` | Server `ERROR` causes error+disconnect and schedules retry | `tests/test_irc_reconnect_after_server_error.gd` | todo |
+| M1 | Reconnect on pre-connected failure | A connect attempt that reaches `STATUS_ERROR/STATUS_NONE` before first `STATUS_CONNECTED` schedules retry | `tests/addons/irc_client/test_irc_reconnect_initial_connect_failure.gd` | todo |
+| M2 | Reconnect after server `ERROR` | Server `ERROR` causes error+disconnect and schedules retry | `tests/addons/irc_client/test_irc_reconnect_after_server_error.gd` | todo |
 
 ## Plan Index
 

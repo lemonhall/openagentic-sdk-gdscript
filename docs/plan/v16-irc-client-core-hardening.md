@@ -48,9 +48,9 @@ Modify:
 - `docs/plan/v16-index.md`
 
 Add tests:
-- `tests/test_irc_transport_partial_write.gd`
-- `tests/test_irc_wire_max_len.gd`
-- `tests/test_irc_line_buffer_limits.gd`
+- `tests/addons/irc_client/test_irc_transport_partial_write.gd`
+- `tests/addons/irc_client/test_irc_wire_max_len.gd`
+- `tests/addons/irc_client/test_irc_line_buffer_limits.gd`
 
 ## Steps (塔山开发循环)
 

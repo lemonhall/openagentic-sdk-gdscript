@@ -26,13 +26,13 @@ Out of scope:
 
 - `vr_offices/furniture/StandingDesk.tscn`
 - `vr_offices/furniture/DeskIrcIndicator.gd`
-- `tests/test_vr_offices_desk_irc_indicator_smoke.gd`
+- `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd`
 
 ## Steps (塔山开发循环)
 
 ### 1) Red
 
-- Extend `tests/test_vr_offices_desk_irc_indicator_smoke.gd` to assert:
+- Extend `tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd` to assert:
   - Indicator Y offset is above a minimum threshold.
   - Indicator scale is above a minimum threshold.
   - Indicator Y changes after a few frames (idle animation).
@@ -40,7 +40,7 @@ Out of scope:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_irc_indicator_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_irc_indicator_smoke.gd
 ```
 
 ### 2) Green

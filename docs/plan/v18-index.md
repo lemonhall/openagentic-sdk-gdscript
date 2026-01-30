@@ -29,8 +29,8 @@ Turn the v16/v17 “protocol-capable client” into a practical in-game chat com
 ## Evidence
 
 - Tests:
-  - `tests/test_irc_ctcp_action.gd`
-  - `tests/test_irc_reconnect_rejoin.gd`
+  - `tests/addons/irc_client/test_irc_ctcp_action.gd`
+  - `tests/addons/irc_client/test_irc_reconnect_rejoin.gd`
 
 ## Gaps (what is NOT implemented yet)
 

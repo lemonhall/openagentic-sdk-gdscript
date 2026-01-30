@@ -36,5 +36,5 @@ Make workspace creation feel readable and self-explanatory:
 ## Evidence
 
 - Tests:
-  - `tests/test_vr_offices_workspace_overlay.gd`
-  - `tests/test_vr_offices_workspace_create_onboarding_hint.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_overlay.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_create_onboarding_hint.gd`

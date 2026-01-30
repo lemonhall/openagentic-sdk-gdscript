@@ -46,8 +46,8 @@ Add:
 - `addons/irc_client/IrcWire.gd`
 - `addons/irc_client/plugin.cfg`
 - `addons/irc_client/plugin.gd`
-- `tests/test_irc_wire_format.gd`
-- `tests/test_irc_disconnect.gd`
+- `tests/addons/irc_client/test_irc_wire_format.gd`
+- `tests/addons/irc_client/test_irc_disconnect.gd`
 
 Update (index only):
 - `docs/plan/v16-index.md`
@@ -56,7 +56,7 @@ Update (index only):
 
 ### 1) Red: byte-safe framing
 
-- Add/extend `tests/test_irc_line_buffer.gd`:
+- Add/extend `tests/addons/irc_client/test_irc_line_buffer.gd`:
   - Feed `PackedByteArray` chunks where a multibyte UTF-8 character is split across chunks, and assert the reconstructed line matches exactly.
 - Run; expect FAIL (current buffer is String-based).
 
@@ -68,7 +68,7 @@ Update (index only):
 
 ### 3) Red: wire formatting
 
-- Add `tests/test_irc_wire_format.gd` covering:
+- Add `tests/addons/irc_client/test_irc_wire_format.gd` covering:
   - `PING` with trailing
   - `PRIVMSG #c :hello world`
   - Reject/strip embedded CR/LF in user-provided segments
@@ -83,7 +83,7 @@ Update (index only):
 
 ### 5) Red: disconnect / quit
 
-- Add `tests/test_irc_disconnect.gd` using an in-memory peer to assert:
+- Add `tests/addons/irc_client/test_irc_disconnect.gd` using an in-memory peer to assert:
   - `quit("bye")` sends a `QUIT :bye` line and then closes.
   - `close_connection()` closes without sending.
 - Run; expect FAIL.

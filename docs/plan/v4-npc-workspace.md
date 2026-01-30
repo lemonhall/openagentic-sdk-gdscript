@@ -45,14 +45,14 @@ Create:
 - `addons/openagentic/core/OASkills.gd`
 - `addons/openagentic/tools/OAStandardTools.gd`
 - `addons/openagentic/tools/OAWebTools.gd`
-- `tests/test_workspace_tools.gd`
-- `tests/test_skill_preamble.gd`
-- `tests/test_tool_fs_read_write_edit.gd`
-- `tests/test_tool_glob_grep.gd`
-- `tests/test_tool_todowrite.gd`
-- `tests/test_tool_skill.gd`
-- `tests/test_tool_webfetch.gd`
-- `tests/test_tool_websearch.gd`
+- `tests/addons/openagentic/test_workspace_tools.gd`
+- `tests/addons/openagentic/test_skill_preamble.gd`
+- `tests/addons/openagentic/test_tool_fs_read_write_edit.gd`
+- `tests/addons/openagentic/test_tool_glob_grep.gd`
+- `tests/addons/openagentic/test_tool_todowrite.gd`
+- `tests/addons/openagentic/test_tool_skill.gd`
+- `tests/addons/openagentic/test_tool_webfetch.gd`
+- `tests/addons/openagentic/test_tool_websearch.gd`
 - `docs/plan/v4-index.md`
 
 Modify:

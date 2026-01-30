@@ -35,11 +35,11 @@ Out of scope (deferred in v18):
 - `addons/irc_client/IrcClientCoreEngine.gd`
 - `addons/irc_client/IrcClientCoreCommands.gd`
 - `addons/irc_client/IrcClient.gd`
-- `tests/test_irc_reconnect_rejoin.gd`
+- `tests/addons/irc_client/test_irc_reconnect_rejoin.gd`
 
 ## Steps (塔山开发循环)
 
-1) **Red:** add `tests/test_irc_reconnect_rejoin.gd` that expects:
+1) **Red:** add `tests/addons/irc_client/test_irc_reconnect_rejoin.gd` that expects:
    - peer-factory based connect
    - forced disconnect
    - delayed reconnect

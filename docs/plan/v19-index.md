@@ -29,16 +29,16 @@ Key behaviors:
 - The demo can connect via `IrcClient.connect_to(...)` or `IrcClient.connect_to_tls(...)` (runtime behavior).
 - Connection UI fields are restored on startup from `user://demo_irc/config.json`, and are auto-saved when the user clicks Connect or Join.
 - Tests:
-  - `tests/test_demo_irc_smoke.gd` passes.
-  - `tests/test_demo_irc_config_persistence.gd` passes.
+  - `tests/projects/demo_irc/test_demo_irc_smoke.gd` passes.
+  - `tests/projects/demo_irc/test_demo_irc_config_persistence.gd` passes.
 
 ## Evidence
 
 - Tests (Linux Godot 4.6 headless):
-  - `tests/test_demo_irc_smoke.gd` (PASS)
-  - `tests/test_demo_irc_config_persistence.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_smoke.gd` (PASS)
+  - `tests/projects/demo_irc/test_demo_irc_config_persistence.gd` (PASS)
 - Command:
-  - `HOME=/tmp/oa-home XDG_DATA_HOME=/tmp/oa-xdg-data XDG_CONFIG_HOME=/tmp/oa-xdg-config /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_demo_irc_smoke.gd`
+  - `HOME=/tmp/oa-home XDG_DATA_HOME=/tmp/oa-xdg-data XDG_CONFIG_HOME=/tmp/oa-xdg-config /home/lemonhall/godot46/Godot_v4.6-stable_linux.x86_64 --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/demo_irc/test_demo_irc_smoke.gd`
 
 ## Gaps (what is NOT implemented yet)
 

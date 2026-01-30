@@ -57,9 +57,9 @@ Create (v16):
 - `addons/irc_client/README.md`
 
 Create tests (v16):
-- `tests/test_irc_parser.gd`
-- `tests/test_irc_line_buffer.gd`
-- `tests/test_irc_client_integration.gd`
+- `tests/addons/irc_client/test_irc_parser.gd`
+- `tests/addons/irc_client/test_irc_line_buffer.gd`
+- `tests/addons/irc_client/test_irc_client_integration.gd`
 
 Modify (only if needed for test harness consistency):
 - `AGENTS.md` (only for test running notes; avoid churn)
@@ -68,7 +68,7 @@ Modify (only if needed for test harness consistency):
 
 ### 1) Red: parser tests
 
-- Add `tests/test_irc_parser.gd` with cases:
+- Add `tests/addons/irc_client/test_irc_parser.gd` with cases:
   - `PING :abc`
   - `:nick!user@host PRIVMSG #chan :hello world`
   - `:server 001 nick :Welcome`
@@ -83,7 +83,7 @@ Modify (only if needed for test harness consistency):
 
 ### 3) Red: line buffer tests
 
-- Add `tests/test_irc_line_buffer.gd`:
+- Add `tests/addons/irc_client/test_irc_line_buffer.gd`:
   - Feed chunks like `["PING :a", "bc\r\n"]` → yields one line `PING :abc`
   - Feed `["A\r\nB\r\n"]` → yields `A`, `B`
   - Feed `["A\nB\n"]` if we choose to tolerate lone `\n` (decide and encode)
@@ -96,7 +96,7 @@ Modify (only if needed for test harness consistency):
 
 ### 5) Red: integration test with local TCPServer
 
-- Add `tests/test_irc_client_integration.gd`:
+- Add `tests/addons/irc_client/test_irc_client_integration.gd`:
   - Create `IrcClient` and a fake/scripted peer (in-memory).
   - Drive `poll()` for a bounded number of frames.
   - Assert client emits `NICK` and `USER` lines to the peer.
@@ -120,7 +120,7 @@ Modify (only if needed for test harness consistency):
 
 ### 8) Verify: suite run
 
-- Run all `tests/test_*.gd` headless (Linux Godot recommended) and record evidence in `docs/plan/v16-index.md` (Evidence section).
+- Run all `tests/addons/irc_client/test_*.gd` headless (Linux Godot recommended) and record evidence in `docs/plan/v16-index.md` (Evidence section).
 
 ## Risks
 

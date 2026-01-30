@@ -43,9 +43,9 @@ Create / modify:
 
 Tests:
 
-- `tests/test_vr_offices_irc_settings_persistence.gd` (new)
-- `tests/test_vr_offices_irc_overlay_smoke.gd` (new)
-- Update `tests/test_vr_offices_irc_names.gd` (channel meaning expectation)
+- `tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd` (new)
+- `tests/projects/vr_offices/test_vr_offices_irc_overlay_smoke.gd` (new)
+- Update `tests/projects/vr_offices/test_vr_offices_irc_names.gd` (channel meaning expectation)
 
 ## Steps (塔山开发循环)
 
@@ -74,9 +74,9 @@ export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_settings_persistence.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_overlay_smoke.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_names.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_names.gd
 ```
 
 Then run full suite.

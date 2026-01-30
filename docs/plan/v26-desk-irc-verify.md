@@ -31,13 +31,13 @@ Modify / add:
 - `vr_offices/core/VrOfficesInputController.gd`
 - `vr_offices/VrOffices.gd`
 - `vr_offices/ui/IrcOverlay.gd`
-- `tests/test_vr_offices_desk_pick_collider.gd`
+- `tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd`
 
 ## Steps (塔山开发循环)
 
 ### 1) TDD Red
 
-- Add `tests/test_vr_offices_desk_pick_collider.gd` expecting the pick collider exists and is on layer `8`.
+- Add `tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd` expecting the pick collider exists and is on layer `8`.
 
 ### 2) TDD Green
 
@@ -49,7 +49,7 @@ Modify / add:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_pick_collider.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd
 ```
 
 Then run full test suite.

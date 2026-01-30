@@ -14,8 +14,8 @@
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Remove `Enabled` from UX/config | Settings tab no longer has Enabled; config is “configured” when host is set | `tests/test_vr_offices_irc_overlay_autosave.gd` + `tests/test_vr_offices_irc_settings_persistence.gd` | todo |
-| M2 | Desk ready detection | Desk link marks `ready=true` when JOIN channel appears in `trailing` | `tests/test_vr_offices_desk_irc_link_smoke.gd` | todo |
+| M1 | Remove `Enabled` from UX/config | Settings tab no longer has Enabled; config is “configured” when host is set | `tests/projects/vr_offices/test_vr_offices_irc_overlay_autosave.gd` + `tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd` | todo |
+| M2 | Desk ready detection | Desk link marks `ready=true` when JOIN channel appears in `trailing` | `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd` | todo |
 
 ## Plan Index
 

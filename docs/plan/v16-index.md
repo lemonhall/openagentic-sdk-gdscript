@@ -52,7 +52,7 @@ v16’s vision is “traditional core IRC over plain TCP”.
 
 After closing the above gaps, v16 now matches its core vision and DoD, with one explicit constraint:
 
-- **Core behaviors covered by tests:** parsing/framing, message emission formatting, QUIT/close API, and ping/pong loop are all regression-tested under `tests/test_irc_*.gd`.
+- **Core behaviors covered by tests:** parsing/framing, message emission formatting, QUIT/close API, and ping/pong loop are all regression-tested under `tests/addons/irc_client/test_irc_*.gd`.
 - **Plain TCP is implemented but not socket-integration-tested in CI:** automated tests use an in-memory peer (sandbox friendly). Real-world TCP connection behavior is still exercised manually by users of the addon.
 
 ### Third review (2026-01-30)
@@ -117,49 +117,49 @@ Protocol semantics + test diversity focus:
 ## Evidence
 
 - Tests:
-  - `tests/test_irc_parser.gd`
-  - `tests/test_irc_line_buffer.gd`
-  - `tests/test_irc_client_integration.gd`
-  - `tests/test_irc_wire_format.gd`
-  - `tests/test_irc_disconnect.gd`
-  - `tests/test_irc_transport_partial_write.gd`
-  - `tests/test_irc_wire_max_len.gd`
-  - `tests/test_irc_line_buffer_limits.gd`
-  - `tests/test_irc_transport_overflow.gd`
-  - `tests/test_irc_client_overflow_disconnect.gd`
-  - `tests/test_irc_client_registration_order.gd`
-  - `tests/test_irc_client_registration_idempotent.gd`
-  - `tests/test_irc_client_user_realname.gd`
-  - `tests/test_irc_client_server_error_disconnect.gd`
-  - `tests/test_irc_client_basic_commands.gd`
-  - `tests/test_irc_client_ping_pong_edges.gd`
-  - `tests/test_irc_client_burst_and_split.gd`
-  - `tests/test_irc_line_buffer_random_chunking.gd`
-  - `tests/test_irc_wire_reject_invalid_tokens.gd`
-  - `tests/test_irc_wire_parser_roundtrip_fuzz.gd`
-  - `tests/test_irc_parser_leading_spaces.gd`
-  - `tests/test_irc_client_random_inbound_chunking.gd`
+  - `tests/addons/irc_client/test_irc_parser.gd`
+  - `tests/addons/irc_client/test_irc_line_buffer.gd`
+  - `tests/addons/irc_client/test_irc_client_integration.gd`
+  - `tests/addons/irc_client/test_irc_wire_format.gd`
+  - `tests/addons/irc_client/test_irc_disconnect.gd`
+  - `tests/addons/irc_client/test_irc_transport_partial_write.gd`
+  - `tests/addons/irc_client/test_irc_wire_max_len.gd`
+  - `tests/addons/irc_client/test_irc_line_buffer_limits.gd`
+  - `tests/addons/irc_client/test_irc_transport_overflow.gd`
+  - `tests/addons/irc_client/test_irc_client_overflow_disconnect.gd`
+  - `tests/addons/irc_client/test_irc_client_registration_order.gd`
+  - `tests/addons/irc_client/test_irc_client_registration_idempotent.gd`
+  - `tests/addons/irc_client/test_irc_client_user_realname.gd`
+  - `tests/addons/irc_client/test_irc_client_server_error_disconnect.gd`
+  - `tests/addons/irc_client/test_irc_client_basic_commands.gd`
+  - `tests/addons/irc_client/test_irc_client_ping_pong_edges.gd`
+  - `tests/addons/irc_client/test_irc_client_burst_and_split.gd`
+  - `tests/addons/irc_client/test_irc_line_buffer_random_chunking.gd`
+  - `tests/addons/irc_client/test_irc_wire_reject_invalid_tokens.gd`
+  - `tests/addons/irc_client/test_irc_wire_parser_roundtrip_fuzz.gd`
+  - `tests/addons/irc_client/test_irc_parser_leading_spaces.gd`
+  - `tests/addons/irc_client/test_irc_client_random_inbound_chunking.gd`
 
 - Last verification (Linux headless):
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_parser.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_integration.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_format.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_disconnect.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_transport_partial_write.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_max_len.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer_limits.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_transport_overflow.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_overflow_disconnect.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_registration_order.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_registration_idempotent.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_user_realname.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_server_error_disconnect.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_basic_commands.gd`
-  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_ping_pong_edges.gd`
-  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_reject_invalid_tokens.gd`
-  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_line_buffer_random_chunking.gd`
-  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_wire_parser_roundtrip_fuzz.gd`
-  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_burst_and_split.gd`
-  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_random_inbound_chunking.gd`
-  - `for t in $(ls tests/test_irc_*.gd | sort); do echo "--- RUN $t"; timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"; done`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_parser.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_line_buffer.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_integration.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_wire_format.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_disconnect.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_transport_partial_write.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_wire_max_len.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_line_buffer_limits.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_transport_overflow.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_overflow_disconnect.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_registration_order.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_registration_idempotent.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_user_realname.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_server_error_disconnect.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_basic_commands.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_ping_pong_edges.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_wire_reject_invalid_tokens.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_line_buffer_random_chunking.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_wire_parser_roundtrip_fuzz.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_burst_and_split.gd`
+  - `timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_client_random_inbound_chunking.gd`
+  - `for t in $(ls tests/addons/irc_client/test_irc_*.gd | sort); do echo "--- RUN $t"; timeout 30s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"; done`

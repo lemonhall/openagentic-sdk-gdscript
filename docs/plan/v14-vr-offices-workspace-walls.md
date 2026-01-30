@@ -35,9 +35,9 @@ Add a “room-like” two-wall visual for each workspace that does not occlude t
   - `vr_offices/workspaces/WorkspaceArea.tscn`
   - `vr_offices/workspaces/WorkspaceArea.gd`
   - `vr_offices/core/VrOfficesWorkspaceManager.gd`
-  - `tests/test_vr_offices_workspaces_nodes.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspaces_nodes.gd`
 - Add:
-  - `tests/test_vr_offices_workspace_walls_selection.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_walls_selection.gd`
 
 ## Steps (塔山开发循环)
 

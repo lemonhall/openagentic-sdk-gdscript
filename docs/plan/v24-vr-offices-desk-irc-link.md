@@ -49,17 +49,17 @@ Create / modify:
 
 Tests:
 
-- `tests/test_irc_isupport_parsing.gd` (new)
-- `tests/test_vr_offices_irc_names.gd` (new)
-- `tests/test_vr_offices_desk_irc_link_smoke.gd` (new)
+- `tests/addons/irc_client/test_irc_isupport_parsing.gd` (new)
+- `tests/projects/vr_offices/test_vr_offices_irc_names.gd` (new)
+- `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd` (new)
 
 ## Steps (塔山开发循环)
 
 ### 1) TDD Red — write failing tests
 
-1. Add `tests/test_irc_isupport_parsing.gd` asserting `CHANNELLEN`/`NICKLEN` extracted from a `005` line.
-2. Add `tests/test_vr_offices_irc_names.gd` asserting derived nick/channel respect caps.
-3. Add `tests/test_vr_offices_desk_irc_link_smoke.gd` asserting the link node can be instantiated and configured.
+1. Add `tests/addons/irc_client/test_irc_isupport_parsing.gd` asserting `CHANNELLEN`/`NICKLEN` extracted from a `005` line.
+2. Add `tests/projects/vr_offices/test_vr_offices_irc_names.gd` asserting derived nick/channel respect caps.
+3. Add `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd` asserting the link node can be instantiated and configured.
 
 Run (expect failures due to missing files/methods):
 
@@ -70,9 +70,9 @@ export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_isupport_parsing.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_names.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_irc_link_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_isupport_parsing.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_names.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd
 ```
 
 ### 2) TDD Green — minimal implementation
@@ -94,10 +94,10 @@ Re-run the same commands and expect pass.
 - Run full suite:
 
 ```bash
-for t in tests/test_*.gd; do
+while IFS= read -r t; do
   echo "--- RUN $t"
   timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
-done
+done < <(find tests -type f -name 'test_*.gd' | LC_ALL=C sort)
 ```
 
 ### 5) Ship
@@ -114,4 +114,3 @@ git push
 - ISUPPORT parsing variance across servers (tokens may differ); keep parsing tolerant.
 - Multiple desk connections could be heavy; keep it opt-in and revisit pooling later.
 - Headless tests don’t open sockets; keep desk link test strictly non-networked.
-

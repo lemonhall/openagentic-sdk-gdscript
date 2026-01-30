@@ -56,7 +56,7 @@ See `docs/plan/v5-hooks.md` for the full hook decision shape.
 This repo includes headless test scripts under `tests/` intended to run locally:
 
 ```bash
-godot4 --headless --script tests/test_sse_parser.gd
+godot4 --headless --script tests/addons/openagentic/test_sse_parser.gd
 ```
 
 ## Local proxy

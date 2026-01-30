@@ -80,19 +80,19 @@ This repo has two critical “products”, so tests are grouped accordingly:
 
 ### A) SDK / OpenAgentic core
 
-- SSE parser & stream plumbing: `tests/test_sse_parser.gd`
-- Agent runtime: `tests/test_agent_runtime.gd`
-- Session store: `tests/test_session_store.gd`
-- Tools: `tests/test_tool_*.gd`
+- SSE parser & stream plumbing: `tests/addons/openagentic/test_sse_parser.gd`
+- Agent runtime: `tests/addons/openagentic/test_agent_runtime.gd`
+- Session store: `tests/addons/openagentic/test_session_store.gd`
+- Tools: `tests/addons/openagentic/test_tool_*.gd`
 
 ### B) VR Offices orchestration layer
 
-- Scene smoke/persistence/dialogue: `tests/test_vr_offices_*.gd`
-- Workspaces (rect zones): `tests/test_vr_offices_workspaces_*.gd`
+- Scene smoke/persistence/dialogue: `tests/projects/vr_offices/test_vr_offices_*.gd`
+- Workspaces (rect zones): `tests/projects/vr_offices/test_vr_offices_workspaces_*.gd`
 
 ### C) Demo RPG
 
-- Smoke only: `tests/test_demo_rpg_smoke.gd`
+- Smoke only: `tests/projects/demo_rpg/test_demo_rpg_smoke.gd`
 
 ## Running tests (WSL2 + Linux Godot) — recommended
 
@@ -125,10 +125,10 @@ export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-for t in tests/test_*.gd; do
+while IFS= read -r t; do
   echo "--- RUN $t"
   timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script "res://$t"
-done
+done < <(find tests -type f -name 'test_*.gd' | LC_ALL=C sort)
 ```
 
 Run a single test:
@@ -140,7 +140,7 @@ export XDG_DATA_HOME=/tmp/oa-xdg-data
 export XDG_CONFIG_HOME=/tmp/oa-xdg-config
 mkdir -p "$HOME" "$XDG_DATA_HOME" "$XDG_CONFIG_HOME"
 
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_sse_parser.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/openagentic/test_sse_parser.gd
 ```
 
 ## Running tests (WSL2 + Windows Godot)
@@ -160,7 +160,14 @@ GODOT_WIN_EXE="/mnt/e/Godot_v4.6-stable_win64.exe/Godot_v4.6-stable_win64_consol
 Run a single test:
 
 ```bash
-scripts/run_godot_tests.sh --one tests/test_sse_parser.gd
+scripts/run_godot_tests.sh --one tests/addons/openagentic/test_sse_parser.gd
+```
+
+Run a suite:
+
+```bash
+scripts/run_godot_tests.sh --suite openagentic
+scripts/run_godot_tests.sh --suite vr_offices
 ```
 
 Avoid hung tests (per-test timeout):

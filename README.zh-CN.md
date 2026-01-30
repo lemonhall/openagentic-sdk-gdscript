@@ -89,16 +89,18 @@ node proxy/server.mjs
 仓库 `tests/` 里提供了 headless 测试脚本（本地需要 `godot4`）：
 
 ```bash
-godot4 --headless --script tests/test_sse_parser.gd
-godot4 --headless --script tests/test_session_store.gd
-godot4 --headless --script tests/test_tool_runner.gd
-godot4 --headless --script tests/test_agent_runtime.gd
+godot4 --headless --script tests/addons/openagentic/test_sse_parser.gd
+godot4 --headless --script tests/addons/openagentic/test_session_store.gd
+godot4 --headless --script tests/addons/openagentic/test_tool_runner.gd
+godot4 --headless --script tests/addons/openagentic/test_agent_runtime.gd
 ```
 
 WSL2 + Windows Godot 的便捷脚本：
 
 ```bash
 scripts/run_godot_tests.sh
+scripts/run_godot_tests.sh --suite openagentic
+scripts/run_godot_tests.sh --suite vr_offices
 ```
 
 ## Demo（和第一个 NPC 对话）

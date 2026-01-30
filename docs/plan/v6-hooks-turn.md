@@ -99,5 +99,5 @@ Full list: `docs/vr_offices/animations.md`
 - `addons/openagentic/hooks/OAHookEngine.gd`
 - `addons/openagentic/OpenAgentic.gd`
 - `addons/openagentic/runtime/OAAgentRuntime.gd`
-- `tests/test_turn_hooks.gd` (new)
+- `tests/addons/openagentic/test_turn_hooks.gd` (new)
 

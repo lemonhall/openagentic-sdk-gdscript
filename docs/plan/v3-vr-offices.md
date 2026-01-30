@@ -40,10 +40,10 @@ Out of scope:
 - Switching to a different NPC shows that NPC’s own dialogue history (no history bleed).
 - Closing and reopening the scene restores the previous NPC roster (autosave).
 - Tests:
-  - `tests/test_vr_offices_smoke.gd` loads the scene and exercises add/remove.
-  - `tests/test_vr_offices_dialogue_ui.gd` validates dialogue overlay basics.
-  - `tests/test_vr_offices_per_npc_history.gd` validates per-NPC history isolation.
-  - `tests/test_vr_offices_persistence.gd` validates autosave/load.
+  - `tests/projects/vr_offices/test_vr_offices_smoke.gd` loads the scene and exercises add/remove.
+  - `tests/projects/vr_offices/test_vr_offices_dialogue_ui.gd` validates dialogue overlay basics.
+  - `tests/projects/vr_offices/test_vr_offices_per_npc_history.gd` validates per-NPC history isolation.
+  - `tests/projects/vr_offices/test_vr_offices_persistence.gd` validates autosave/load.
 
 ## Files
 
@@ -58,14 +58,14 @@ Create:
 - `vr_offices/ui/VrOfficesUi.tscn`
 - `vr_offices/ui/VrOfficesUi.gd`
 - `scripts/setup_kenney_mini_characters.sh`
-- `tests/test_vr_offices_smoke.gd`
+- `tests/projects/vr_offices/test_vr_offices_smoke.gd`
 - `vr_offices/ui/DialogueOverlay.tscn`
 - `vr_offices/ui/DialogueOverlay.gd`
 - `vr_offices/ui/SavingOverlay.tscn`
 - `vr_offices/ui/SavingOverlay.gd`
-- `tests/test_vr_offices_dialogue_ui.gd`
-- `tests/test_vr_offices_per_npc_history.gd`
-- `tests/test_vr_offices_persistence.gd`
+- `tests/projects/vr_offices/test_vr_offices_dialogue_ui.gd`
+- `tests/projects/vr_offices/test_vr_offices_per_npc_history.gd`
+- `tests/projects/vr_offices/test_vr_offices_persistence.gd`
 
 Modify:
 
@@ -76,7 +76,7 @@ Modify:
 
 ## Steps (Tashan / TDD)
 
-1. **Red:** add `tests/test_vr_offices_smoke.gd` that tries to load `vr_offices/VrOffices.tscn` and fails because it doesn’t exist yet.
+1. **Red:** add `tests/projects/vr_offices/test_vr_offices_smoke.gd` that tries to load `vr_offices/VrOffices.tscn` and fails because it doesn’t exist yet.
 2. **Green:** create the minimal scene + scripts so the smoke test loads and can call `add_npc()` / `remove_selected()`.
 3. **Green:** implement orbit camera + floor + light, keep smoke test green.
 4. **Green:** implement UI wiring and mouse selection; extend smoke test with selection + removal.

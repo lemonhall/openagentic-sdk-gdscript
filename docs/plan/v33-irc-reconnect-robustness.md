@@ -30,8 +30,8 @@ Out of scope:
 ## Files
 
 - `addons/irc_client/IrcClientCoreEngine.gd`
-- `tests/test_irc_reconnect_initial_connect_failure.gd`
-- `tests/test_irc_reconnect_after_server_error.gd`
+- `tests/addons/irc_client/test_irc_reconnect_initial_connect_failure.gd`
+- `tests/addons/irc_client/test_irc_reconnect_after_server_error.gd`
 
 ## Steps (塔山开发循环)
 
@@ -52,8 +52,8 @@ Out of scope:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_reconnect_initial_connect_failure.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_reconnect_after_server_error.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_reconnect_rejoin.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_reconnect_initial_connect_failure.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_reconnect_after_server_error.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/addons/irc_client/test_irc_reconnect_rejoin.gd
 ```
 

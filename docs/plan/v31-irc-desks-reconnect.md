@@ -31,19 +31,19 @@ Out of scope:
 - `vr_offices/ui/IrcOverlay.gd`
 - `vr_offices/core/VrOfficesDeskManager.gd`
 - `vr_offices/core/VrOfficesDeskIrcLink.gd`
-- `tests/test_vr_offices_irc_overlay_desks_reconnect.gd` (new)
-- `tests/test_vr_offices_desk_irc_link_smoke.gd`
+- `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_reconnect.gd` (new)
+- `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd`
 
 ## Steps (塔山开发循环)
 
 ### 1) Red
 
-- Add `tests/test_vr_offices_irc_overlay_desks_reconnect.gd`:
+- Add `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_reconnect.gd`:
   - Instantiate `IrcOverlay`.
   - Bind it to a fake world + fake desk manager.
   - Press “Reconnect all” and assert the desk manager hook is called.
 
-- Extend `tests/test_vr_offices_desk_irc_link_smoke.gd` to assert `reconnect_now()` exists and is safe when disabled.
+- Extend `tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd` to assert `reconnect_now()` exists and is safe when disabled.
 
 ### 2) Green
 
@@ -55,7 +55,7 @@ Out of scope:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_overlay_desks_reconnect.gd
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_desk_irc_link_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_reconnect.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd
 ```
 

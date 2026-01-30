@@ -28,7 +28,7 @@ Out of scope:
 
 - `vr_offices/ui/IrcOverlay.tscn`
 - `vr_offices/ui/IrcOverlay.gd`
-- `tests/test_vr_offices_irc_overlay_desks_copy_smoke.gd`
+- `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd`
 
 ## Steps (塔山开发循环)
 
@@ -45,6 +45,6 @@ Out of scope:
 Run:
 
 ```bash
-timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_vr_offices_irc_overlay_desks_copy_smoke.gd
+timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd
 ```
 

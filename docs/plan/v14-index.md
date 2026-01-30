@@ -38,5 +38,5 @@ When a workspace is created, it should feel like the player “built a small roo
 ## Evidence
 
 - Tests:
-  - `tests/test_vr_offices_workspace_walls_selection.gd`
-  - `tests/test_vr_offices_workspaces_nodes.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_walls_selection.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspaces_nodes.gd`

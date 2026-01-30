@@ -45,5 +45,5 @@ Bring in a CC office asset pack and let the player add a first piece of “furni
 ## Evidence
 
 - Tests added (v11):
-  - `tests/test_vr_offices_workspace_desks_model.gd`
-  - `tests/test_vr_offices_workspace_desks_persistence.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_model.gd`
+  - `tests/projects/vr_offices/test_vr_offices_workspace_desks_persistence.gd`
