@@ -57,6 +57,8 @@ func list_desk_irc_snapshots() -> Array:
 			"desired_channel": "",
 			"status": "no_node",
 			"ready": false,
+			"log_file_user": "",
+			"log_file_abs": "",
 			"log_lines": [],
 		}
 		if did != "" and _nodes_by_id.has(did):
@@ -71,6 +73,8 @@ func list_desk_irc_snapshots() -> Array:
 						snap["desired_channel"] = String(l.get("desired_channel", ""))
 						snap["status"] = String(l.get("status", ""))
 						snap["ready"] = bool(l.get("ready", false))
+						snap["log_file_user"] = String(l.get("log_file_user", ""))
+						snap["log_file_abs"] = String(l.get("log_file_abs", ""))
 						snap["log_lines"] = l.get("log_lines", [])
 				elif link != null:
 					if link.has_method("get_status"):
