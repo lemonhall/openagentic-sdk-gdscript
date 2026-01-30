@@ -1,5 +1,85 @@
 # Agent Notes (OpenAgentic Godot)
 
+## 1) Architecture Overview
+
+This repo contains 3 major areas:
+
+1) **OpenAgentic Godot SDK (runtime plugin)**
+   - Purpose: provide an agent runtime + tools + session store for Godot games.
+   - Key paths:
+     - Autoload entry: `addons/openagentic/OpenAgentic.gd`
+     - Runtime loop: `addons/openagentic/runtime/OAAgentRuntime.gd`
+     - Provider (OpenAI Responses SSE): `addons/openagentic/providers/OAOpenAIResponsesProvider.gd`
+     - Tool execution: `addons/openagentic/core/OAToolRunner.gd`, `addons/openagentic/core/OATool.gd`
+     - Workspace sandbox FS: `addons/openagentic/core/OAWorkspaceFs.gd`, `addons/openagentic/core/OAPaths.gd`
+     - Built-in tools registry: `addons/openagentic/tools/OAStandardTools.gd`
+
+2) **`vr_offices` (3D “game” / orchestrator layer)**
+   - Purpose: a real in-engine app that exercises multi-agent orchestration patterns (NPCs, dialogue, hooks, world state).
+   - Key paths:
+     - Main scene: `vr_offices/VrOffices.tscn`
+     - Orchestrator script (keep thin): `vr_offices/VrOffices.gd`
+     - Controllers/modules: `vr_offices/core/*.gd`
+
+3) **`demo_rpg` (legacy/simple example)**
+   - Purpose: minimal demo; do not expand it in new work unless explicitly asked.
+
+### Data flow (high level)
+
+```
+Game UI / NPC logic (vr_offices)
+  -> OpenAgentic runtime (OAAgentRuntime)
+    -> Provider (OAOpenAIResponsesProvider)
+      -> Proxy (optional: /proxy/*)
+        -> OpenAI Responses API (SSE streaming)
+    <- streamed events/tool calls
+  -> ToolRunner -> WorkspaceFs (user:// sandbox) / WebFetch / WebSearch / TodoWrite / Skill ...
+  -> SessionStore + world state persisted under user://openagentic/saves/<save_id>/
+```
+
+### Persistence layout (important)
+
+- Saves root: `user://openagentic/saves/<save_id>/`
+- VR Offices world state: `user://openagentic/saves/<save_id>/vr_offices/state.json`
+- NPC private workspace root:
+  - `user://openagentic/saves/<save_id>/npcs/<npc_id>/workspace/`
+- NPC skills convention:
+  - `user://openagentic/saves/<save_id>/npcs/<npc_id>/workspace/skills/<skill-name>/SKILL.md`
+
+## 2) Code Conventions (Negative Knowledge)
+
+Rules that prevent expensive regressions:
+
+- **Do not grow `vr_offices/VrOffices.gd`** into a “god file” again. New behavior must land in `vr_offices/core/*` (controllers/managers) and be wired from `VrOffices.gd`.
+- **Godot 4.6 strict mode:** avoid inferred typing from `null`/Variant (`var x := null` will break). Prefer explicit nullable types (`var x: Node = null`) or keep untyped vars.
+- **Avoid shadowing built-ins / base members** (`name`, `scale`, `floor`, …). Godot warnings can become errors later.
+- **No Bash tool for agents.** Workspace tools must stay inside the NPC private workspace; reject path traversal and absolute/scheme paths.
+- **Proxy/Provider schema discipline:** when defining tool JSON schema, arrays must define `items` (Responses API rejects invalid tool schemas).
+- **Don’t rely on manual testing for regressions.** If a bug was found by hand (HTTP 400/tool schema/memory leak), add a test so it never ships again.
+- **Keep commits small and test-backed.** Prefer “one slice → one commit → push”.
+- **Do not touch `demo_rpg/`** unless the task explicitly asks for it (it’s a demo, not the product).
+- **Never commit secrets** (API keys, tokens). Use environment variables only.
+
+## 3) Testing Strategy
+
+This repo has two critical “products”, so tests are grouped accordingly:
+
+### A) SDK / OpenAgentic core
+
+- SSE parser & stream plumbing: `tests/test_sse_parser.gd`
+- Agent runtime: `tests/test_agent_runtime.gd`
+- Session store: `tests/test_session_store.gd`
+- Tools: `tests/test_tool_*.gd`
+
+### B) VR Offices orchestration layer
+
+- Scene smoke/persistence/dialogue: `tests/test_vr_offices_*.gd`
+- Workspaces (rect zones): `tests/test_vr_offices_workspaces_*.gd`
+
+### C) Demo RPG
+
+- Smoke only: `tests/test_demo_rpg_smoke.gd`
+
 ## Running tests (WSL2 + Linux Godot) — recommended
 
 If WSL interop to a Windows `.exe` is flaky (or prompts too much), run tests using a **Linux** Godot binary.
