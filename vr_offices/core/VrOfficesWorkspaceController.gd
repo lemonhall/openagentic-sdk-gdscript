@@ -131,7 +131,7 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 
 	return false
 
-func handle_rmb_release(screen_pos: Vector2) -> bool:
+func handle_rmb_release(_screen_pos: Vector2) -> bool:
 	if _placing_workspace_id == "":
 		return false
 	_end_desk_placement("Canceled")
@@ -363,7 +363,6 @@ func _set_desk_preview_center_xz(center_xz: Vector2) -> void:
 		return
 
 	var yaw := _placing_yaw
-	var size_xz: Vector2 = desk_manager.call("get_standing_desk_footprint_size_xz", yaw)
 	var rect := _placing_workspace_rect
 
 	var can: Dictionary = desk_manager.call("can_place_standing_desk", _placing_workspace_id, rect, center_xz, yaw)
