@@ -133,10 +133,10 @@ func _set_walls_mask(mask: int, immediate: bool = false) -> void:
 	_apply_wall_visibility_fade()
 
 func _apply_wall_visibility_immediate() -> void:
-	_set_wall_target(wall_pos_x, (_walls_mask & MASK_POS_X) != 0, 1.0)
-	_set_wall_target(wall_neg_x, (_walls_mask & MASK_NEG_X) != 0, 1.0)
-	_set_wall_target(wall_pos_z, (_walls_mask & MASK_POS_Z) != 0, 1.0)
-	_set_wall_target(wall_neg_z, (_walls_mask & MASK_NEG_Z) != 0, 1.0)
+	_set_wall_target(wall_pos_x, (_walls_mask & MASK_POS_X) != 0)
+	_set_wall_target(wall_neg_x, (_walls_mask & MASK_NEG_X) != 0)
+	_set_wall_target(wall_pos_z, (_walls_mask & MASK_POS_Z) != 0)
+	_set_wall_target(wall_neg_z, (_walls_mask & MASK_NEG_Z) != 0)
 
 func _apply_wall_visibility_fade() -> void:
 	if _walls_tween != null and is_instance_valid(_walls_tween):
@@ -170,7 +170,7 @@ func _fade_wall_to(mi: MeshInstance3D, want_visible: bool) -> void:
 		mi.visible = want_visible
 	)
 
-func _set_wall_target(mi: MeshInstance3D, want_visible: bool, alpha: float) -> void:
+func _set_wall_target(mi: MeshInstance3D, want_visible: bool) -> void:
 	if mi == null:
 		return
 	var mat := mi.material_override as StandardMaterial3D
