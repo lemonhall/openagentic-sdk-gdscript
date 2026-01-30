@@ -92,6 +92,42 @@ func set_irc_config(config: Dictionary) -> void:
 	_irc_config = config if config != null else {}
 	_refresh_irc_links()
 
+func reconnect_all_irc_links() -> void:
+	# Manual operator action: force reconnect (close + connect) for all desk links.
+	if _is_headless.is_valid() and bool(_is_headless.call()):
+		return
+	_refresh_irc_links()
+
+	var sid := ""
+	if _get_save_id.is_valid():
+		sid = String(_get_save_id.call()).strip_edges()
+	if sid == "":
+		sid = "slot1"
+
+	for d0 in _desks:
+		var d := d0 as Dictionary
+		if d == null:
+			continue
+		var did := String(d.get("id", "")).strip_edges()
+		if did == "" or not _nodes_by_id.has(did):
+			continue
+		var n0: Variant = _nodes_by_id.get(did)
+		var desk_node := n0 as Node3D
+		if desk_node == null or not is_instance_valid(desk_node):
+			continue
+
+		var link := desk_node.get_node_or_null("DeskIrcLink") as Node
+		if link == null:
+			_maybe_attach_irc_link(desk_node, d)
+			link = desk_node.get_node_or_null("DeskIrcLink") as Node
+
+		if link == null:
+			continue
+		if link.has_method("reconnect_now"):
+			link.call("reconnect_now")
+		elif link.has_method("configure"):
+			link.call("configure", _irc_config, sid, String(d.get("workspace_id", "")), did)
+
 func can_place_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, center_xz: Vector2, yaw: float) -> Dictionary:
 	var wid := workspace_id.strip_edges()
 	if wid == "":

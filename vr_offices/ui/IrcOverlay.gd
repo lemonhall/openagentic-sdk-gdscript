@@ -28,6 +28,7 @@ const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
 @onready var send_button: Button = %SendButton
 
 @onready var refresh_button: Button = %RefreshButton
+@onready var reconnect_all_button: Button = %ReconnectAllButton
 @onready var desk_status_label: Label = %DeskStatusLabel
 @onready var desk_list: ItemList = %DeskList
 @onready var desk_info_label: Label = %DeskInfoLabel
@@ -63,6 +64,8 @@ func _ready() -> void:
 		)
 	if refresh_button != null:
 		refresh_button.pressed.connect(_refresh_desks)
+	if reconnect_all_button != null:
+		reconnect_all_button.pressed.connect(_on_reconnect_all_pressed)
 	if desk_list != null:
 		desk_list.item_selected.connect(_on_desk_selected)
 
@@ -250,6 +253,12 @@ func _refresh_desks() -> void:
 		var ready := bool(it.get("ready", false))
 		desk_list.add_item("%s  [%s]%s" % [did, status, " ready" if ready else ""])
 	desk_status_label.text = "Desks: %d" % _desk_snapshots.size()
+
+func _on_reconnect_all_pressed() -> void:
+	_persist_config_to_world()
+	if _desk_manager != null and _desk_manager.has_method("reconnect_all_irc_links"):
+		_desk_manager.call("reconnect_all_irc_links")
+	_refresh_desks()
 
 func _on_desk_selected(idx: int) -> void:
 	if idx < 0 or idx >= _desk_snapshots.size():

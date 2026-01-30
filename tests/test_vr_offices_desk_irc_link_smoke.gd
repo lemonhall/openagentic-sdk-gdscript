@@ -28,6 +28,12 @@ func _init() -> void:
 	if not T.require_true(self, ch.begins_with("#"), "Derived channel must start with #"):
 		return
 
+	if not link.has_method("reconnect_now"):
+		T.fail_and_quit(self, "VrOfficesDeskIrcLink must implement reconnect_now()")
+		return
+	# Must be safe to call when disabled (no sockets opened).
+	link.call("reconnect_now")
+
 	get_root().remove_child(link)
 	link.free()
 	await process_frame

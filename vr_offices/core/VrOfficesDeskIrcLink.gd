@@ -83,6 +83,15 @@ func send_channel_message(text: String) -> void:
 		return
 	_client.call("privmsg", _desired_channel, msg)
 
+func reconnect_now() -> void:
+	_ensure_client()
+	_joined_this_session = false
+	_set_ready(false)
+	if _client != null:
+		_client.call("close_connection")
+	if bool(_config.get("enabled", false)):
+		_connect_if_needed()
+
 func _process(dt: float) -> void:
 	if _client != null:
 		_client.call("poll", dt)

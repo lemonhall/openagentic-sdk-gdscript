@@ -276,6 +276,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Refresh"
 
+[node name="ReconnectAllButton" type="Button" parent="Panel/VBox/Tabs/Desks/DeskRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reconnect all"
+
 [node name="DeskStatusLabel" type="Label" parent="Panel/VBox/Tabs/Desks/DeskRow"]
 unique_name_in_owner = true
 layout_mode = 2
