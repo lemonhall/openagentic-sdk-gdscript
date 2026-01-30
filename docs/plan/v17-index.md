@@ -13,7 +13,7 @@ Build on v16 by adding modern interoperability features commonly expected in “
 
 1. **Plan:** write an executable v17 plan with tests. (todo)
 2. **TLS:** `StreamPeerTLS` support + tests. (todo)
-3. **CAP:** capability negotiation flow + tests. (todo)
+3. **CAP:** capability negotiation flow + tests. (done)
 4. **SASL:** auth flow + tests. (todo)
 5. **Tags:** parse message tags + tests. (done)
 
@@ -31,3 +31,4 @@ Build on v16 by adding modern interoperability features commonly expected in “
 
 - Tests:
   - `tests/test_irc_parser_tags.gd`
+  - `tests/test_irc_client_cap.gd`

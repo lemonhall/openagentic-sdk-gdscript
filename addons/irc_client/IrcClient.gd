@@ -8,10 +8,12 @@ signal error(msg: String)
 
 const IrcLineBuffer := preload("res://addons/irc_client/IrcLineBuffer.gd")
 const IrcParser := preload("res://addons/irc_client/IrcParser.gd")
+const IrcClientCap := preload("res://addons/irc_client/IrcClientCap.gd")
 
 var _peer: Object = null # StreamPeerTCP or test double implementing the same methods.
 var _buf = null
 var _parser = null
+var _cap = null
 var _was_connected: bool = false
 
 var _nick: String = ""
@@ -28,10 +30,20 @@ func _ensure_init() -> void:
 		_buf = IrcLineBuffer.new()
 	if _parser == null:
 		_parser = IrcParser.new()
+	if _cap == null:
+		_cap = IrcClientCap.new()
 
 func set_peer(peer: Object) -> void:
 	_peer = peer
 	_was_connected = false
+
+func set_cap_enabled(enabled: bool) -> void:
+	_ensure_init()
+	_cap.call("set_enabled", enabled)
+
+func set_requested_caps(caps: Array) -> void:
+	_ensure_init()
+	_cap.call("set_requested_caps", caps)
 
 func set_nick(nick: String) -> void:
 	_nick = nick
@@ -63,7 +75,11 @@ func poll() -> void:
 	if status == StreamPeerTCP.STATUS_CONNECTED and not _was_connected:
 		_was_connected = true
 		connected.emit()
-		_send_registration_if_ready()
+		_cap.call("on_connected", func(line: String) -> void:
+			send_raw_line(line)
+		)
+		if not bool(_cap.call("is_in_progress")):
+			_send_registration_if_ready()
 
 	if status == StreamPeerTCP.STATUS_NONE or status == StreamPeerTCP.STATUS_ERROR:
 		if _was_connected:
@@ -105,6 +121,9 @@ func notice(target: String, text: String) -> void:
 	send_raw_line("NOTICE %s :%s" % [target, text])
 
 func _send_registration_if_ready() -> void:
+	_ensure_init()
+	if bool(_cap.call("is_in_progress")):
+		return
 	if _nick.strip_edges() != "":
 		send_raw_line("NICK %s" % _nick)
 	if _user_user.strip_edges() != "":
@@ -130,6 +149,10 @@ func _read_available() -> void:
 		raw_line_received.emit(line)
 		var msg = _parser.call("parse_line", line)
 		message_received.emit(msg)
+		if bool(_cap.call("on_message", msg, func(out: String) -> void:
+			send_raw_line(out)
+		)):
+			_send_registration_if_ready()
 		_maybe_auto_reply(msg)
 
 func _maybe_auto_reply(msg: RefCounted) -> void:
