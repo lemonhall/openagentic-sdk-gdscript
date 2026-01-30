@@ -21,6 +21,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (done)
 7. **Hardening (v16 robustness):** partial-write safe output queue + line length limits + bounded buffers. (done)
 8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (done)
+9. **Classic coverage (v16):** add explicit tests for JOIN/PART/PRIVMSG/NOTICE/QUIT and PING variants. (doing)
 
 ## Plans (v16)
 
@@ -28,6 +29,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 - `docs/plan/v16-irc-client-core-polish.md`
 - `docs/plan/v16-irc-client-core-hardening.md`
 - `docs/plan/v16-irc-client-classic-completeness.md`
+- `docs/plan/v16-irc-client-classic-coverage.md`
 
 ## Gap Review (Vision vs. Reality)
 
@@ -61,6 +63,12 @@ Classic IRC completeness checks:
 
 - **Registration correctness:** supports optional `PASS` (before `NICK/USER`) and avoids resending registration lines even when CAP completion causes repeated “ready to register” callbacks.
 - **Server ERROR handling:** receiving `ERROR :...` emits `error` and closes the connection (emitting `disconnected`).
+
+### Fifth review (2026-01-30)
+
+Coverage focus:
+
+- Add missing regression coverage for classic command helpers (`JOIN/PART/PRIVMSG/NOTICE/QUIT`) and PING edge forms.
 
 ## Definition of Done (DoD)
 
