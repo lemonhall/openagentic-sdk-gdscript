@@ -122,12 +122,14 @@ func poll(dt_sec: float = 0.0) -> void:
 			_cmd.call("send_registration_if_ready")
 
 	if status == StreamPeerTCP.STATUS_NONE or status == StreamPeerTCP.STATUS_ERROR:
-		if _was_connected:
-			_was_connected = false
-			_channels.call("note_disconnected_for_rejoin")
-			_reconnect.call("on_disconnected")
-			if _emit_disconnected.is_valid():
-				_emit_disconnected.call()
+		# Even if we never reached STATUS_CONNECTED, treat this as a disconnect so that
+		# auto-reconnect can recover from "failed first connect" scenarios.
+		_was_connected = false
+		_channels.call("note_disconnected_for_rejoin")
+		_reconnect.call("on_disconnected")
+		_transport.call("close")
+		if _emit_disconnected.is_valid():
+			_emit_disconnected.call()
 		return
 
 	if status != StreamPeerTCP.STATUS_CONNECTED:
@@ -136,12 +138,22 @@ func poll(dt_sec: float = 0.0) -> void:
 	_read_available()
 
 func close_connection() -> void:
-	_reconnect.call("note_user_initiated_close")
+	_close_connection_internal(true)
+
+func close_connection_remote() -> void:
+	# Remote-initiated close (server ERROR, socket drop, etc). Eligible for auto-reconnect.
+	_close_connection_internal(false)
+
+func _close_connection_internal(user_initiated: bool) -> void:
+	if user_initiated:
+		_reconnect.call("note_user_initiated_close")
 	if not bool(_transport.call("has_peer")):
 		return
 	var status: int = int(_transport.call("close"))
 	if _was_connected or status == StreamPeerTCP.STATUS_CONNECTED:
 		_was_connected = false
+		_channels.call("note_disconnected_for_rejoin")
+		_reconnect.call("on_disconnected")
 		if _emit_disconnected.is_valid():
 			_emit_disconnected.call()
 
@@ -175,7 +187,7 @@ func _read_available() -> void:
 	var emit_err := func(e: String) -> void:
 		if _emit_error.is_valid():
 			_emit_error.call(e)
-	var close_fn := func() -> void: close_connection()
+	var close_fn := func() -> void: close_connection_remote()
 	var on_welcome := func() -> void:
 		_channels.call("on_welcome", func(ch: String) -> void: _cmd.call("join", ch))
 	var on_isupport := func(m: Object) -> void:
