@@ -13,7 +13,8 @@ func _init() -> void:
 		T.fail_and_quit(self, "Missing runtime/core/hook classes")
 		return
 
-	var save_id := "slot_test_turn_hooks_%s" % str(Time.get_ticks_msec())
+	# `Time.get_ticks_msec()` is relative to process start and can collide across separate headless runs.
+	var save_id: String = "slot_test_turn_hooks_%s_%s" % [str(OS.get_process_id()), str(int(Time.get_unix_time_from_system() * 1000.0))]
 	var store = StoreScript.new(save_id)
 	var tools = RegistryScript.new()
 
@@ -89,4 +90,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-
