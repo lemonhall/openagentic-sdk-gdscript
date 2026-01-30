@@ -41,10 +41,12 @@ func _init() -> void:
 		return
 
 	var peer := FakePartialPeer.new()
+	peer.max_per_write = 1
 	transport.call("set_peer", peer)
 
 	transport.call("send_line", "PING :abc")
-	var expected := "PING :abc\r\n".to_utf8_buffer()
+	transport.call("send_line", "PONG :def")
+	var expected := "PING :abc\r\nPONG :def\r\n".to_utf8_buffer()
 
 	var deadline_ms: int = Time.get_ticks_msec() + 1000
 	while Time.get_ticks_msec() < deadline_ms:

@@ -149,10 +149,18 @@ func part(channel: String, reason: String = "") -> void:
 		send_message("PART", [channel], reason)
 
 func privmsg(target: String, text: String) -> void:
-	send_message("PRIVMSG", [target], text)
+	_ensure_init()
+	var line: String = _wire.call("format_with_max_bytes", "PRIVMSG", [target], text, 510, true)
+	if line.strip_edges() == "":
+		return
+	send_raw_line(line)
 
 func notice(target: String, text: String) -> void:
-	send_message("NOTICE", [target], text)
+	_ensure_init()
+	var line: String = _wire.call("format_with_max_bytes", "NOTICE", [target], text, 510, true)
+	if line.strip_edges() == "":
+		return
+	send_raw_line(line)
 
 func ctcp_action(target: String, text: String) -> void:
 	_ensure_init()

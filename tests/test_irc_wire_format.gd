@@ -31,5 +31,12 @@ func _init() -> void:
 	if not T.require_eq(self, s4, "NOTICE #c :hiEVIL", "CRLF stripped from trailing"):
 		return
 
-	T.pass_and_quit(self)
+	# Empty trailing is a meaningful protocol state for some commands (e.g. PRIVMSG/NOTICE).
+	if not wire.has_method("format_with_max_bytes"):
+		T.fail_and_quit(self, "IrcWire must implement format_with_max_bytes(command, params, trailing, max_bytes, force_trailing?)")
+		return
+	var s5: String = wire.call("format_with_max_bytes", "PRIVMSG", ["#c"], "", 510, true)
+	if not T.require_eq(self, s5, "PRIVMSG #c :", "forced empty trailing must emit trailing marker"):
+		return
 
+	T.pass_and_quit(self)

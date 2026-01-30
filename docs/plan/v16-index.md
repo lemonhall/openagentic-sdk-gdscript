@@ -23,6 +23,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (done)
 9. **Classic coverage (v16):** add explicit tests for JOIN/PART/PRIVMSG/NOTICE/QUIT and PING variants. (done)
 10. **Test diversity (v16):** random chunking + burst/split integration + wire token validation + fuzz roundtrips. (done)
+11. **Classic edge cases (v16):** empty trailing semantics + iterative partial-write flushing. (done)
 
 ## Plans (v16)
 
@@ -32,6 +33,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 - `docs/plan/v16-irc-client-classic-completeness.md`
 - `docs/plan/v16-irc-client-classic-coverage.md`
 - `docs/plan/v16-irc-client-test-diversity.md`
+- `docs/plan/v16-irc-client-classic-edge-cases-2.md`
 
 ## Gap Review (Vision vs. Reality)
 
@@ -80,6 +82,13 @@ Test diversity focus:
 - **Burst+split integration:** multi-line server bursts split into odd chunks still preserve ordering and produce correct `PONG`.
 - **Wire token correctness:** `IrcWire` no longer silently mutates middle tokens (e.g. `"#a b"` → `"#ab"`); it now rejects invalid tokens to avoid sending incorrect protocol lines.
 - **Wire→Parse fuzz:** deterministic random roundtrips validate `format` + `parse_line` across many combinations (including UTF-8 trailing).
+
+### Seventh review (2026-01-30)
+
+Protocol edge-case focus:
+
+- **Empty trailing semantics:** `PRIVMSG/NOTICE` now preserve the difference between “missing param” and “present-but-empty” via forced ` :` output when needed.
+- **Transport robustness:** partial-write flushing is iterative (no recursion), reducing worst-case stack risk under backpressure.
 
 ## Definition of Done (DoD)
 

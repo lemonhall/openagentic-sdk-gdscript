@@ -4,7 +4,7 @@ func format(command: String, params: Array = [], trailing: String = "") -> Strin
 	# Unlimited formatting helper; v16 typically uses format_with_max_bytes(…, 510).
 	return format_with_max_bytes(command, params, trailing, 1024 * 1024)
 
-func format_with_max_bytes(command: String, params: Array = [], trailing: String = "", max_bytes: int = 510) -> String:
+func format_with_max_bytes(command: String, params: Array = [], trailing: String = "", max_bytes: int = 510, force_trailing: bool = false) -> String:
 	var cmd := _sanitize_token(command)
 	if cmd == "":
 		return ""
@@ -24,7 +24,7 @@ func format_with_max_bytes(command: String, params: Array = [], trailing: String
 		return ""
 
 	var tr := _sanitize_trailing(trailing)
-	if tr == "":
+	if tr == "" and not force_trailing:
 		return fixed
 
 	var prefix := fixed + " :"

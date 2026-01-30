@@ -94,31 +94,32 @@ func send_line(line: String) -> void:
 func _flush_writes() -> void:
 	if _peer == null:
 		return
-	if _out_queue.size() == 0:
-		return
 	if not _peer.has_method("get_status") or int(_peer.call("get_status")) != StreamPeerTCP.STATUS_CONNECTED:
 		return
 
 	# Prefer partial writes when supported.
 	if _peer.has_method("put_partial_data"):
-		var res = _peer.call("put_partial_data", _out_queue)
-		if res is Array and res.size() >= 2:
+		# Iterative flush to avoid deep recursion under heavy backpressure.
+		while _out_queue.size() > 0:
+			var res = _peer.call("put_partial_data", _out_queue)
+			if not (res is Array) or res.size() < 2:
+				_last_error = "put_partial_data failed"
+				return
 			var err: int = int(res[0])
 			var sent: int = int(res[1])
 			if err != OK:
 				_last_error = "put_partial_data failed: %s" % str(err)
 				return
-			if sent > 0:
-				_out_queue = _out_queue.slice(sent)
-				# Keep flushing this frame if the peer keeps accepting.
-				if _out_queue.size() > 0:
-					_flush_writes()
+			if sent <= 0:
+				# Peer accepted 0 bytes but didn't error; stop this flush cycle.
 				return
-		_last_error = "put_partial_data failed"
+			_out_queue = _out_queue.slice(sent)
 		return
 
 	# Fallback to put_data (assumed to write the entire buffer or error).
 	if _peer.has_method("put_data"):
+		if _out_queue.size() == 0:
+			return
 		var err2: int = int(_peer.call("put_data", _out_queue))
 		if err2 != OK:
 			_last_error = "put_data failed: %s" % str(err2)

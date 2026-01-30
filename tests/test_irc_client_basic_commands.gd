@@ -54,7 +54,9 @@ func _init() -> void:
 	client.call("join", "#c")
 	client.call("part", "#c", "bye")
 	client.call("privmsg", "#c", "hello")
+	client.call("privmsg", "#c", "")
 	client.call("notice", "#c", "note")
+	client.call("notice", "#c", "")
 	client.call("quit", "later")
 
 	var out := fake.take_outbound_text()
@@ -66,7 +68,11 @@ func _init() -> void:
 		return
 	if not T.require_true(self, lines.has("PRIVMSG #c :hello"), "PRIVMSG line"):
 		return
+	if not T.require_true(self, lines.has("PRIVMSG #c :"), "PRIVMSG empty trailing line"):
+		return
 	if not T.require_true(self, lines.has("NOTICE #c :note"), "NOTICE line"):
+		return
+	if not T.require_true(self, lines.has("NOTICE #c :"), "NOTICE empty trailing line"):
 		return
 	if not T.require_true(self, lines.has("QUIT :later"), "QUIT line"):
 		return
