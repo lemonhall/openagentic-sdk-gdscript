@@ -42,5 +42,20 @@ func _init() -> void:
 	if not T.require_eq(self, out4[1], "D", "line D"):
 		return
 
-	T.pass_and_quit(self)
+	# Byte-robust framing: splitting inside a multibyte UTF-8 sequence must not corrupt output.
+	if not buf.has_method("push_bytes"):
+		T.fail_and_quit(self, "IrcLineBuffer must implement push_bytes(chunk: PackedByteArray) -> Array[String]")
+		return
 
+	var b1 := PackedByteArray([0x68, 0xC3]) # "h" + first byte of "é" (0xC3 0xA9)
+	var b2 := PackedByteArray([0xA9, 0x6C, 0x6C, 0x6F, 0x0D, 0x0A]) # "éllo\\r\\n"
+	var outb1: Array[String] = buf.call("push_bytes", b1)
+	if not T.require_eq(self, outb1.size(), 0, "partial UTF-8 bytes should yield no lines"):
+		return
+	var outb2: Array[String] = buf.call("push_bytes", b2)
+	if not T.require_eq(self, outb2.size(), 1, "completed UTF-8 line should yield one line"):
+		return
+	if not T.require_eq(self, outb2[0], "héllo", "UTF-8 split line content"):
+		return
+
+	T.pass_and_quit(self)

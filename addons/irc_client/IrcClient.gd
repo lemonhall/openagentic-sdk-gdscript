@@ -13,11 +13,13 @@ const IrcClientCap := preload("res://addons/irc_client/IrcClientCap.gd")
 const IrcClientTls := preload("res://addons/irc_client/IrcClientTls.gd")
 const IrcClientPing := preload("res://addons/irc_client/IrcClientPing.gd")
 const IrcClientCtcp := preload("res://addons/irc_client/IrcClientCtcp.gd")
+const IrcWire := preload("res://addons/irc_client/IrcWire.gd")
 
 var _peer: Object = null # StreamPeerTCP or test double implementing the same methods.
 var _tls = null
 var _buf = null
 var _parser = null
+var _wire = null
 var _cap = null
 var _ping = null
 var _ctcp = null
@@ -32,6 +34,7 @@ var _user_realname: String = ""
 func _ensure_init() -> void:
 	if _buf == null: _buf = IrcLineBuffer.new()
 	if _parser == null: _parser = IrcParser.new()
+	if _wire == null: _wire = IrcWire.new()
 	if _cap == null: _cap = IrcClientCap.new()
 	if _tls == null: _tls = IrcClientTls.new()
 	if _ping == null: _ping = IrcClientPing.new()
@@ -139,20 +142,64 @@ func send_raw_line(line: String) -> void:
 		s += "\r\n"
 	_peer.call("put_data", s.to_utf8_buffer())
 
+func close_connection() -> void:
+	_ensure_init()
+	if _peer == null:
+		return
+
+	var status: int = StreamPeerTCP.STATUS_ERROR
+	if _peer.has_method("get_status"):
+		status = int(_peer.call("get_status"))
+
+	_close_transport()
+
+	if _was_connected or status == StreamPeerTCP.STATUS_CONNECTED:
+		_was_connected = false
+		disconnected.emit()
+
+func quit(reason: String = "") -> void:
+	if reason.strip_edges() == "":
+		send_message("QUIT")
+	else:
+		send_message("QUIT", [], reason)
+	close_connection()
+
+func send_message(command: String, params: Array = [], trailing: String = "") -> void:
+	_ensure_init()
+	var line: String = _wire.call("format", command, params, trailing)
+	if line.strip_edges() == "":
+		return
+	send_raw_line(line)
+
+func _close_transport() -> void:
+	if _peer == null:
+		return
+
+	# Best-effort: close TCP peers; if we're currently over TLS, close the underlying TCP stream too.
+	if _peer.has_method("disconnect_from_host"):
+		_peer.call("disconnect_from_host")
+	elif _tls != null:
+		var under = (_tls as Object).get("_under")
+		if under != null and (under as Object).has_method("disconnect_from_host"):
+			(under as Object).call("disconnect_from_host")
+
+	_peer = null
+	_tls.call("reset")
+
 func join(channel: String) -> void:
-	send_raw_line("JOIN %s" % channel)
+	send_message("JOIN", [channel])
 
 func part(channel: String, reason: String = "") -> void:
 	if reason.strip_edges() == "":
-		send_raw_line("PART %s" % channel)
+		send_message("PART", [channel])
 	else:
-		send_raw_line("PART %s :%s" % [channel, reason])
+		send_message("PART", [channel], reason)
 
 func privmsg(target: String, text: String) -> void:
-	send_raw_line("PRIVMSG %s :%s" % [target, text])
+	send_message("PRIVMSG", [target], text)
 
 func notice(target: String, text: String) -> void:
-	send_raw_line("NOTICE %s :%s" % [target, text])
+	send_message("NOTICE", [target], text)
 
 func ctcp_action(target: String, text: String) -> void:
 	_ensure_init()
@@ -163,12 +210,12 @@ func _send_registration_if_ready() -> void:
 	if bool(_cap.call("is_in_progress")):
 		return
 	if _nick.strip_edges() != "":
-		send_raw_line("NICK %s" % _nick)
+		send_message("NICK", [_nick])
 	if _user_user.strip_edges() != "":
 		var rn := _user_realname
 		if rn.strip_edges() == "":
 			rn = _user_user
-		send_raw_line("USER %s %s %s :%s" % [_user_user, _user_mode, _user_unused, rn])
+		send_message("USER", [_user_user, _user_mode, _user_unused], rn)
 
 func _read_available() -> void:
 	if not _peer.has_method("get_available_bytes") or not _peer.has_method("get_data"):
@@ -181,8 +228,7 @@ func _read_available() -> void:
 		error.emit("get_data failed")
 		return
 	var bytes: PackedByteArray = got[1]
-	var chunk: String = bytes.get_string_from_utf8()
-	var lines: Array[String] = _buf.call("push_chunk", chunk)
+	var lines: Array[String] = _buf.call("push_bytes", bytes)
 	for line in lines:
 		raw_line_received.emit(line)
 		var msg = _parser.call("parse_line", line)
