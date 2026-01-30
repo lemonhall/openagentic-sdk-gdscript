@@ -5,6 +5,10 @@ var _status: String = ""
 var _link_ready := false
 var _error_flash_until_ms := 0
 
+var _anim_time := 0.0
+var _base_y := 0.0
+var _base_rot_y := 0.0
+
 var _mat: StandardMaterial3D = null
 
 @onready var _top: MeshInstance3D = get_node_or_null("Top") as MeshInstance3D
@@ -12,6 +16,8 @@ var _mat: StandardMaterial3D = null
 
 func _ready() -> void:
 	_setup_material()
+	_base_y = position.y
+	_base_rot_y = rotation.y
 	var p := get_parent()
 	if p != null and p is Node:
 		var pn := p as Node
@@ -22,11 +28,18 @@ func _ready() -> void:
 
 func set_suspended(suspended: bool) -> void:
 	visible = not suspended
+	if suspended:
+		_anim_time = 0.0
+		position.y = _base_y
+		rotation.y = _base_rot_y
 
 func _process(_dt: float) -> void:
-	if _error_flash_until_ms == 0:
-		return
-	if Time.get_ticks_msec() >= _error_flash_until_ms:
+	if visible:
+		_anim_time += _dt
+		position.y = _base_y + sin(_anim_time * 2.0) * 0.07
+		rotation.y = _base_rot_y + _anim_time * 1.1
+
+	if _error_flash_until_ms != 0 and Time.get_ticks_msec() >= _error_flash_until_ms:
 		_error_flash_until_ms = 0
 		_update(false)
 

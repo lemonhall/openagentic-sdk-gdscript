@@ -41,6 +41,22 @@ func _init() -> void:
 	get_root().add_child(desk)
 	await process_frame
 
+	var indicator := desk.get_node_or_null("IrcIndicator") as Node3D
+	if not T.require_true(self, indicator != null, "Missing IrcIndicator"):
+		return
+	if not T.require_true(self, float(indicator.position.y) >= 2.0, "IrcIndicator must sit above the desk (y >= 2.0), got %s" % [str(indicator.position.y)]):
+		return
+	if not T.require_true(self, float(indicator.scale.x) >= 0.8, "IrcIndicator must be readable (scale.x >= 0.8), got %s" % [str(indicator.scale)]):
+		return
+
+	# Indicator should feel "alive": its Y should change over time while visible.
+	var y0 := float(indicator.position.y)
+	for _i in range(12):
+		await process_frame
+	var y1 := float(indicator.position.y)
+	if not T.require_true(self, absf(y1 - y0) >= 0.001, "IrcIndicator Y must animate (bob), got y0=%s y1=%s" % [str(y0), str(y1)]):
+		return
+
 	var top := desk.get_node_or_null("IrcIndicator/Top") as MeshInstance3D
 	if not T.require_true(self, top != null, "Missing IrcIndicator/Top"):
 		return
