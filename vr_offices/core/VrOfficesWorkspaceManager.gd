@@ -31,6 +31,23 @@ func list_workspaces() -> Array:
 	# Intentionally untyped return for caller flexibility.
 	return _workspaces.duplicate(true)
 
+func get_workspace(workspace_id: String) -> Dictionary:
+	var wid := workspace_id.strip_edges()
+	if wid == "":
+		return {}
+	for ws0 in _workspaces:
+		var ws := ws0 as Dictionary
+		if ws == null:
+			continue
+		if String(ws.get("id", "")) == wid:
+			return ws.duplicate(true)
+	return {}
+
+func get_workspace_rect_xz(workspace_id: String) -> Rect2:
+	var ws := get_workspace(workspace_id)
+	var r0: Variant = ws.get("rect_xz")
+	return r0 as Rect2 if (r0 is Rect2) else Rect2()
+
 func bind_scene(workspace_root: Node3D, workspace_scene: PackedScene, is_headless: Callable) -> void:
 	_workspace_root = workspace_root
 	_workspace_scene = workspace_scene

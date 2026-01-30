@@ -58,5 +58,17 @@ text = "Create"
 
 [node name="ContextMenu" type="PopupMenu" parent="."]
 unique_name_in_owner = true
-size = Vector2i(200, 60)
+size = Vector2i(220, 90)
 
+[node name="Toast" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 520.0
+offset_bottom = 42.0
+text = ""

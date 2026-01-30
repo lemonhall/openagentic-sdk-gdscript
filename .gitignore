@@ -10,6 +10,7 @@ __pycache__/
 
 # Local-only asset zips (import via scripts/)
 kenney_*.zip
+Office Pack-glb.zip
 
 # Node proxy
 proxy/node_modules/

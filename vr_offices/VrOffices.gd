@@ -12,9 +12,11 @@ const _InputControllerScript := preload("res://vr_offices/core/VrOfficesInputCon
 const _MoveControllerScript := preload("res://vr_offices/core/VrOfficesMoveController.gd")
 const _WorkspaceManagerScript := preload("res://vr_offices/core/VrOfficesWorkspaceManager.gd")
 const _WorkspaceControllerScript := preload("res://vr_offices/core/VrOfficesWorkspaceController.gd")
+const _DeskManagerScript := preload("res://vr_offices/core/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/VrOfficesBgm.gd")
 const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.tscn")
+const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tscn")
 
 @export var npc_scene: PackedScene
 @export var npc_spawn_y := 2.0
@@ -25,6 +27,7 @@ const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.
 @onready var npc_root: Node3D = $NpcRoot
 @onready var move_indicators: Node3D = $MoveIndicators
 @onready var workspaces_root: Node3D = $Workspaces
+@onready var furniture_root: Node3D = $Furniture
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
 @onready var dialogue: Control = $UI/DialogueOverlay
@@ -43,6 +46,7 @@ var _input_ctrl: RefCounted = null
 var _move_ctrl: RefCounted = null
 var _workspace_manager: RefCounted = null
 var _workspace_ctrl: RefCounted = null
+var _desk_manager: RefCounted = null
 var _quitting := false
 
 func _ready() -> void:
@@ -87,7 +91,10 @@ func _ready() -> void:
 	_workspace_manager = _WorkspaceManagerScript.new(bounds)
 	if _workspace_manager != null:
 		_workspace_manager.call("bind_scene", workspaces_root, _WorkspaceAreaScene, Callable(self, "_is_headless"))
-	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager)
+	_desk_manager = _DeskManagerScript.new()
+	if _desk_manager != null:
+		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"))
+	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _desk_manager)
 	_dialogue_ctrl = _DialogueControllerScript.new(
 		self,
 		camera_rig,
@@ -107,6 +114,7 @@ func _ready() -> void:
 		self,
 		camera_rig,
 		_workspace_manager,
+		_desk_manager,
 		workspace_overlay,
 		Callable(self, "autosave")
 	)

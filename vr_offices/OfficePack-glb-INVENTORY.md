@@ -1,0 +1,135 @@
+# Office Pack (GLB) — Inventory
+
+Source: `Office Pack-glb.zip` (local file, ignored by git)
+
+Extracted to: `assets/office_pack_glb/`
+
+Featured (v11): `assets/office_pack_glb/Standing Desk.glb`
+
+## Files
+
+- `assets/office_pack_glb/Adjustable Desk.glb`
+- `assets/office_pack_glb/Air Vent.glb`
+- `assets/office_pack_glb/Analog clock.glb`
+- `assets/office_pack_glb/Bathroom Sink.glb`
+- `assets/office_pack_glb/Bathroom Toilet Paper.glb`
+- `assets/office_pack_glb/Binder.glb`
+- `assets/office_pack_glb/Bins.glb`
+- `assets/office_pack_glb/Blank Picture Frame.glb`
+- `assets/office_pack_glb/Book Stack.glb`
+- `assets/office_pack_glb/Briefcase.glb`
+- `assets/office_pack_glb/CCTV Camera.glb`
+- `assets/office_pack_glb/Cabinet Bed Drawer Tabl.glb`
+- `assets/office_pack_glb/Cabinet.glb`
+- `assets/office_pack_glb/Calendar-8GqQAqxi3qk.glb`
+- `assets/office_pack_glb/Calendar.glb`
+- `assets/office_pack_glb/Cardboard Box.glb`
+- `assets/office_pack_glb/Cardboard Boxes-pMdXdrUHvX.glb`
+- `assets/office_pack_glb/Cardboard Boxes.glb`
+- `assets/office_pack_glb/Ceiling Fan.glb`
+- `assets/office_pack_glb/Ceiling Light.glb`
+- `assets/office_pack_glb/Chair-1MFMOaz3zqe.glb`
+- `assets/office_pack_glb/Chair.glb`
+- `assets/office_pack_glb/Coat rack.glb`
+- `assets/office_pack_glb/Coffee Table.glb`
+- `assets/office_pack_glb/Coffee cup.glb`
+- `assets/office_pack_glb/Computer Screen.glb`
+- `assets/office_pack_glb/Computer mouse.glb`
+- `assets/office_pack_glb/Computer.glb`
+- `assets/office_pack_glb/Couch Medium.glb`
+- `assets/office_pack_glb/Couch Small-ZOPP3KzNIk.glb`
+- `assets/office_pack_glb/Couch Small.glb`
+- `assets/office_pack_glb/Couch | Wide.glb`
+- `assets/office_pack_glb/Crushed Soda Can.glb`
+- `assets/office_pack_glb/Cup.glb`
+- `assets/office_pack_glb/Curtains Double.glb`
+- `assets/office_pack_glb/Cushions.glb`
+- `assets/office_pack_glb/Dartboard.glb`
+- `assets/office_pack_glb/Darts.glb`
+- `assets/office_pack_glb/Desk Toy.glb`
+- `assets/office_pack_glb/Desk-7ban171PzCS.glb`
+- `assets/office_pack_glb/Desk-EtJlOllzbf.glb`
+- `assets/office_pack_glb/Desk-ISpMh81QGq.glb`
+- `assets/office_pack_glb/Desk-V86Go2rlnq.glb`
+- `assets/office_pack_glb/Desk.glb`
+- `assets/office_pack_glb/Doorway Front.glb`
+- `assets/office_pack_glb/Doorway.glb`
+- `assets/office_pack_glb/Dual Monitors on sit-stand arm.glb`
+- `assets/office_pack_glb/Electrical outlet.glb`
+- `assets/office_pack_glb/File Cabinet.glb`
+- `assets/office_pack_glb/Fire Exit Sign-0ywPpb36cyK.glb`
+- `assets/office_pack_glb/Fire Exit Sign.glb`
+- `assets/office_pack_glb/Fire Extinguisher.glb`
+- `assets/office_pack_glb/Houseplant-VtJh4Irl4w.glb`
+- `assets/office_pack_glb/Houseplant-bfLOqIV5uP.glb`
+- `assets/office_pack_glb/Houseplant-e9oRt-Ct6js.glb`
+- `assets/office_pack_glb/Houseplant.glb`
+- `assets/office_pack_glb/Keyboard-fOy2zvPJAj-.glb`
+- `assets/office_pack_glb/Keyboard.glb`
+- `assets/office_pack_glb/Ladder.glb`
+- `assets/office_pack_glb/Lamp.glb`
+- `assets/office_pack_glb/Laptop bag.glb`
+- `assets/office_pack_glb/Light Cube.glb`
+- `assets/office_pack_glb/Light Desk.glb`
+- `assets/office_pack_glb/Light Floor.glb`
+- `assets/office_pack_glb/Light Icosahedron.glb`
+- `assets/office_pack_glb/Light Switch.glb`
+- `assets/office_pack_glb/MS Gundam RX-78-2 with weapons.glb`
+- `assets/office_pack_glb/Magazine.glb`
+- `assets/office_pack_glb/Manhole cover.glb`
+- `assets/office_pack_glb/Medium Book Shelf.glb`
+- `assets/office_pack_glb/Message board.glb`
+- `assets/office_pack_glb/Monitor.glb`
+- `assets/office_pack_glb/Mouse.glb`
+- `assets/office_pack_glb/Mousepad.glb`
+- `assets/office_pack_glb/Mug With Office Tool.glb`
+- `assets/office_pack_glb/Mug.glb`
+- `assets/office_pack_glb/Night Stand.glb`
+- `assets/office_pack_glb/Notebook.glb`
+- `assets/office_pack_glb/Office Chair.glb`
+- `assets/office_pack_glb/Office Phone.glb`
+- `assets/office_pack_glb/Pens.glb`
+- `assets/office_pack_glb/Phone-1L9oJAw6nY2.glb`
+- `assets/office_pack_glb/Phone.glb`
+- `assets/office_pack_glb/Plant - White Pot.glb`
+- `assets/office_pack_glb/Polaroids.glb`
+- `assets/office_pack_glb/Potted Plant.glb`
+- `assets/office_pack_glb/Printer.glb`
+- `assets/office_pack_glb/Rubik's cube.glb`
+- `assets/office_pack_glb/Rug Round.glb`
+- `assets/office_pack_glb/Rug.glb`
+- `assets/office_pack_glb/Shelf Small.glb`
+- `assets/office_pack_glb/Shelf.glb`
+- `assets/office_pack_glb/Skateboard.glb`
+- `assets/office_pack_glb/Small Stack of Paper.glb`
+- `assets/office_pack_glb/Soda Can.glb`
+- `assets/office_pack_glb/Soda.glb`
+- `assets/office_pack_glb/Standing Desk.glb`
+- `assets/office_pack_glb/Stapler.glb`
+- `assets/office_pack_glb/Sticky notes.glb`
+- `assets/office_pack_glb/Table Large Circular.glb`
+- `assets/office_pack_glb/Table Tennis Paddle.glb`
+- `assets/office_pack_glb/Table tennis table.glb`
+- `assets/office_pack_glb/Table.glb`
+- `assets/office_pack_glb/Tissue Box.glb`
+- `assets/office_pack_glb/Toilet Paper stack.glb`
+- `assets/office_pack_glb/Toilet.glb`
+- `assets/office_pack_glb/Towel Rack.glb`
+- `assets/office_pack_glb/Trash Bin.glb`
+- `assets/office_pack_glb/Trashcan Small.glb`
+- `assets/office_pack_glb/Trashcan.glb`
+- `assets/office_pack_glb/Trophy.glb`
+- `assets/office_pack_glb/Various Stacks of Paper.glb`
+- `assets/office_pack_glb/Vending Machine.glb`
+- `assets/office_pack_glb/Wall Art 02.glb`
+- `assets/office_pack_glb/Wall Art 03.glb`
+- `assets/office_pack_glb/Wall Art 05.glb`
+- `assets/office_pack_glb/Wall Art 06-1U5roiXQZAM.glb`
+- `assets/office_pack_glb/Wall Art 06.glb`
+- `assets/office_pack_glb/Wall Shelf.glb`
+- `assets/office_pack_glb/Water Cooler.glb`
+- `assets/office_pack_glb/Webcam.glb`
+- `assets/office_pack_glb/Whiteboard.glb`
+- `assets/office_pack_glb/Window Blinds.glb`
+- `assets/office_pack_glb/clipboard.glb`
+

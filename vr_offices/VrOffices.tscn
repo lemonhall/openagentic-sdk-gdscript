@@ -57,6 +57,8 @@ position = Vector3(0, 0, 0)
 
 [node name="Workspaces" type="Node3D" parent="."]
 
+[node name="Furniture" type="Node3D" parent="."]
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="VrOfficesUi" parent="UI" instance=ExtResource("3")]

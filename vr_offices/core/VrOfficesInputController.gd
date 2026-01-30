@@ -53,6 +53,11 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 		if consumed:
 			return
 
+	if event is InputEventKey and workspace_ctrl != null and workspace_ctrl.has_method("handle_key_event"):
+		var consumed_key := bool(workspace_ctrl.call("handle_key_event", event))
+		if consumed_key:
+			return
+
 	if event is InputEventMouseMotion and _rmb_down:
 		var mm := event as InputEventMouseMotion
 		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT != 0:
@@ -68,6 +73,10 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				_rmb_down_pos = mb.position
 			else:
 				if _rmb_down and not _rmb_dragged:
+					if workspace_ctrl != null and workspace_ctrl.has_method("handle_rmb_release"):
+						if bool(workspace_ctrl.call("handle_rmb_release", mb.position)):
+							_rmb_down = false
+							return
 					if workspace_ctrl != null and workspace_ctrl.has_method("try_open_context_menu"):
 						if bool(workspace_ctrl.call("try_open_context_menu", mb.position)):
 							_rmb_down = false

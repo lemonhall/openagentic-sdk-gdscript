@@ -3,12 +3,20 @@ extends RefCounted
 var _world_state: RefCounted
 var _npc_manager: RefCounted
 var _workspace_manager: RefCounted = null
+var _desk_manager: RefCounted = null
 var _get_save_id: Callable
 
-func _init(world_state: RefCounted, manager: RefCounted, get_save_id: Callable, workspace_manager: RefCounted = null) -> void:
+func _init(
+	world_state: RefCounted,
+	manager: RefCounted,
+	get_save_id: Callable,
+	workspace_manager: RefCounted = null,
+	desk_manager: RefCounted = null
+) -> void:
 	_world_state = world_state
 	_npc_manager = manager
 	_workspace_manager = workspace_manager
+	_desk_manager = desk_manager
 	_get_save_id = get_save_id
 
 func load_world() -> void:
@@ -23,6 +31,8 @@ func load_world() -> void:
 	_npc_manager.call("load_from_state_dict", st)
 	if _workspace_manager != null:
 		_workspace_manager.call("load_from_state_dict", st)
+	if _desk_manager != null:
+		_desk_manager.call("load_from_state_dict", st)
 
 func save_world(npc_root: Node3D) -> void:
 	if _world_state == null or _npc_manager == null or not _get_save_id.is_valid():
@@ -39,5 +49,10 @@ func save_world(npc_root: Node3D) -> void:
 	if _workspace_manager != null:
 		workspaces = _workspace_manager.call("to_state_array")
 		ws_counter = int(_workspace_manager.call("get_workspace_counter"))
-	var st: Dictionary = _world_state.call("build_state", save_id, culture, counter, npc_root, workspaces, ws_counter)
+	var desks: Array = []
+	var desk_counter := 0
+	if _desk_manager != null:
+		desks = _desk_manager.call("to_state_array")
+		desk_counter = int(_desk_manager.call("get_desk_counter"))
+	var st: Dictionary = _world_state.call("build_state", save_id, culture, counter, npc_root, workspaces, ws_counter, desks, desk_counter)
 	_world_state.call("write_state", save_id, st)

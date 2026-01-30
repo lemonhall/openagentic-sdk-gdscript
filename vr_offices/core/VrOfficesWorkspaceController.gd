@@ -5,6 +5,7 @@ const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.
 var owner: Node = null
 var camera_rig: Node = null
 var workspace_manager: RefCounted = null
+var desk_manager: RefCounted = null
 var overlay: Control = null
 var autosave: Callable = Callable()
 
@@ -18,16 +19,25 @@ var _pending_rect: Rect2 = Rect2()
 
 var _preview_node: Node = null
 
+var _placing_workspace_id: String = ""
+var _placing_workspace_rect := Rect2()
+var _placing_yaw := 0.0
+var _desk_preview_root: Node3D = null
+var _desk_preview_mesh: MeshInstance3D = null
+var _desk_preview_mat: StandardMaterial3D = null
+
 func _init(
 	owner_in: Node,
 	camera_rig_in: Node,
 	manager_in: RefCounted,
+	desk_manager_in: RefCounted,
 	overlay_in: Control,
 	autosave_in: Callable
 ) -> void:
 	owner = owner_in
 	camera_rig = camera_rig_in
 	workspace_manager = manager_in
+	desk_manager = desk_manager_in
 	overlay = overlay_in
 	autosave = autosave_in
 
@@ -38,10 +48,15 @@ func _init(
 			overlay.connect("create_canceled", Callable(self, "_on_create_canceled"))
 		if overlay.has_signal("delete_requested"):
 			overlay.connect("delete_requested", Callable(self, "_on_delete_requested"))
+		if overlay.has_signal("add_standing_desk_requested"):
+			overlay.connect("add_standing_desk_requested", Callable(self, "_on_add_standing_desk_requested"))
 
 func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 	if owner == null or camera_rig == null or workspace_manager == null:
 		return false
+
+	if _placing_workspace_id != "":
+		return _handle_desk_placement_event(event)
 
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
@@ -113,8 +128,31 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 
 	return false
 
+func handle_rmb_release(screen_pos: Vector2) -> bool:
+	if _placing_workspace_id == "":
+		return false
+	_end_desk_placement("Canceled")
+	return true
+
+func handle_key_event(event: InputEventKey) -> bool:
+	if _placing_workspace_id == "" or event == null:
+		return false
+	if not event.pressed or event.echo:
+		return false
+
+	if event.physical_keycode == KEY_ESCAPE:
+		_end_desk_placement("Canceled")
+		return true
+	if event.physical_keycode == KEY_R:
+		_placing_yaw = 0.0 if absf(_placing_yaw) > 1e-3 else PI * 0.5
+		_update_desk_preview(_last_screen)
+		return true
+	return false
+
 func try_open_context_menu(screen_pos: Vector2) -> bool:
 	if owner == null or overlay == null or workspace_manager == null:
+		return false
+	if _placing_workspace_id != "":
 		return false
 	var hit := _raycast_workspace(screen_pos)
 	if not bool(hit.get("ok", false)):
@@ -145,9 +183,40 @@ func _on_create_canceled() -> void:
 func _on_delete_requested(workspace_id: String) -> void:
 	if workspace_manager == null:
 		return
+	if _placing_workspace_id == workspace_id.strip_edges():
+		_end_desk_placement("Canceled")
 	var res: Dictionary = workspace_manager.call("delete_workspace", workspace_id)
-	if bool(res.get("ok", false)) and autosave.is_valid():
-		autosave.call()
+	if bool(res.get("ok", false)):
+		if desk_manager != null and desk_manager.has_method("delete_desks_for_workspace"):
+			desk_manager.call("delete_desks_for_workspace", workspace_id)
+		if autosave.is_valid():
+			autosave.call()
+
+func _on_add_standing_desk_requested(workspace_id: String) -> void:
+	if owner == null or workspace_manager == null or desk_manager == null or overlay == null:
+		return
+	var wid := workspace_id.strip_edges()
+	if wid == "":
+		return
+	var rect: Rect2 = workspace_manager.call("get_workspace_rect_xz", wid)
+	if rect.size == Vector2.ZERO:
+		return
+
+	# Quick pre-check: if the workspace can't ever fit a desk or is already at limit, don't enter placement mode.
+	var center_xz := rect.position + rect.size * 0.5
+	var can: Dictionary = desk_manager.call("can_place_standing_desk", wid, rect, center_xz, 0.0)
+	if not bool(can.get("ok", false)):
+		if overlay.has_method("show_toast"):
+			var reason := String(can.get("reason", ""))
+			if reason == "too_many_desks":
+				overlay.call("show_toast", "Workspace already has too many desks.")
+			elif reason == "workspace_too_small":
+				overlay.call("show_toast", "Workspace is too small for a standing desk.")
+			else:
+				overlay.call("show_toast", "Can't add desk here (%s)." % reason)
+		return
+
+	_begin_desk_placement(wid, rect)
 
 func _reset_drag() -> void:
 	_armed = false
@@ -177,6 +246,171 @@ func _hide_preview() -> void:
 	if _preview_node != null and is_instance_valid(_preview_node):
 		_preview_node.queue_free()
 	_preview_node = null
+
+func _handle_desk_placement_event(event: InputEvent) -> bool:
+	if owner == null or desk_manager == null:
+		return false
+
+	if event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		_last_screen = mm.position
+		_update_desk_preview(mm.position)
+		return true
+
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return false
+		if mb.pressed:
+			_last_screen = mb.position
+			_try_place_desk(mb.position)
+			return true
+	return false
+
+func _begin_desk_placement(workspace_id: String, rect_xz: Rect2) -> void:
+	_placing_workspace_id = workspace_id
+	_placing_workspace_rect = rect_xz
+	_placing_yaw = 0.0
+	_hide_preview()
+	_reset_drag()
+	_ensure_desk_preview()
+	_last_screen = owner.get_viewport().get_mouse_position()
+	var center_xz := rect_xz.position + rect_xz.size * 0.5
+	_set_desk_preview_center_xz(center_xz)
+	if overlay != null and overlay.has_method("show_toast"):
+		overlay.call("show_toast", "Place Standing Desk: LMB confirm, RMB/Esc cancel, R rotate", 3.0)
+
+func _end_desk_placement(toast_msg: String = "") -> void:
+	_placing_workspace_id = ""
+	_placing_workspace_rect = Rect2()
+	_placing_yaw = 0.0
+	_free_desk_preview()
+	if toast_msg.strip_edges() != "" and overlay != null and overlay.has_method("show_toast"):
+		overlay.call("show_toast", toast_msg)
+
+func _ensure_desk_preview() -> void:
+	if owner == null:
+		return
+	if _desk_preview_root != null and is_instance_valid(_desk_preview_root):
+		return
+	_desk_preview_root = Node3D.new()
+	_desk_preview_root.name = "DeskPreview"
+	_desk_preview_root.position = Vector3(0, 0.05, 0)
+	owner.add_child(_desk_preview_root)
+
+	var mi := MeshInstance3D.new()
+	mi.name = "Footprint"
+	var box := BoxMesh.new()
+	box.size = Vector3(1, 0.05, 1)
+	mi.mesh = box
+	_desk_preview_mat = StandardMaterial3D.new()
+	_desk_preview_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_desk_preview_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45)
+	mi.material_override = _desk_preview_mat
+	_desk_preview_root.add_child(mi)
+	_desk_preview_mesh = mi
+
+func _free_desk_preview() -> void:
+	if _desk_preview_root != null and is_instance_valid(_desk_preview_root):
+		_desk_preview_root.queue_free()
+	_desk_preview_root = null
+	_desk_preview_mesh = null
+	_desk_preview_mat = null
+
+func _update_desk_preview(screen_pos: Vector2) -> void:
+	if owner == null or desk_manager == null or _placing_workspace_id == "":
+		return
+	_ensure_desk_preview()
+	if _desk_preview_root == null or _desk_preview_mesh == null:
+		return
+
+	var hit := _raycast_floor_point(screen_pos)
+	if not bool(hit.get("ok", false)):
+		return
+	var p := hit.get("pos") as Vector3
+
+	var yaw := _placing_yaw
+	var size_xz: Vector2 = desk_manager.call("get_standing_desk_footprint_size_xz", yaw)
+	var half := size_xz * 0.5
+
+	var rect := _placing_workspace_rect
+	if rect.size.x + 1e-4 < size_xz.x or rect.size.y + 1e-4 < size_xz.y:
+		# Should not normally happen (we pre-check), but keep placement mode robust.
+		_set_desk_preview_center_xz(rect.position + rect.size * 0.5)
+		return
+	var cx := clampf(float(p.x), float(rect.position.x + half.x), float(rect.position.x + rect.size.x - half.x))
+	var cz := clampf(float(p.z), float(rect.position.y + half.y), float(rect.position.y + rect.size.y - half.y))
+	var center_xz := Vector2(cx, cz)
+
+	var can: Dictionary = desk_manager.call("can_place_standing_desk", _placing_workspace_id, rect, center_xz, yaw)
+	var ok := bool(can.get("ok", false))
+
+	_desk_preview_root.position = Vector3(cx, 0.05, cz)
+	_desk_preview_root.rotation = Vector3(0.0, yaw, 0.0)
+	var box := _desk_preview_mesh.mesh as BoxMesh
+	if box != null:
+		box.size = Vector3(size_xz.x, 0.05, size_xz.y)
+	if _desk_preview_mat != null:
+		_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45) if ok else Color(0.95, 0.35, 0.35, 0.45)
+
+func _set_desk_preview_center_xz(center_xz: Vector2) -> void:
+	if owner == null or desk_manager == null or _placing_workspace_id == "":
+		return
+	_ensure_desk_preview()
+	if _desk_preview_root == null or _desk_preview_mesh == null:
+		return
+
+	var yaw := _placing_yaw
+	var size_xz: Vector2 = desk_manager.call("get_standing_desk_footprint_size_xz", yaw)
+	var rect := _placing_workspace_rect
+
+	var can: Dictionary = desk_manager.call("can_place_standing_desk", _placing_workspace_id, rect, center_xz, yaw)
+	var ok := bool(can.get("ok", false))
+
+	_desk_preview_root.position = Vector3(center_xz.x, 0.05, center_xz.y)
+	_desk_preview_root.rotation = Vector3(0.0, yaw, 0.0)
+	var box := _desk_preview_mesh.mesh as BoxMesh
+	if box != null:
+		box.size = Vector3(size_xz.x, 0.05, size_xz.y)
+	if _desk_preview_mat != null:
+		_desk_preview_mat.albedo_color = Color(0.35, 0.9, 0.55, 0.45) if ok else Color(0.95, 0.35, 0.35, 0.45)
+
+func _try_place_desk(screen_pos: Vector2) -> void:
+	if owner == null or desk_manager == null or _placing_workspace_id == "":
+		return
+	var hit := _raycast_floor_point(screen_pos)
+	if not bool(hit.get("ok", false)):
+		return
+	var p := hit.get("pos") as Vector3
+	var rect := _placing_workspace_rect
+
+	var size_xz: Vector2 = desk_manager.call("get_standing_desk_footprint_size_xz", _placing_yaw)
+	if rect.size.x + 1e-4 < size_xz.x or rect.size.y + 1e-4 < size_xz.y:
+		if overlay != null and overlay.has_method("show_toast"):
+			overlay.call("show_toast", "Workspace is too small for a standing desk.")
+		return
+	var half := size_xz * 0.5
+	var cx := clampf(float(p.x), float(rect.position.x + half.x), float(rect.position.x + rect.size.x - half.x))
+	var cz := clampf(float(p.z), float(rect.position.y + half.y), float(rect.position.y + rect.size.y - half.y))
+	var pos := Vector3(cx, 0.0, cz)
+
+	var res: Dictionary = desk_manager.call("add_standing_desk", _placing_workspace_id, rect, pos, _placing_yaw)
+	if bool(res.get("ok", false)):
+		if autosave.is_valid():
+			autosave.call()
+		_end_desk_placement("Standing Desk placed.")
+	else:
+		if overlay != null and overlay.has_method("show_toast"):
+			var reason := String(res.get("reason", ""))
+			if reason == "overlap":
+				overlay.call("show_toast", "Can't place: overlaps an existing desk.")
+			elif reason == "out_of_bounds":
+				overlay.call("show_toast", "Can't place: outside workspace.")
+			elif reason == "too_many_desks":
+				overlay.call("show_toast", "Can't place: too many desks in this workspace.")
+			else:
+				overlay.call("show_toast", "Can't place desk (%s)." % reason)
 
 func _rect_from_world_points(a: Vector3, b: Vector3) -> Rect2:
 	var min_x := minf(float(a.x), float(b.x))
@@ -243,4 +477,3 @@ func _get_camera() -> Camera3D:
 			return cam0 as Camera3D
 	var cam1 := owner.get_viewport().get_camera_3d()
 	return cam1
-

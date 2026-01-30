@@ -3,13 +3,16 @@ extends Control
 signal create_confirmed(name: String)
 signal create_canceled
 signal delete_requested(workspace_id: String)
+signal add_standing_desk_requested(workspace_id: String)
 
 @onready var create_popup: PopupPanel = %CreatePopup
 @onready var name_edit: LineEdit = %NameEdit
 @onready var context_menu: PopupMenu = %ContextMenu
+@onready var toast: Label = %Toast
 
 var _pending_workspace_id: String = ""
 var _suppress_create_popup_hidden := false
+var _toast_tween: Tween = null
 
 func _ready() -> void:
 	if create_popup != null:
@@ -27,6 +30,7 @@ func _ready() -> void:
 
 	if context_menu != null:
 		context_menu.clear()
+		context_menu.add_item("Add Standing Desk…", 2)
 		context_menu.add_item("Delete workspace", 1)
 		context_menu.id_pressed.connect(_on_context_menu_id_pressed)
 
@@ -62,11 +66,32 @@ func show_workspace_menu(screen_pos: Vector2, workspace_id: String) -> void:
 	context_menu.position = Vector2i(int(screen_pos.x), int(screen_pos.y))
 	context_menu.popup()
 
+func show_toast(message: String, seconds: float = 2.0) -> void:
+	if toast == null:
+		return
+	toast.text = message
+	toast.visible = true
+	toast.modulate = Color(1, 1, 1, 1)
+
+	if _toast_tween != null and is_instance_valid(_toast_tween):
+		_toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(maxf(0.05, seconds))
+	_toast_tween.tween_property(toast, "modulate", Color(1, 1, 1, 0), 0.25)
+	_toast_tween.tween_callback(func() -> void:
+		if toast != null:
+			toast.visible = false
+	)
+
 func _on_context_menu_id_pressed(id: int) -> void:
 	if id == 1 and _pending_workspace_id.strip_edges() != "":
 		var wid := _pending_workspace_id
 		_pending_workspace_id = ""
 		delete_requested.emit(wid)
+	if id == 2 and _pending_workspace_id.strip_edges() != "":
+		var wid2 := _pending_workspace_id
+		_pending_workspace_id = ""
+		add_standing_desk_requested.emit(wid2)
 
 func _on_create_popup_hidden() -> void:
 	# If the user closes the popup via ESC/click-outside, treat as cancel.

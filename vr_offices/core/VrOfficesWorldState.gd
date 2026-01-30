@@ -32,7 +32,9 @@ func build_state(
 	npc_counter: int,
 	npc_root: Node,
 	workspaces: Array = [],
-	workspace_counter: int = 0
+	workspace_counter: int = 0,
+	desks: Array = [],
+	desk_counter: int = 0
 ) -> Dictionary:
 	var npcs: Array = []
 	if npc_root != null:
@@ -59,11 +61,13 @@ func build_state(
 				"yaw": yaw,
 			})
 	return {
-		"version": 2,
+		"version": 3,
 		"save_id": save_id,
 		"culture_code": culture_code,
 		"npc_counter": npc_counter,
 		"npcs": npcs,
 		"workspace_counter": workspace_counter,
 		"workspaces": workspaces,
+		"desk_counter": desk_counter,
+		"desks": desks,
 	}
