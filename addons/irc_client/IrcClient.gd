@@ -11,6 +11,10 @@ const IrcParser := preload("res://addons/irc_client/IrcParser.gd")
 const IrcClientCap := preload("res://addons/irc_client/IrcClientCap.gd")
 
 var _peer: Object = null # StreamPeerTCP or test double implementing the same methods.
+var _tls_under: Object = null # Underlying stream for TLS, when _peer is StreamPeerTLS.
+var _tls_peer: StreamPeerTLS = null
+var _tls_server_name: String = ""
+var _tls_handshake_started: bool = false
 var _buf = null
 var _parser = null
 var _cap = null
@@ -35,6 +39,10 @@ func _ensure_init() -> void:
 
 func set_peer(peer: Object) -> void:
 	_peer = peer
+	_tls_under = null
+	_tls_peer = null
+	_tls_server_name = ""
+	_tls_handshake_started = false
 	_was_connected = false
 
 func set_cap_enabled(enabled: bool) -> void:
@@ -64,12 +72,49 @@ func connect_to(host: String, port: int) -> void:
 	if err != OK:
 		error.emit("connect_to_host failed: %s" % str(err))
 	_peer = tcp
+	_tls_under = null
+	_tls_peer = null
+	_tls_server_name = ""
+	_tls_handshake_started = false
+
+func connect_to_tls_over_stream(stream: StreamPeerTCP, server_name: String) -> void:
+	_ensure_init()
+	_tls_under = stream
+	_tls_peer = StreamPeerTLS.new()
+	_tls_server_name = server_name
+	_tls_handshake_started = false
+	_peer = _tls_peer
+
+func connect_to_tls(host: String, port: int, server_name: String = "") -> void:
+	var sn := server_name
+	if sn.strip_edges() == "":
+		sn = host
+	var tcp := StreamPeerTCP.new()
+	var err := tcp.connect_to_host(host, port)
+	if err != OK:
+		error.emit("connect_to_host failed: %s" % str(err))
+	connect_to_tls_over_stream(tcp, sn)
 
 func poll() -> void:
 	_ensure_init()
 	if _peer == null:
 		return
 
+	# If TLS is configured but handshake hasn't started yet, wait until the underlying TCP is connected.
+	if _tls_peer != null and _peer == _tls_peer and not _tls_handshake_started:
+		if _tls_under != null and _tls_under.has_method("poll"):
+			_tls_under.call("poll")
+		if _tls_under != null and _tls_under.has_method("get_status"):
+			var under_status: int = int(_tls_under.call("get_status"))
+			if under_status == StreamPeerTCP.STATUS_CONNECTED:
+				var err := _tls_peer.connect_to_stream(_tls_under as StreamPeer, _tls_server_name)
+				if err != OK:
+					error.emit("tls.connect_to_stream failed: %s" % str(err))
+				_tls_handshake_started = true
+		return
+
+	if _tls_under != null and _tls_under.has_method("poll"):
+		_tls_under.call("poll")
 	if _peer.has_method("poll"):
 		_peer.call("poll")
 	var status: int = StreamPeerTCP.STATUS_ERROR
@@ -89,6 +134,10 @@ func poll() -> void:
 		if _was_connected:
 			_was_connected = false
 			disconnected.emit()
+		return
+
+	# Avoid reading/writing until the peer is fully connected (e.g. TLS may be handshaking).
+	if status != StreamPeerTCP.STATUS_CONNECTED:
 		return
 
 	_read_available()
