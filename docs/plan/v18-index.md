@@ -11,10 +11,10 @@ Turn the v16/v17 “protocol-capable client” into a practical in-game chat com
 
 ## Milestones (facts panel)
 
-1. **Plan:** write an executable v18 plan with tests. (todo)
+1. **Plan:** write an executable v18 plan with tests. (done)
 2. **Reconnect:** disconnect detection + reconnect/backoff + tests. (todo)
 3. **State:** channel/user/topic tracking API + tests. (todo)
-4. **CTCP:** ACTION, VERSION, PING + tests. (doing — ACTION done)
+4. **CTCP:** ACTION, VERSION, PING + tests. (doing — ACTION done; VERSION/PING todo)
 5. **History:** optional local log persistence + tests. (todo)
 
 ## Plans (v18)
@@ -31,3 +31,10 @@ Turn the v16/v17 “protocol-capable client” into a practical in-game chat com
 
 - Tests:
   - `tests/test_irc_ctcp_action.gd`
+
+## Gaps (what is NOT implemented yet)
+
+- Reconnect/backoff + deterministic re-register + re-join (no implementation, no tests yet).
+- Multi-server/multi-channel state management API (no implementation, no tests yet).
+- CTCP VERSION + CTCP PING encode/decode (only ACTION is implemented + tested).
+- Optional local history persistence under `user://` (no implementation, no tests yet).
