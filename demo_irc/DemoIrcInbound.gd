@@ -62,5 +62,10 @@ func _nick_from_prefix(prefix: String) -> String:
 	return p
 
 func _escape_bbcode(s: String) -> String:
-	return s.replace("[", "[lb]").replace("]", "[rb]")
-
+	# `RichTextLabel` escapes use BBCode tags `[lb]` and `[rb]`. Do NOT naively
+	# `replace("[", "[lb]")` because it introduces a `]` that then gets replaced,
+	# corrupting the escape tokens (e.g. "[lb[rb]").
+	const L := "\uE000"
+	const R := "\uE001"
+	var out := s.replace("[", L).replace("]", R)
+	return out.replace(L, "[lb]").replace(R, "[rb]")
