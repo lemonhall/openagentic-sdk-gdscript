@@ -17,6 +17,7 @@ const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
 @onready var test_nick_edit: LineEdit = %TestNickEdit
 @onready var test_channel_edit: LineEdit = %TestChannelEdit
 @onready var apply_button: Button = %ApplyButton
+@onready var reload_button: Button = %ReloadButton
 
 @onready var connect_button: Button = %ConnectButton
 @onready var disconnect_button: Button = %DisconnectButton
@@ -46,6 +47,8 @@ func _ready() -> void:
 		close_button.pressed.connect(close)
 	if apply_button != null:
 		apply_button.pressed.connect(_on_apply_pressed)
+	if reload_button != null:
+		reload_button.pressed.connect(_on_reload_pressed)
 	if connect_button != null:
 		connect_button.pressed.connect(_on_test_connect_pressed)
 	if disconnect_button != null:
@@ -95,6 +98,7 @@ func open_for_desk(desk_id: String) -> void:
 func close() -> void:
 	if not visible:
 		return
+	_persist_config_to_world()
 	visible = false
 	if _test_client != null:
 		_test_client.call("disconnect_now")
@@ -155,6 +159,15 @@ func _collect_config_from_fields() -> Dictionary:
 	}
 
 func _on_apply_pressed() -> void:
+	_persist_config_to_world()
+
+func _on_reload_pressed() -> void:
+	if _world == null or not _world.has_method("get_irc_config"):
+		return
+	set_config(_world.call("get_irc_config"))
+	_load_fields_from_config()
+
+func _persist_config_to_world() -> void:
 	var cfg := _collect_config_from_fields()
 	_config = cfg
 	if _world != null and _world.has_method("set_irc_config"):
@@ -177,6 +190,7 @@ func _ensure_test_client() -> void:
 
 func _on_test_connect_pressed() -> void:
 	_ensure_test_client()
+	_persist_config_to_world()
 	var cfg := _collect_config_from_fields()
 	_test_client.call("set_config", cfg)
 	_test_client.call("connect_now")
@@ -187,6 +201,7 @@ func _on_test_disconnect_pressed() -> void:
 
 func _on_test_join_pressed() -> void:
 	if _test_client != null:
+		_persist_config_to_world()
 		_test_client.call("set_config", _collect_config_from_fields())
 		_test_client.call("join_test_channel")
 
@@ -197,6 +212,7 @@ func _on_test_send_pressed() -> void:
 	if msg == "":
 		return
 	send_edit.text = ""
+	_persist_config_to_world()
 	_test_client.call("set_config", _collect_config_from_fields())
 	_test_client.call("send_test_message", msg)
 

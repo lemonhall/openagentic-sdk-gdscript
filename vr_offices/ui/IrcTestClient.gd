@@ -48,6 +48,10 @@ func get_status() -> String:
 func connect_now() -> void:
 	if _client == null:
 		return
+	if DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless"):
+		_set_status("headless")
+		log_line.emit("headless: skipping network connect")
+		return
 	var host := String(_config.get("host", "")).strip_edges()
 	var port := int(_config.get("port", 6667))
 	if host == "":
@@ -105,4 +109,3 @@ func _set_status(s: String) -> void:
 		return
 	_status = ss
 	status_changed.emit(_status)
-

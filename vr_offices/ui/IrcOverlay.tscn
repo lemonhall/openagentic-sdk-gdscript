@@ -202,7 +202,12 @@ layout_mode = 2
 [node name="ApplyButton" type="Button" parent="Panel/VBox/Tabs/Settings/ApplyRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Save & Apply"
+text = "Save"
+
+[node name="ReloadButton" type="Button" parent="Panel/VBox/Tabs/Settings/ApplyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reload"
 
 [node name="HintLabel" type="Label" parent="Panel/VBox/Tabs/Settings"]
 unique_name_in_owner = true
@@ -301,4 +306,3 @@ size_flags_vertical = 3
 bbcode_enabled = false
 scroll_active = true
 selection_enabled = true
-

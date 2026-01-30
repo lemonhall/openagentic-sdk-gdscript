@@ -71,6 +71,9 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 			# If we clicked an NPC, don't start workspace selection.
 			if _ray_hits_mask(mb.position, 2):
 				return false
+			# If we clicked a desk, don't start workspace selection (desk double-click is used for IRC verification).
+			if _ray_hits_mask(mb.position, 8):
+				return false
 			var hit := _raycast_floor_point(mb.position)
 			if not bool(hit.get("ok", false)):
 				return false
