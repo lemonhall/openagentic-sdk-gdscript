@@ -24,6 +24,29 @@ func _has_more_marker(params: Variant) -> bool:
 			return true
 	return false
 
+func _extract_caps_tokens(msg: RefCounted) -> Array[String]:
+	# Prefer the standard trailing form (":cap cap2 ..."), but tolerate servers that
+	# send the list as regular params (no ':').
+	var trailing: String = String((msg as Object).get("trailing"))
+	if trailing.strip_edges() != "":
+		var parts: PackedStringArray = trailing.split(" ", false)
+		var out: Array[String] = []
+		for p in parts:
+			out.append(String(p))
+		return out
+
+	var params = (msg as Object).get("params")
+	if not (params is Array):
+		return []
+	var a: Array = params
+	var out2: Array[String] = []
+	for i in range(2, a.size()):
+		var tok := String(a[i]).strip_edges()
+		if tok == "" or tok == "*" or tok == "302":
+			continue
+		out2.append(tok)
+	return out2
+
 func set_requested_caps(caps: Array) -> void:
 	_requested = []
 	for c in caps:
@@ -72,8 +95,7 @@ func handle_message(msg: RefCounted) -> Array[String]:
 			_supported = {}
 			_ls_collecting = true
 
-		var caps := String((msg as Object).get("trailing"))
-		for c in caps.split(" ", false):
+		for c in _extract_caps_tokens(msg):
 			var tok := String(c).strip_edges()
 			if tok == "":
 				continue
@@ -103,8 +125,7 @@ func handle_message(msg: RefCounted) -> Array[String]:
 			_acked = {}
 			_ack_collecting = true
 
-		var caps2 := String((msg as Object).get("trailing"))
-		for c2 in caps2.split(" ", false):
+		for c2 in _extract_caps_tokens(msg):
 			var tok2 := String(c2).strip_edges()
 			if tok2 == "":
 				continue

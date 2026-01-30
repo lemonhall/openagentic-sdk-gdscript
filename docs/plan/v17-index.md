@@ -17,11 +17,13 @@ Build on v16 by adding modern interoperability features commonly expected in “
 4. **SASL:** auth flow + tests. (done)
 5. **Tags:** parse message tags + tests. (done)
 6. **Hardening:** CAP multiline/value caps + SASL chunking + tests. (done)
+7. **Coverage:** expand v17 test diversity + CAP param-list support. (done)
 
 ## Plans (v17)
 
 - `docs/plan/v17-ircv3-tls-sasl-tags.md`
 - `docs/plan/v17-ircv3-cap-sasl-hardening.md`
+- `docs/plan/v17-ircv3-test-diversity-2.md`
 
 ## Definition of Done (DoD)
 
@@ -33,8 +35,13 @@ Build on v16 by adding modern interoperability features commonly expected in “
 
 - Tests:
   - `tests/test_irc_parser_tags.gd`
+  - `tests/test_irc_parser_tags_escapes.gd`
   - `tests/test_irc_client_cap.gd`
+  - `tests/test_irc_client_cap_disabled_registers.gd`
+  - `tests/test_irc_client_cap_ls_without_trailing_colon.gd`
   - `tests/test_irc_client_cap_multiline_and_values.gd`
+  - `tests/test_irc_client_cap_nak_still_registers.gd`
   - `tests/test_irc_client_sasl_plain.gd`
   - `tests/test_irc_client_sasl_plain_chunking.gd`
+  - `tests/test_irc_client_sasl_failure_ends_cap.gd`
   - `tests/test_irc_tls_api.gd`
