@@ -290,10 +290,24 @@ size_flags_horizontal = 3
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="DeskInfoLabel" type="Label" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails"]
+[node name="DeskInfoRow" type="HBoxContainer" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails"]
+layout_mode = 2
+
+[node name="DeskInfoLabel" type="Label" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails/DeskInfoRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = ""
+
+[node name="CopyDeskInfoButton" type="Button" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails/DeskInfoRow"]
+unique_name_in_owner = true
+layout_mode = 2
+disabled = true
+text = "Copy"
+
+[node name="DeskDivider" type="HSeparator" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="DeskLog" type="RichTextLabel" parent="Panel/VBox/Tabs/Desks/Split/DeskDetails"]
 unique_name_in_owner = true

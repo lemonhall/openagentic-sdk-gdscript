@@ -31,6 +31,7 @@ const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
 @onready var desk_status_label: Label = %DeskStatusLabel
 @onready var desk_list: ItemList = %DeskList
 @onready var desk_info_label: Label = %DeskInfoLabel
+@onready var copy_desk_info_button: Button = %CopyDeskInfoButton
 @onready var desk_log: RichTextLabel = %DeskLog
 
 var _world: Node = null
@@ -67,6 +68,8 @@ func _ready() -> void:
 		reconnect_all_button.pressed.connect(_on_reconnect_all_pressed)
 	if desk_list != null:
 		desk_list.item_selected.connect(_on_desk_selected)
+	if copy_desk_info_button != null:
+		copy_desk_info_button.pressed.connect(_on_copy_desk_info_pressed)
 
 	if backdrop != null:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
@@ -233,6 +236,8 @@ func _refresh_desks() -> void:
 	desk_info_label.text = ""
 	desk_log.text = ""
 	desk_status_label.text = ""
+	if copy_desk_info_button != null:
+		copy_desk_info_button.disabled = true
 	if _desk_manager == null or not _desk_manager.has_method("list_desk_irc_snapshots"):
 		desk_status_label.text = "Desk manager not ready."
 		return
@@ -274,11 +279,24 @@ func _on_desk_selected(idx: int) -> void:
 	elif log_user.strip_edges() != "":
 		log_line = "\nlog=%s" % log_user
 	desk_info_label.text = "desk=%s  ws=%s\nchannel=%s\nstatus=%s  ready=%s%s" % [_selected_desk_id, ws, ch, status, "true" if ready else "false", log_line]
+	if copy_desk_info_button != null:
+		copy_desk_info_button.disabled = desk_info_label.text.strip_edges() == ""
 	desk_log.text = ""
 	var lines0: Variant = snap.get("log_lines", [])
 	if lines0 is Array:
 		for l0 in lines0 as Array:
 			desk_log.text += String(l0) + "\n"
+
+func _on_copy_desk_info_pressed() -> void:
+	if desk_info_label == null:
+		return
+	var txt := desk_info_label.text.strip_edges()
+	if txt == "":
+		return
+	# Clipboard does not always exist in headless/server runs; avoid noise.
+	if DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless"):
+		return
+	DisplayServer.clipboard_set(txt)
 
 func _focus_desk_id(desk_id: String) -> void:
 	var did := desk_id.strip_edges()
