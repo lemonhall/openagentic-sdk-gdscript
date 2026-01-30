@@ -23,7 +23,7 @@ func _ready() -> void:
 	irc.connect_to("irc.example.org", 6667)
 
 func _process(_dt: float) -> void:
-	irc.poll()
+	irc.poll(_dt)
 ```
 
 Then you can call:
