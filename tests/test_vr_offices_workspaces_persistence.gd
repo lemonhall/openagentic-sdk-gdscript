@@ -26,14 +26,12 @@ func _init() -> void:
 	var ws_state: Array = mgr1.call("to_state_array")
 	var ws_counter := int(mgr1.call("get_workspace_counter"))
 
-	var npc_root := Node3D.new()
-	npc_root.name = "NpcRoot"
 	var world_state := (WorldStateScript as Script).new() as RefCounted
 	if world_state == null:
 		T.fail_and_quit(self, "Failed to instantiate VrOfficesWorldState")
 		return
 
-	var st: Dictionary = world_state.call("build_state", "slot_test", "zh-CN", 0, npc_root, ws_state, ws_counter)
+	var st: Dictionary = world_state.call("build_state", "slot_test", "zh-CN", 0, null, ws_state, ws_counter)
 	if not T.require_true(self, st.has("workspaces"), "Expected state.workspaces"):
 		return
 	if not T.require_eq(self, int((st.get("workspaces") as Array).size()), 2, "Expected 2 workspaces in state"):
@@ -59,4 +57,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

@@ -21,15 +21,12 @@ func _init() -> void:
 	var desks_state: Array = desk_mgr1.call("to_state_array")
 	var desk_counter := int(desk_mgr1.call("get_desk_counter"))
 
-	var npc_root := Node3D.new()
-	npc_root.name = "NpcRoot"
-
 	var world_state := (WorldStateScript as Script).new() as RefCounted
 	if world_state == null:
 		T.fail_and_quit(self, "Failed to instantiate VrOfficesWorldState")
 		return
 
-	var st: Dictionary = world_state.call("build_state", "slot_test", "zh-CN", 0, npc_root, [], 0, desks_state, desk_counter)
+	var st: Dictionary = world_state.call("build_state", "slot_test", "zh-CN", 0, null, [], 0, desks_state, desk_counter)
 	if not T.require_true(self, st.has("desks"), "Expected state.desks"):
 		return
 	if not T.require_eq(self, int((st.get("desks") as Array).size()), 1, "Expected 1 desk in state"):
@@ -48,4 +45,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-
