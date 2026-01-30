@@ -8,6 +8,7 @@ var _is_preview := false
 var _preview_valid := true
 var _preview_overlay: StandardMaterial3D = null
 var _centered_once := false
+@onready var _irc_indicator: Node3D = get_node_or_null("IrcIndicator") as Node3D
 
 func _ready() -> void:
 	add_to_group("vr_offices_desk")
@@ -19,6 +20,8 @@ func configure(desk_id_in: String, workspace_id_in: String) -> void:
 
 func set_preview(enabled: bool) -> void:
 	_is_preview = enabled
+	if _irc_indicator != null and _irc_indicator.has_method("set_suspended"):
+		_irc_indicator.call("set_suspended", _is_preview)
 	if not _is_preview:
 		return
 	ensure_centered()
@@ -84,6 +87,7 @@ func play_spawn_fx() -> void:
 	t.set_parallel(true)
 	t.tween_property(self, "position", final_pos, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(self, "scale", final_scale, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 
 func _iter_descendants(root: Node) -> Array[Node]:
 	var out: Array[Node] = []
