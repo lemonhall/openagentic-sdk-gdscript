@@ -21,7 +21,7 @@ This version deliberately **does not** include TLS, IRCv3 CAP/SASL/tags, CTCP, m
 6. **Polish (v16 completeness):** byte-robust framing + wire formatting + clean disconnect API + addon packaging. (done)
 7. **Hardening (v16 robustness):** partial-write safe output queue + line length limits + bounded buffers. (done)
 8. **Classic completeness (v16):** PASS + registration idempotence + ERROR handling + USER realname fix. (done)
-9. **Classic coverage (v16):** add explicit tests for JOIN/PART/PRIVMSG/NOTICE/QUIT and PING variants. (doing)
+9. **Classic coverage (v16):** add explicit tests for JOIN/PART/PRIVMSG/NOTICE/QUIT and PING variants. (done)
 
 ## Plans (v16)
 
@@ -101,6 +101,8 @@ Coverage focus:
   - `tests/test_irc_client_registration_idempotent.gd`
   - `tests/test_irc_client_user_realname.gd`
   - `tests/test_irc_client_server_error_disconnect.gd`
+  - `tests/test_irc_client_basic_commands.gd`
+  - `tests/test_irc_client_ping_pong_edges.gd`
 
 - Last verification (Linux headless):
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_parser.gd`
@@ -117,3 +119,5 @@ Coverage focus:
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_registration_idempotent.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_user_realname.gd`
   - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_server_error_disconnect.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_basic_commands.gd`
+  - `timeout 20s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/test_irc_client_ping_pong_edges.gd`

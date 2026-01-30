@@ -52,6 +52,7 @@ func _init() -> void:
 	client.call("set_peer", fake)
 	client.call("set_cap_enabled", true)
 	client.call("set_requested_caps", ["multi-prefix"])
+	client.call("set_password", "sekret")
 	client.call("set_nick", "nick_test")
 	client.call("set_user", "user_test", "0", "*", "Real Name")
 
@@ -79,12 +80,17 @@ func _init() -> void:
 	var lines: Array[String] = buf.call("push_chunk", out)
 	var nick_count := 0
 	var user_count := 0
+	var pass_count := 0
 	for line in lines:
+		if line.begins_with("PASS "):
+			pass_count += 1
 		if line.begins_with("NICK "):
 			nick_count += 1
 		if line.begins_with("USER "):
 			user_count += 1
 
+	if not T.require_eq(self, pass_count, 1, "PASS must be sent once"):
+		return
 	if not T.require_eq(self, nick_count, 1, "NICK must be sent once"):
 		return
 	if not T.require_eq(self, user_count, 1, "USER must be sent once"):
