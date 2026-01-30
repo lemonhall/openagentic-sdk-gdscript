@@ -153,7 +153,7 @@ func _on_irc_disconnected() -> void:
 func _on_irc_error(msg: String) -> void:
 	_append_status("[error] " + msg)
 
-func _on_irc_ctcp_action_received(prefix: String, target: String, text: String) -> void:
+func _on_irc_ctcp_action_received(prefix: String, _target: String, text: String) -> void:
 	_append_chat("* %s %s" % [_nick_from_prefix(prefix), text])
 
 func _on_irc_message_received(msg: RefCounted) -> void:
