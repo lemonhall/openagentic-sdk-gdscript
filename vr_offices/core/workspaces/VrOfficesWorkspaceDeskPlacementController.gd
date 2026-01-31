@@ -59,7 +59,7 @@ func end_placement(toast_msg: String = "") -> void:
 	_placing_workspace_id = ""
 	_placing_workspace_rect = Rect2()
 	_placing_yaw = 0.0
-	_preview.call("free")
+	_preview.call("dispose")
 	if action_hint != null and action_hint.has_method("hide_hint"):
 		action_hint.call("hide_hint")
 	if toast_msg.strip_edges() != "" and overlay != null and overlay.has_method("show_toast"):
@@ -112,7 +112,7 @@ func _ensure_desk_preview() -> void:
 
 func _free_desk_preview() -> void:
 	if _preview != null:
-		_preview.call("free")
+		_preview.call("dispose")
 
 func _rotate_desk_preview(screen_pos: Vector2) -> void:
 	_placing_yaw = _next_snap_yaw(_placing_yaw)

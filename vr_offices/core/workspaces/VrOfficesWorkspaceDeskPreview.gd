@@ -28,7 +28,7 @@ func ensure(owner: Node, standing_desk_scene: PackedScene) -> void:
 		ghost.call("set_preview", true)
 	_model = ghost
 
-func free() -> void:
+func dispose() -> void:
 	if _root != null and is_instance_valid(_root):
 		_root.queue_free()
 	_root = null
@@ -42,4 +42,3 @@ func set_state(center_xz: Vector2, yaw: float, valid: bool) -> void:
 		_model.rotation = Vector3(0.0, yaw, 0.0)
 		if _model.has_method("set_preview_valid"):
 			_model.call("set_preview_valid", valid)
-
