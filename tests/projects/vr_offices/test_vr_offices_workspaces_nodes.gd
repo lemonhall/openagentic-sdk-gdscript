@@ -2,6 +2,22 @@ extends SceneTree
 
 const T := preload("res://tests/_test_util.gd")
 
+func _find_descendant_named(root: Node, want: String) -> Node:
+	if root == null:
+		return null
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var cur := stack.pop_back() as Node
+		if cur == null:
+			continue
+		if cur.name == want:
+			return cur
+		for c0 in cur.get_children():
+			var c := c0 as Node
+			if c != null:
+				stack.append(c)
+	return null
+
 func _init() -> void:
 	var ManagerScript := load("res://vr_offices/core/workspaces/VrOfficesWorkspaceManager.gd")
 	var AreaScene0 := load("res://vr_offices/workspaces/WorkspaceArea.tscn")
@@ -42,6 +58,31 @@ func _init() -> void:
 	var pz := walls.get_node_or_null("WallPosZ") as Node
 	var nz := walls.get_node_or_null("WallNegZ") as Node
 	if not T.require_true(self, px != null and nx != null and pz != null and nz != null, "Expected 4 wall mesh nodes"):
+		return
+
+	# Visual: workspace should include decoration wrapper nodes.
+	var decor := child.get_node_or_null("Decor") as Node3D
+	if not T.require_true(self, decor != null, "Expected workspace Decor node"):
+		return
+	# Floor props are parented under Decor for organization.
+	if not T.require_true(self, decor.get_node_or_null("FileCabinet") != null, "Expected Decor/FileCabinet"):
+		return
+	if not T.require_true(self, decor.get_node_or_null("Houseplant") != null, "Expected Decor/Houseplant"):
+		return
+	if not T.require_true(self, decor.get_node_or_null("TrashcanSmall") != null, "Expected Decor/TrashcanSmall"):
+		return
+	if not T.require_true(self, decor.get_node_or_null("WaterCooler") != null, "Expected Decor/WaterCooler"):
+		return
+	# Wall props may be attached under wall mesh nodes for visibility.
+	if not T.require_true(self, _find_descendant_named(child, "AnalogClock") != null, "Expected AnalogClock node"):
+		return
+	if not T.require_true(self, _find_descendant_named(child, "Dartboard") != null, "Expected Dartboard node"):
+		return
+	if not T.require_true(self, _find_descendant_named(child, "FireExitSign") != null, "Expected FireExitSign node"):
+		return
+	if not T.require_true(self, _find_descendant_named(child, "WallArt03") != null, "Expected WallArt03 node"):
+		return
+	if not T.require_true(self, _find_descendant_named(child, "Whiteboard") != null, "Expected Whiteboard node"):
 		return
 
 	var wid := String(child.get("workspace_id"))
