@@ -52,9 +52,11 @@ func enter_talk(npc: Node) -> void:
 	_start_dialogue_camera_focus(npc)
 	_lock_npc_for_dialogue(npc)
 
-	dialogue.open(npc_id, npc_name)
-	if dialogue.has_method("set_history") and chat_history != null and get_save_id.is_valid():
-		var sid: String = String(get_save_id.call())
+	var sid := ""
+	if get_save_id.is_valid():
+		sid = String(get_save_id.call())
+	dialogue.open(npc_id, npc_name, sid)
+	if dialogue.has_method("set_history") and chat_history != null and sid.strip_edges() != "":
 		var hist0: Variant = chat_history.call("read_ui_history", sid, npc_id)
 		var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
 		dialogue.call("set_history", hist)
@@ -168,4 +170,3 @@ func _unlock_npc_after_dialogue() -> void:
 	if _talk_npc.has_method("exit_dialogue"):
 		_talk_npc.call("exit_dialogue")
 	_talk_npc = null
-

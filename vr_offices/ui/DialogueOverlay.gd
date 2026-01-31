@@ -3,7 +3,11 @@ extends Control
 signal message_submitted(text: String)
 signal closed
 
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+
 @onready var title_label: Label = %TitleLabel
+@onready var session_log_size_label: Label = %SessionLogSizeLabel
+@onready var clear_session_log_button: Button = %ClearSessionLogButton
 @onready var messages: VBoxContainer = %Messages
 @onready var scroll: ScrollContainer = %Scroll
 @onready var input: LineEdit = %Input
@@ -14,6 +18,7 @@ signal closed
 
 var _npc_id: String = ""
 var _npc_name: String = ""
+var _save_id: String = ""
 
 var _busy := false
 var _assistant_rtl: RichTextLabel = null
@@ -29,6 +34,8 @@ func _ready() -> void:
 	input.text_submitted.connect(_on_input_submitted)
 	if backdrop != null:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
+	if clear_session_log_button != null:
+		clear_session_log_button.pressed.connect(_on_clear_session_log_pressed)
 
 func _gui_input(event: InputEvent) -> void:
 	# When the overlay is visible, it should "own" mouse interactions so that the
@@ -71,9 +78,10 @@ func _on_close_pressed() -> void:
 func _on_input_submitted(_t: String) -> void:
 	_submit()
 
-func open(npc_id: String, npc_name: String) -> void:
+func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	_npc_id = npc_id
 	_npc_name = npc_name
+	_save_id = save_id.strip_edges()
 	title_label.text = _npc_name if _npc_name.strip_edges() != "" else _npc_id
 	visible = true
 	_busy = false
@@ -82,6 +90,7 @@ func open(npc_id: String, npc_name: String) -> void:
 	input.text = ""
 	input.editable = true
 	send_button.disabled = false
+	_refresh_session_log_ui()
 	call_deferred("_grab_focus")
 
 func _grab_focus() -> void:
@@ -101,6 +110,7 @@ func set_busy(is_busy: bool) -> void:
 	_busy = is_busy
 	input.editable = not is_busy
 	send_button.disabled = is_busy
+	_refresh_session_log_ui()
 
 func add_user_message(text: String) -> void:
 	_add_message(true, text)
@@ -220,6 +230,79 @@ func _clear_messages() -> void:
 			continue
 		messages.remove_child(child)
 		child.queue_free()
+
+func _resolve_save_id() -> String:
+	if _save_id.strip_edges() != "":
+		return _save_id.strip_edges()
+	var oa := get_node_or_null("/root/OpenAgentic") as Node
+	if oa == null:
+		return ""
+	var v: Variant = oa.get("save_id") if oa.has_method("get") else null
+	return String(v).strip_edges() if v != null else ""
+
+func _format_bytes(n: int) -> String:
+	if n < 0:
+		return "?"
+	if n < 1024:
+		return "%dB" % n
+	if n < 1024 * 1024:
+		return "%.1fKB (%dB)" % [float(n) / 1024.0, n]
+	if n < 1024 * 1024 * 1024:
+		return "%.1fMB (%dB)" % [float(n) / (1024.0 * 1024.0), n]
+	return "%.1fGB (%dB)" % [float(n) / (1024.0 * 1024.0 * 1024.0), n]
+
+func _session_events_path() -> String:
+	if _npc_id.strip_edges() == "":
+		return ""
+	var sid := _resolve_save_id()
+	if sid == "":
+		return ""
+	return String(_OAPaths.npc_events_path(sid, _npc_id))
+
+func _read_file_len(path: String) -> int:
+	if path.strip_edges() == "" or not FileAccess.file_exists(path):
+		return 0
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return 0
+	var n := int(f.get_length())
+	f.close()
+	return n
+
+func _refresh_session_log_ui() -> void:
+	if session_log_size_label == null:
+		return
+	var path := _session_events_path()
+	var bytes := -1
+	if path != "":
+		bytes = _read_file_len(path)
+	session_log_size_label.text = "events.jsonl=%s" % _format_bytes(bytes)
+	if path != "":
+		var abs := ProjectSettings.globalize_path(path)
+		session_log_size_label.tooltip_text = abs
+		if clear_session_log_button != null:
+			clear_session_log_button.tooltip_text = "Truncate: " + abs
+	if clear_session_log_button != null:
+		clear_session_log_button.disabled = _busy or path == ""
+
+func _on_clear_session_log_pressed() -> void:
+	if _busy:
+		return
+	var path := _session_events_path()
+	if path == "":
+		return
+	# Ensure session dir exists so WRITE creates/overwrites the file reliably.
+	var sid := _resolve_save_id()
+	if sid != "":
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_OAPaths.npc_session_dir(sid, _npc_id)))
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f != null:
+		f.store_string("")
+		f.close()
+	_assistant_rtl = null
+	_clear_messages()
+	_scroll_to_bottom_deferred()
+	_refresh_session_log_ui()
 
 func _scroll_to_bottom_deferred() -> void:
 	call_deferred("_scroll_to_bottom")
