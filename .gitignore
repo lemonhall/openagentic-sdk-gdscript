@@ -21,3 +21,7 @@ tools/
 
 # Rust
 target/
+
+# Codex / local agent state
+.codex/
+openspec/

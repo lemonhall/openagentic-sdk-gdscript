@@ -1,14 +1,9 @@
-mod device_code;
-mod exec;
-mod irc;
-mod matchers;
-mod oa1;
-mod rpc;
-
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+use openagentic_remote_daemon::{device_code, exec, irc};
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
