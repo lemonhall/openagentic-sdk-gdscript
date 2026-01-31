@@ -3,7 +3,7 @@ extends Control
 signal device_code_submitted(desk_id: String, device_code: String)
 signal device_code_canceled(desk_id: String)
 
-const DEVICE_POPUP_SIZE := Vector2i(520, 200)
+const DEVICE_POPUP_SIZE := Vector2i(640, 200)
 
 @onready var context_menu: PopupMenu = %ContextMenu
 @onready var device_popup: PopupPanel = %DevicePopup
@@ -31,7 +31,7 @@ func _ready() -> void:
 
 	if context_menu != null:
 		context_menu.clear()
-		context_menu.add_item("绑定设备码…", 1)
+		context_menu.add_item("Bind Device Code…", 1)
 		context_menu.id_pressed.connect(_on_context_menu_id_pressed)
 
 func show_desk_menu(screen_pos: Vector2, desk_id: String, current_device_code: String = "") -> void:
@@ -99,4 +99,3 @@ func _on_device_popup_hidden() -> void:
 		return
 	if device_popup != null and not device_popup.visible:
 		cancel_device_code()
-

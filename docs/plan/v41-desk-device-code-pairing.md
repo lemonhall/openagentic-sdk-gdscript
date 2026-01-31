@@ -4,7 +4,7 @@
 
 Add a simple operator UX to pair a **desk** with a **remote Rust daemon** using a device code:
 
-- Operator right-clicks a desk → selects “绑定设备码” → enters code.
+- Operator right-clicks a desk → selects “Bind Device Code…” → enters code.
 - Desk stores the code (persisted in `vr_offices/state.json`).
 - Desk IRC link re-derives channel name to include both `desk_id` and `device_code`, and joins it quickly.
 
@@ -43,7 +43,7 @@ If no device code is set, the existing `derive_channel_for_workspace(...)` namin
 ## Acceptance
 
 - A desk has a `device_code` field in persisted state and loads it back.
-- Right-click desk shows a popup menu containing “绑定设备码”.
+- Right-click desk shows a popup menu containing “Bind Device Code…”.
 - Submitting a valid device code updates the desk model and triggers DeskIrcLink desired channel re-derivation.
 - DeskIrcLink can switch from old channel to new channel by PART+JOIN without requiring a full reconnect (best-effort).
 
@@ -85,4 +85,3 @@ Modify:
 - Input conflicts: RMB currently triggers move/context menu; ensure desk RMB intercept happens only when raycast picks a desk.
 - Channel length: enforce device code max length (16) so `channellen_default=50` stays safe.
 - Persistence migration: older saves may not have `device_code`; must treat as empty.
-

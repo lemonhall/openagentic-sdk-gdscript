@@ -69,7 +69,7 @@ static func _make_remote_bash_tool(find_npc_by_id: Callable):
 		if desk == null:
 			return "ERROR: DeskNotFound: %s" % desk_id
 		if not _desk_is_paired(desk):
-			return "ERROR: DeskNotPaired (RMB desk → 绑定设备码)"
+			return "ERROR: DeskNotPaired (RMB desk → Bind Device Code…)"
 
 		var link := (desk as Node).get_node_or_null("DeskIrcLink") as Node
 		if link == null or not is_instance_valid(link):

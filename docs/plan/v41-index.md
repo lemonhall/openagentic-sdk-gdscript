@@ -8,7 +8,7 @@
 
 - A desk can be **paired** with a remote Rust daemon via a short **device code**:
   - Rust daemon generates a device code (1 per daemon).
-  - In-game, the operator right-clicks a desk → chooses “绑定设备码” → enters the device code.
+  - In-game, the operator right-clicks a desk → chooses “Bind Device Code…” → enters the device code.
   - After validation, the desk **re-derives its IRC channel name** to include both `desk_id` and `device_code`, and **joins quickly**.
 - The Rust daemon polls the IRC server channel list every ~30s and joins any channel that matches its device code, completing pairing.
 - Pairing is purely transport/config level. OA1 RPC execution on the remote side remains future work.

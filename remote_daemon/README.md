@@ -19,7 +19,7 @@ cargo run -- --host <irc_host> --port <irc_port>
 
 把输出的 `Device code` 填到游戏里桌子的右键菜单：
 
-- 右键桌子 → `绑定设备码…` → 输入 device code
+- 右键桌子 → `Bind Device Code…` → 输入 device code
 
 配对成功后（daemon 每隔一段时间 `LIST` 轮询）会自动 `JOIN` 形如 `..._dev_<CODE>...` 的频道；此时 NPC 绑定桌子后才会看到 `RemoteBash` 工具。
 
