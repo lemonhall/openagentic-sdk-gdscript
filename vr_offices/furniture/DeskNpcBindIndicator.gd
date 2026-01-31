@@ -26,6 +26,20 @@ func set_suspended(suspended: bool) -> void:
 func get_bound_npc_id() -> String:
 	return _bound_npc_id
 
+func get_bound_npc_name() -> String:
+	if _bound_npc == null or not is_instance_valid(_bound_npc):
+		return ""
+	if _bound_npc.has_method("get_display_name"):
+		return String(_bound_npc.call("get_display_name")).strip_edges()
+	if _bound_npc.has_method("get"):
+		var v: Variant = _bound_npc.get("display_name")
+		if v != null and String(v).strip_edges() != "":
+			return String(v).strip_edges()
+		v = _bound_npc.get("npc_id")
+		if v != null and String(v).strip_edges() != "":
+			return String(v).strip_edges()
+	return String(_bound_npc.name).strip_edges()
+
 func is_suspended() -> bool:
 	return _suspended
 

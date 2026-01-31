@@ -20,6 +20,9 @@ class FakeDeskManager:
 		return [{
 			"desk_id": "desk_1",
 			"workspace_id": "ws_1",
+			"device_code": "ABCD1234",
+			"bound_npc_id": "npc_a",
+			"bound_npc_name": "Alice",
 			"desired_channel": "#c",
 			"status": "joined",
 			"ready": true,
@@ -55,6 +58,9 @@ func _init() -> void:
 	var divider := overlay.get_node_or_null("%DeskDivider") as Control
 	if not T.require_true(self, divider != null, "Missing DeskDivider"):
 		return
+	var info_label := overlay.get_node_or_null("%DeskInfoLabel") as Label
+	if not T.require_true(self, info_label != null, "Missing DeskInfoLabel"):
+		return
 
 	# Disabled until a desk is selected.
 	if not T.require_true(self, copy_btn.disabled, "CopyDeskInfoButton should start disabled"):
@@ -64,6 +70,13 @@ func _init() -> void:
 	overlay.call("_on_desk_selected", 0)
 	await process_frame
 	if not T.require_true(self, not copy_btn.disabled, "CopyDeskInfoButton should enable after selecting a desk"):
+		return
+	var info := info_label.text
+	if not T.require_true(self, info.find("device_code=ABCD1234") != -1, "Desk info should include device_code"):
+		return
+	if not T.require_true(self, info.find("bound_npc_id=npc_a") != -1, "Desk info should include bound_npc_id"):
+		return
+	if not T.require_true(self, info.find("bound_npc_name=Alice") != -1, "Desk info should include bound_npc_name"):
 		return
 
 	get_root().remove_child(overlay)

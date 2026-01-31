@@ -8,9 +8,13 @@ static func list_desk_irc_snapshots(desks: Array[Dictionary], nodes_by_id: Dicti
 			continue
 		var did := String(d.get("id", "")).strip_edges()
 		var wid := String(d.get("workspace_id", "")).strip_edges()
+		var device_code := String(d.get("device_code", "")).strip_edges()
 		var snap := {
 			"desk_id": did,
 			"workspace_id": wid,
+			"device_code": device_code,
+			"bound_npc_id": "",
+			"bound_npc_name": "",
 			"desired_channel": "",
 			"status": "no_node",
 			"ready": false,
@@ -23,6 +27,13 @@ static func list_desk_irc_snapshots(desks: Array[Dictionary], nodes_by_id: Dicti
 			var n0: Variant = nodes_by_id.get(did)
 			var node := n0 as Node
 			if node != null:
+				var bind := node.get_node_or_null("NpcBindIndicator") as Node
+				if bind != null:
+					if bind.has_method("get_bound_npc_id"):
+						snap["bound_npc_id"] = String(bind.call("get_bound_npc_id")).strip_edges()
+					if bind.has_method("get_bound_npc_name"):
+						snap["bound_npc_name"] = String(bind.call("get_bound_npc_name")).strip_edges()
+
 				var link := node.get_node_or_null("DeskIrcLink") as Node
 				if link != null and link.has_method("get_debug_snapshot"):
 					var l0: Variant = link.call("get_debug_snapshot")
@@ -45,4 +56,3 @@ static func list_desk_irc_snapshots(desks: Array[Dictionary], nodes_by_id: Dicti
 		out.append(snap)
 
 	return out
-
