@@ -93,6 +93,10 @@ func _on_irc_message_received(msg: RefCounted) -> void:
 	var text := String(obj.get("trailing")).strip_edges()
 	if text == "":
 		return
+	# OA1 is a transport-level RPC protocol used by desk-bound tools (v40).
+	# Do not treat OA1 frames as NPC command messages.
+	if text.begins_with("OA1 "):
+		return
 
 	_enqueue(text)
 
@@ -176,4 +180,3 @@ static func _irc_prefix_nick(prefix: String) -> String:
 	if at != -1:
 		return p.substr(0, at)
 	return p
-

@@ -180,6 +180,19 @@ func _init() -> void:
 	if not T.require_true(self, not link.sent.is_empty(), "Desk IRC bridge must send a reply message"):
 		return
 
+	# OA1 protocol frames must not trigger OpenAgentic turns (they are transport frames).
+	var calls_before := oa.calls.size()
+	var msg_oa1 := IrcMessage.new()
+	msg_oa1.prefix = "remote!u@h"
+	msg_oa1.command = "PRIVMSG"
+	msg_oa1.params = [link.desired_channel]
+	msg_oa1.trailing = "OA1 RES req_test 1 0 hi"
+	link.message_received.emit(msg_oa1)
+	for _i2 in range(6):
+		await process_frame
+	if not T.require_eq(self, oa.calls.size(), calls_before, "OA1 frames must be ignored by desk channel bridge"):
+		return
+
 	T.pass_and_quit(self)
 
 func _make_floor() -> StaticBody3D:
@@ -204,4 +217,3 @@ func _wait_on_floor(npc: Node) -> void:
 		await process_frame
 		if npc != null and is_instance_valid(npc) and npc.has_method("is_on_floor") and bool(npc.call("is_on_floor")):
 			return
-

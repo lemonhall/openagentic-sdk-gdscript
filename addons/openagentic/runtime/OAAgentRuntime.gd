@@ -53,12 +53,16 @@ func _turn_context(save_id: String, npc_id: String) -> Dictionary:
 	ctx["workspace_root"] = _OAPaths.npc_workspace_dir(save_id, npc_id)
 	return ctx
 
-func _tool_schemas() -> Array:
+func _tool_schemas(ctx: Dictionary) -> Array:
 	var out: Array = []
 	for name in _tools.names():
 		var t = _tools.get_tool(name)
 		if t == null:
 			continue
+		if typeof(t) == TYPE_OBJECT and t.has_method("is_available"):
+			var av0: Variant = t.call("is_available", ctx)
+			if not bool(av0):
+				continue
 		var params = t.input_schema if typeof(t.input_schema) == TYPE_DICTIONARY and t.input_schema.size() > 0 else {"type": "object", "properties": {}}
 		var schema := {"type": "function", "name": t.name, "parameters": params}
 		if t.description.strip_edges() != "":
@@ -189,7 +193,7 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 		var parts: Array[String] = []
 		var provider_error: String = ""
 
-		var req := {"model": _model, "input": input_items, "tools": _tool_schemas(), "stream": true}
+		var req := {"model": _model, "input": input_items, "tools": _tool_schemas(ctx), "stream": true}
 		if instructions != "":
 			req["instructions"] = instructions
 		await _provider_stream(req, func(mev: Dictionary) -> void:

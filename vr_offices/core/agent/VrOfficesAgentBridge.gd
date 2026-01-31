@@ -1,6 +1,7 @@
 extends RefCounted
 
 const _OAData := preload("res://vr_offices/core/data/VrOfficesData.gd")
+const _RemoteTools := preload("res://vr_offices/core/agent/VrOfficesRemoteTools.gd")
 
 var _owner: Node
 var _find_npc_by_id: Callable
@@ -62,6 +63,9 @@ func configure_openagentic() -> Node:
 
 	if _oa.has_method("enable_default_tools"):
 		_oa.call("enable_default_tools")
+
+	# VR Offices-specific tools (desk-bound RemoteBash, etc.).
+	_RemoteTools.register_into(_oa, _find_npc_by_id)
 
 	if _oa.has_method("get") and _oa.has_method("set"):
 		var sp0: Variant = _oa.get("system_prompt")
