@@ -78,6 +78,8 @@ func _init() -> void:
 		return
 	if not T.require_true(self, info.find("bound_npc_name=Alice") != -1, "Desk info should include bound_npc_name"):
 		return
+	if not T.require_true(self, info.find("remote_bash_visible_should_be=true") != -1, "Desk info should include computed remote_bash_visible_should_be"):
+		return
 
 	get_root().remove_child(overlay)
 	overlay.free()

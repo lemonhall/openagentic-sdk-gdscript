@@ -1,6 +1,7 @@
 extends Control
 
 const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
+const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
 @onready var close_button: Button = %CloseButton
@@ -274,6 +275,9 @@ func _on_desk_selected(idx: int) -> void:
 	var bound_npc_name := String(snap.get("bound_npc_name", "")).strip_edges()
 	var status := String(snap.get("status", ""))
 	var is_ready := bool(snap.get("ready", false))
+	var dc_canon := _IrcNames.canonicalize_device_code(dc)
+	var remote_bash_should_be := bound_npc_id != "" and _IrcNames.is_valid_device_code_canonical(dc_canon)
+	var remote_bash_should_be_s := "true" if remote_bash_should_be else "false"
 	var log_abs := String(snap.get("log_file_abs", ""))
 	var log_user := String(snap.get("log_file_user", ""))
 	var log_line := ""
@@ -281,7 +285,7 @@ func _on_desk_selected(idx: int) -> void:
 		log_line = "\nlog=%s" % log_abs
 	elif log_user.strip_edges() != "":
 		log_line = "\nlog=%s" % log_user
-	desk_info_label.text = "desk=%s  ws=%s\nchannel=%s\ndevice_code=%s\nbound_npc_id=%s\nbound_npc_name=%s\nstatus=%s  ready=%s%s" % [_selected_desk_id, ws, ch, dc, bound_npc_id, bound_npc_name, status, "true" if is_ready else "false", log_line]
+	desk_info_label.text = "desk=%s  ws=%s\nchannel=%s\ndevice_code=%s\nbound_npc_id=%s\nbound_npc_name=%s\nremote_bash_visible_should_be=%s\nstatus=%s  ready=%s%s" % [_selected_desk_id, ws, ch, dc, bound_npc_id, bound_npc_name, remote_bash_should_be_s, status, "true" if is_ready else "false", log_line]
 	if copy_desk_info_button != null:
 		copy_desk_info_button.disabled = desk_info_label.text.strip_edges() == ""
 	desk_log.text = ""
