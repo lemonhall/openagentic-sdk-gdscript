@@ -2,6 +2,7 @@ extends RefCounted
 
 const _OATool := preload("res://addons/openagentic/core/OATool.gd")
 const _RpcClientScript := preload("res://vr_offices/core/irc/OA1IrcRpcClient.gd")
+const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 
 static func register_into(openagentic: Node, find_npc_by_id: Callable) -> void:
 	if openagentic == null or not openagentic.has_method("register_tool"):
@@ -37,7 +38,13 @@ static func _make_remote_bash_tool(find_npc_by_id: Callable):
 			return false
 		if not npc.has_method("get_bound_desk_id"):
 			return false
-		return String(npc.call("get_bound_desk_id")).strip_edges() != ""
+		var desk_id := String(npc.call("get_bound_desk_id")).strip_edges()
+		if desk_id == "":
+			return false
+		var desk := _find_desk_by_id(desk_id)
+		if desk == null:
+			return false
+		return _desk_is_paired(desk)
 
 	var run_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:
 		var cmd := String(input.get("command", "")).strip_edges()
@@ -61,6 +68,8 @@ static func _make_remote_bash_tool(find_npc_by_id: Callable):
 		var desk := _find_desk_by_id(desk_id)
 		if desk == null:
 			return "ERROR: DeskNotFound: %s" % desk_id
+		if not _desk_is_paired(desk):
+			return "ERROR: DeskNotPaired (RMB desk → 绑定设备码)"
 
 		var link := (desk as Node).get_node_or_null("DeskIrcLink") as Node
 		if link == null or not is_instance_valid(link):
@@ -77,6 +86,16 @@ static func _make_remote_bash_tool(find_npc_by_id: Callable):
 		return String(res)
 
 	return _OATool.new("RemoteBash", description, run_fn, schema, true, availability)
+
+static func _desk_is_paired(desk: Node) -> bool:
+	if desk == null or not is_instance_valid(desk):
+		return false
+	var raw := ""
+	var v: Variant = desk.get("device_code") if desk.has_method("get") else null
+	if v != null:
+		raw = String(v)
+	var canonical := _IrcNames.canonicalize_device_code(raw)
+	return _IrcNames.is_valid_device_code_canonical(canonical)
 
 static func _ensure_rpc_client(link: Node) -> Node:
 	if link == null or not is_instance_valid(link):
@@ -115,4 +134,3 @@ static func _find_desk_by_id(desk_id: String) -> Node:
 		if String(n.name) == did:
 			return n
 	return null
-

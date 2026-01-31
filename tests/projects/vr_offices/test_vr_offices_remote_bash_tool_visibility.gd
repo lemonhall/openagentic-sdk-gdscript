@@ -94,15 +94,32 @@ func _init() -> void:
 	if not T.require_true(self, not tools_unbound.has("RemoteBash"), "RemoteBash must be hidden when unbound. Got: " + str(tools_unbound)):
 		return
 
-	# 2) Bound: RemoteBash must appear.
+	# 2) Bound but NOT paired (device code missing/invalid): RemoteBash must stay hidden.
 	area.emit_signal("body_entered", npc)
 	await process_frame
 	await oa.run_npc_turn("npc_a", "hello", func(_ev: Dictionary) -> void: pass)
-	var tools_bound = captured[-1]
-	if not T.require_true(self, tools_bound.has("RemoteBash"), "RemoteBash must appear when desk-bound. Got: " + str(tools_bound)):
+	var tools_bound_unpaired = captured[-1]
+	if not T.require_true(self, not tools_bound_unpaired.has("RemoteBash"), "RemoteBash must be hidden when desk-bound but not paired. Got: " + str(tools_bound_unpaired)):
 		return
 
-	# 3) Unbound again: RemoteBash must disappear.
+	if desk.has_method("set"):
+		desk.set("device_code", "12")
+	await process_frame
+	await oa.run_npc_turn("npc_a", "hello", func(_ev: Dictionary) -> void: pass)
+	var tools_bound_invalid = captured[-1]
+	if not T.require_true(self, not tools_bound_invalid.has("RemoteBash"), "RemoteBash must be hidden when device code is invalid. Got: " + str(tools_bound_invalid)):
+		return
+
+	# 3) Bound and paired (valid device code): RemoteBash must appear.
+	if desk.has_method("set"):
+		desk.set("device_code", "ABCD1234")
+	await process_frame
+	await oa.run_npc_turn("npc_a", "hello", func(_ev: Dictionary) -> void: pass)
+	var tools_bound_paired = captured[-1]
+	if not T.require_true(self, tools_bound_paired.has("RemoteBash"), "RemoteBash must appear when desk-bound and paired. Got: " + str(tools_bound_paired)):
+		return
+
+	# 4) Unbound again: RemoteBash must disappear.
 	area.emit_signal("body_exited", npc)
 	await process_frame
 	await oa.run_npc_turn("npc_a", "hello", func(_ev: Dictionary) -> void: pass)
