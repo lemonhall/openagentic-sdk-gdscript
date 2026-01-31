@@ -34,6 +34,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var dialogue: Control = $UI/DialogueOverlay
 @onready var saving_overlay: Control = $UI/SavingOverlay
 @onready var workspace_overlay: Control = $UI/WorkspaceOverlay
+@onready var desk_overlay: Control = $UI/DeskOverlay
 @onready var action_hint_overlay: Control = $UI/ActionHintOverlay
 @onready var irc_overlay: Control = $UI/IrcOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
@@ -119,6 +120,10 @@ func _ready() -> void:
 
 	if irc_overlay != null and irc_overlay.has_method("bind"):
 		irc_overlay.call("bind", self, _desk_manager)
+
+	if desk_overlay != null:
+		if desk_overlay.has_signal("device_code_submitted"):
+			desk_overlay.connect("device_code_submitted", Callable(self, "_on_desk_device_code_submitted"))
 
 	_workspace_ctrl = _WorkspaceControllerScript.new(
 		self,
@@ -229,6 +234,18 @@ func open_irc_overlay_for_desk(desk_id: String) -> void:
 	else:
 		open_irc_overlay()
 
+func open_desk_context_menu(desk_id: String, screen_pos: Vector2) -> void:
+	if desk_overlay == null or _desk_manager == null:
+		return
+	var did := desk_id.strip_edges()
+	if did == "":
+		return
+	var current := ""
+	if _desk_manager.has_method("get_desk_device_code"):
+		current = String(_desk_manager.call("get_desk_device_code", did)).strip_edges()
+	if desk_overlay.has_method("show_desk_menu"):
+		desk_overlay.call("show_desk_menu", screen_pos, did, current)
+
 func toggle_irc_overlay() -> void:
 	if irc_overlay == null:
 		return
@@ -258,3 +275,28 @@ func _find_npc_by_id(npc_id: String) -> Node:
 	if _npc_manager == null:
 		return null
 	return _npc_manager.call("find_npc_by_id", npc_id) as Node
+
+func _on_desk_device_code_submitted(desk_id: String, device_code: String) -> void:
+	if _desk_manager == null or not _desk_manager.has_method("set_desk_device_code"):
+		return
+	var did := desk_id.strip_edges()
+	if did == "":
+		return
+	var res0: Variant = _desk_manager.call("set_desk_device_code", did, device_code)
+	if typeof(res0) != TYPE_DICTIONARY:
+		if desk_overlay != null and desk_overlay.has_method("show_toast"):
+			desk_overlay.call("show_toast", "Failed to bind device code (internal error).")
+		return
+	var res := res0 as Dictionary
+	if not bool(res.get("ok", false)):
+		if desk_overlay != null and desk_overlay.has_method("show_toast"):
+			desk_overlay.call("show_toast", "Invalid device code.")
+		return
+
+	autosave()
+	if desk_overlay != null and desk_overlay.has_method("show_toast"):
+		var c := String(res.get("device_code", "")).strip_edges()
+		if c == "":
+			desk_overlay.call("show_toast", "Device code cleared for %s." % did)
+		else:
+			desk_overlay.call("show_toast", "Device code bound for %s." % did)

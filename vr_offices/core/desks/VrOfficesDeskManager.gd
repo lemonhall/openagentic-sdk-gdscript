@@ -5,6 +5,7 @@ const DESK_KIND_STANDING := "standing_desk"
 const _DeskModel := preload("res://vr_offices/core/desks/VrOfficesDeskModel.gd")
 const _DeskSceneBinder := preload("res://vr_offices/core/desks/VrOfficesDeskSceneBinder.gd")
 const _IrcConfig := preload("res://vr_offices/core/irc/VrOfficesIrcConfig.gd")
+const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 
 var _model := _DeskModel.new()
 var _scene := _DeskSceneBinder.new()
@@ -28,6 +29,30 @@ func list_desks_for_workspace(workspace_id: String) -> Array:
 
 func list_desk_irc_snapshots() -> Array:
 	return _scene.list_desk_irc_snapshots(_model.list_desks_ref())
+
+func set_desk_device_code(desk_id: String, code: String) -> Dictionary:
+	var did := desk_id.strip_edges()
+	if did == "":
+		return {"ok": false, "reason": "empty_desk_id"}
+
+	var input := code.strip_edges()
+	var canonical := _IrcNames.canonicalize_device_code(input)
+	if canonical == "" and input == "":
+		var changed_clear := _model.set_device_code(did, "")
+		if changed_clear:
+			_scene.refresh_irc_links(_model.list_desks_ref(), _irc_config)
+		return {"ok": true, "device_code": "", "changed": changed_clear}
+
+	if canonical == "" or not _IrcNames.is_valid_device_code_canonical(canonical):
+		return {"ok": false, "reason": "invalid_device_code", "device_code": canonical}
+
+	var changed := _model.set_device_code(did, canonical)
+	if changed:
+		_scene.refresh_irc_links(_model.list_desks_ref(), _irc_config)
+	return {"ok": true, "device_code": canonical, "changed": changed}
+
+func get_desk_device_code(desk_id: String) -> String:
+	return _model.get_device_code(desk_id)
 
 func bind_scene(root: Node3D, desk_scene: PackedScene, is_headless: Callable, get_save_id: Callable = Callable()) -> void:
 	_scene.bind_scene(root, desk_scene, is_headless, get_save_id)
@@ -65,4 +90,3 @@ func to_state_array() -> Array:
 func load_from_state_dict(state: Dictionary) -> void:
 	_model.load_from_state_dict(state)
 	_scene.rebuild_nodes(_model.list_desks_ref(), _irc_config)
-

@@ -1,29 +1,19 @@
 extends RefCounted
-
 const DESK_KIND_STANDING := "standing_desk"
-
 const _Geom := preload("res://vr_offices/core/desks/VrOfficesDeskGeometry.gd")
-
 const _MAX_DESKS_PER_WORKSPACE := 3
-
 var _desk_counter := 0
 var _desks: Array[Dictionary] = []
-
 func get_desk_counter() -> int:
 	return _desk_counter
-
 func get_max_desks_per_workspace() -> int:
 	return _MAX_DESKS_PER_WORKSPACE
-
 func get_standing_desk_footprint_size_xz(yaw: float) -> Vector2:
 	return _Geom.standing_desk_footprint_size_xz(yaw)
-
 func list_desks() -> Array:
 	return _desks.duplicate(true)
-
 func list_desks_ref() -> Array[Dictionary]:
 	return _desks
-
 func list_desks_for_workspace(workspace_id: String) -> Array:
 	var wid := workspace_id.strip_edges()
 	var out: Array = []
@@ -31,10 +21,9 @@ func list_desks_for_workspace(workspace_id: String) -> Array:
 		var d := d0 as Dictionary
 		if d == null:
 			continue
-		if String(d.get("workspace_id", "")).strip_edges() == wid:
-			out.append(d.duplicate(true))
+			if String(d.get("workspace_id", "")).strip_edges() == wid:
+				out.append(d.duplicate(true))
 	return out
-
 func can_place_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, center_xz: Vector2, yaw: float) -> Dictionary:
 	var wid := workspace_id.strip_edges()
 	if wid == "":
@@ -57,7 +46,6 @@ func can_place_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, cen
 		return {"ok": false, "reason": "overlap"}
 
 	return {"ok": true}
-
 func add_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, pos: Vector3, yaw: float) -> Dictionary:
 	var wid := workspace_id.strip_edges()
 	if wid == "":
@@ -79,10 +67,38 @@ func add_standing_desk(workspace_id: String, workspace_rect_xz: Rect2, pos: Vect
 		"pos": [pos.x, pos.y, pos.z],
 		"yaw": yaw0,
 		"rect_xz": footprint,
+		"device_code": "",
 	}
 	_desks.append(d)
 	return {"ok": true, "desk": d}
-
+func get_device_code(desk_id: String) -> String:
+	var did := desk_id.strip_edges()
+	if did == "":
+		return ""
+	for d0 in _desks:
+		var d := d0 as Dictionary
+		if d == null:
+			continue
+		if String(d.get("id", "")).strip_edges() == did:
+			return String(d.get("device_code", "")).strip_edges()
+	return ""
+func set_device_code(desk_id: String, device_code: String) -> bool:
+	var did := desk_id.strip_edges()
+	if did == "":
+		return false
+	var dc := device_code.strip_edges()
+	for d0 in _desks:
+		var d := d0 as Dictionary
+		if d == null:
+			continue
+		if String(d.get("id", "")).strip_edges() != did:
+			continue
+		var prev := String(d.get("device_code", "")).strip_edges()
+		if prev == dc:
+			return false
+		d["device_code"] = dc
+		return true
+	return false
 func delete_desks_for_workspace(workspace_id: String) -> Array[String]:
 	var wid := workspace_id.strip_edges()
 	if wid == "":
@@ -101,7 +117,6 @@ func delete_desks_for_workspace(workspace_id: String) -> Array[String]:
 			kept.append(d)
 	_desks = kept
 	return removed_ids
-
 func to_state_array() -> Array:
 	var arr: Array = []
 	for d0 in _desks:
@@ -120,17 +135,15 @@ func to_state_array() -> Array:
 			"kind": String(d.get("kind", DESK_KIND_STANDING)),
 			"pos": [float(p[0]), float(p[1]), float(p[2])],
 			"yaw": float(d.get("yaw", 0.0)),
+			"device_code": String(d.get("device_code", "")).strip_edges(),
 		})
 	return arr
-
 func load_from_state_dict(state: Dictionary) -> void:
 	_desks.clear()
 	_desk_counter = int(state.get("desk_counter", 0))
-
 	var desks0: Variant = state.get("desks", [])
 	if not (desks0 is Array):
 		return
-
 	for e0 in desks0 as Array:
 		if typeof(e0) != TYPE_DICTIONARY:
 			continue
@@ -152,11 +165,11 @@ func load_from_state_dict(state: Dictionary) -> void:
 			"pos": [pos.x, pos.y, pos.z],
 			"yaw": yaw,
 			"rect_xz": footprint,
+			"device_code": String(e.get("device_code", "")).strip_edges(),
 		}
 		if String(d.get("id", "")).strip_edges() == "":
 			continue
 		_desks.append(d)
-
 func _count_for_workspace(workspace_id: String) -> int:
 	var wid := workspace_id.strip_edges()
 	var n := 0
@@ -167,7 +180,6 @@ func _count_for_workspace(workspace_id: String) -> int:
 		if String(d.get("workspace_id", "")).strip_edges() == wid:
 			n += 1
 	return n
-
 func _overlaps_existing(workspace_id: String, rect_xz: Rect2) -> bool:
 	var wid := workspace_id.strip_edges()
 	for d0 in _desks:
@@ -182,4 +194,3 @@ func _overlaps_existing(workspace_id: String, rect_xz: Rect2) -> bool:
 		if _Geom.rects_overlap_exclusive(rect_xz, r0 as Rect2):
 			return true
 	return false
-

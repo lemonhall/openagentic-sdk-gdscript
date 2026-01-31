@@ -61,7 +61,7 @@ func spawn_node_for(desk: Dictionary, irc_config: Dictionary) -> void:
 	n.rotation = Vector3(0.0, yaw, 0.0)
 
 	if n.has_method("configure"):
-		n.call("configure", did, String(desk.get("workspace_id", "")))
+		n.call("configure", did, String(desk.get("workspace_id", "")), String(desk.get("device_code", "")))
 	if n.has_method("play_spawn_fx"):
 		n.call("play_spawn_fx")
 
@@ -98,6 +98,10 @@ func refresh_irc_links(desks: Array[Dictionary], irc_config: Dictionary) -> void
 		if desk_node == null or not is_instance_valid(desk_node):
 			continue
 
+		var dc := String(d.get("device_code", "")).strip_edges()
+		if desk_node.has_method("set"):
+			desk_node.set("device_code", dc)
+
 		var link := desk_node.get_node_or_null("DeskIrcLink") as Node
 		if not configured:
 			if link != null:
@@ -107,7 +111,7 @@ func refresh_irc_links(desks: Array[Dictionary], irc_config: Dictionary) -> void
 		if link == null:
 			_ensure_irc_link(desk_node, d, irc_config)
 		elif link.has_method("configure"):
-			link.call("configure", irc_config, _effective_save_id(), String(d.get("workspace_id", "")), did)
+			link.call("configure", irc_config, _effective_save_id(), String(d.get("workspace_id", "")), did, String(d.get("device_code", "")))
 
 func reconnect_all_irc_links(desks: Array[Dictionary], irc_config: Dictionary) -> void:
 	# Manual operator action: force reconnect (close + connect) for all desk links.
@@ -132,7 +136,7 @@ func reconnect_all_irc_links(desks: Array[Dictionary], irc_config: Dictionary) -
 		if link.has_method("reconnect_now"):
 			link.call("reconnect_now")
 		elif link.has_method("configure"):
-			link.call("configure", irc_config, _effective_save_id(), String(d.get("workspace_id", "")), did)
+			link.call("configure", irc_config, _effective_save_id(), String(d.get("workspace_id", "")), did, String(d.get("device_code", "")))
 
 func _effective_save_id() -> String:
 	var sid := ""
@@ -164,7 +168,7 @@ func _ensure_irc_link(desk_node: Node3D, desk: Dictionary, irc_config: Dictionar
 		link.name = "DeskIrcLink"
 		desk_node.add_child(link)
 	if link.has_method("configure"):
-		link.call("configure", irc_config, _effective_save_id(), workspace_id, desk_id)
+		link.call("configure", irc_config, _effective_save_id(), workspace_id, desk_id, String(desk.get("device_code", "")))
 
 func _free_node_for_id(desk_id: String) -> void:
 	var did := desk_id.strip_edges()

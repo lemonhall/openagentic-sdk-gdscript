@@ -3,6 +3,7 @@ extends Node3D
 @export var desk_id: String = ""
 @export var workspace_id: String = ""
 @export var kind: String = "standing_desk"
+@export var device_code: String = ""
 
 var _is_preview := false
 var _preview_valid := true
@@ -15,9 +16,10 @@ func _ready() -> void:
 	add_to_group("vr_offices_desk")
 	ensure_centered()
 
-func configure(desk_id_in: String, workspace_id_in: String) -> void:
+func configure(desk_id_in: String, workspace_id_in: String, device_code_in: String = "") -> void:
 	desk_id = desk_id_in
 	workspace_id = workspace_id_in
+	device_code = device_code_in
 
 func set_preview(enabled: bool) -> void:
 	_is_preview = enabled

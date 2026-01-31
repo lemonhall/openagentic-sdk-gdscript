@@ -1,84 +1,96 @@
 extends Node
-
 signal status_changed(status: String)
 signal ready_changed(ready: bool)
 signal message_received(msg: RefCounted)
 signal error(msg: String)
-
 const IrcClient := preload("res://addons/irc_client/IrcClient.gd")
 const IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 const _DeskIrcLog := preload("res://vr_offices/core/desks/VrOfficesDeskIrcLog.gd")
 const _JoinTracker := preload("res://vr_offices/core/desks/VrOfficesDeskIrcJoinTracker.gd")
-
 var _config: Dictionary = {}
 var _save_id: String = ""
 var _workspace_id: String = ""
 var _desk_id: String = ""
-
+var _device_code: String = ""
 var _client: Node = null
 var _status: String = "idle"
 var _ready: bool = false
 var _desired_channel: String = ""
 var _nick: String = ""
+var _connect_key: String = ""
 var _join_tracker := _JoinTracker.new()
 var _log: RefCounted = null
-
-func configure(config: Dictionary, save_id: String, workspace_id: String, desk_id: String) -> void:
+func configure(config: Dictionary, save_id: String, workspace_id: String, desk_id: String, device_code: String = "") -> void:
 	_config = config if config != null else {}
 	_save_id = save_id.strip_edges()
 	_workspace_id = workspace_id.strip_edges()
 	_desk_id = desk_id.strip_edges()
-
+	_device_code = device_code.strip_edges()
 	var nicklen := int(_config.get("nicklen_default", 9))
 	var channellen := int(_config.get("channellen_default", 50))
 	var nick := String(IrcNames.derive_nick(_save_id, _desk_id, nicklen))
 	_nick = nick
-	_desired_channel = String(IrcNames.derive_channel_for_workspace(_save_id, _workspace_id, _desk_id, channellen))
-
+	var prev_channel := _desired_channel
+	if _device_code.strip_edges() != "":
+		_desired_channel = String(IrcNames.derive_channel_for_desk_device_code(_save_id, _workspace_id, _desk_id, _device_code, channellen))
+	else:
+		_desired_channel = String(IrcNames.derive_channel_for_workspace(_save_id, _workspace_id, _desk_id, channellen))
 	_ensure_client()
 	_join_tracker.reset()
 	_set_ready(false)
 	_ensure_logger()
 	_log.call("configure", _save_id, _desk_id)
 	_log.call("clear")
-	_log_line("config desk=%s ws=%s ch=%s" % [_desk_id, _workspace_id, _desired_channel])
-
+	_log_line("config desk=%s ws=%s code=%s ch=%s" % [_desk_id, _workspace_id, _device_code, _desired_channel])
 	_client.call("set_cap_enabled", false)
 	_client.call("set_auto_reconnect_enabled", true)
 	_client.call("set_auto_rejoin_enabled", true)
-
+	var host := String(_config.get("host", "")).strip_edges()
+	var port := int(_config.get("port", 0))
+	var tls := bool(_config.get("tls", false))
+	var server_name := String(_config.get("server_name", "")).strip_edges()
 	var password := String(_config.get("password", "")).strip_edges()
+	var new_key := "%s|%d|%s|%s|%s" % [host, port, "tls" if tls else "tcp", server_name, password]
+	var key_changed := _connect_key != "" and _connect_key != new_key
+	_connect_key = new_key
 	if password != "":
 		_client.call("set_password", password)
-
 	_client.call("set_nick", nick)
 	_client.call("set_user", nick, "0", "*", nick)
-
-	_connect_if_needed()
+	var prev := prev_channel.strip_edges()
+	var next := _desired_channel.strip_edges()
+	var connectedish := _status == "connecting" or _status == "tcp_connected" or _status == "registered" or _status == "joined"
+	if key_changed and _client != null:
+		_set_status("reconnecting")
+		_client.call("close_connection")
+		connectedish = false
+	if prev != "" and next != "" and prev != next and (_status == "registered" or _status == "joined") and connectedish and not key_changed:
+		_set_status("switching_channel")
+		if _client != null:
+			_client.call("part", prev, "switching channel")
+			_client.call("join", next)
+	if not connectedish or key_changed:
+		_connect_if_needed()
 
 func get_desired_channel() -> String:
 	return _desired_channel
-
 func get_nick() -> String:
 	return _nick
-
 func get_status() -> String:
 	return _status
-
 func is_ready() -> bool:
 	return _ready
-
 func get_debug_lines() -> Array[String]:
 	if _log == null:
 		return []
 	var v: Variant = _log.call("get_lines")
 	return v as Array[String] if (v is Array) else []
-
 func get_debug_snapshot() -> Dictionary:
 	return {
 		"save_id": _save_id,
 		"workspace_id": _workspace_id,
 		"desk_id": _desk_id,
+		"device_code": _device_code,
 		"desired_channel": _desired_channel,
 		"status": _status,
 		"ready": _ready,
@@ -86,7 +98,6 @@ func get_debug_snapshot() -> Dictionary:
 		"log_file_abs": "" if _log == null else String(_log.call("get_log_file_abs_path")),
 		"log_lines": get_debug_lines(),
 	}
-
 func send_channel_message(text: String) -> void:
 	if _client == null:
 		return
@@ -94,7 +105,6 @@ func send_channel_message(text: String) -> void:
 	if msg == "" or _desired_channel.strip_edges() == "":
 		return
 	_client.call("privmsg", _desired_channel, msg)
-
 func reconnect_now() -> void:
 	_ensure_client()
 	_join_tracker.reset()
@@ -102,15 +112,12 @@ func reconnect_now() -> void:
 	if _client != null:
 		_client.call("close_connection")
 	_connect_if_needed()
-
 func _process(dt: float) -> void:
 	if _client != null:
 		_client.call("poll", dt)
-
 func _exit_tree() -> void:
 	if _client != null:
 		_client.call("close_connection")
-
 func _ensure_client() -> void:
 	if _client != null and is_instance_valid(_client):
 		return
@@ -121,7 +128,6 @@ func _ensure_client() -> void:
 	_client.message_received.connect(_on_message_received)
 	_client.raw_line_received.connect(_on_raw_line_received)
 	_client.error.connect(_on_error)
-
 func _connect_if_needed() -> void:
 	if _client == null:
 		return
@@ -140,7 +146,6 @@ func _connect_if_needed() -> void:
 		_client.call("connect_to_tls", host, port, server_name)
 	else:
 		_client.call("connect_to", host, port)
-
 func _set_status(s: String) -> void:
 	var ss := s.strip_edges()
 	if ss == "":
@@ -150,30 +155,23 @@ func _set_status(s: String) -> void:
 	_status = ss
 	_log_line("status=%s" % _status)
 	status_changed.emit(_status)
-
 func _set_ready(v: bool) -> void:
 	if v == _ready:
 		return
 	_ready = v
 	_log_line("ready=%s" % ("true" if _ready else "false"))
 	ready_changed.emit(_ready)
-
 func _on_connected() -> void:
 	_join_tracker.reset()
 	_set_status("tcp_connected")
-
 func _on_disconnected() -> void:
 	_set_ready(false)
 	_set_status("disconnected")
-
 func _on_error(msg: String) -> void:
 	_log_line("error: %s" % msg)
 	error.emit(msg)
-
 func _on_raw_line_received(line: String) -> void:
-	# Keep a copy for debugging/verification.
 	_log_line(line)
-
 func _on_message_received(msg: RefCounted) -> void:
 	message_received.emit(msg)
 	if msg == null:
@@ -187,12 +185,10 @@ func _on_message_received(msg: RefCounted) -> void:
 		if _join_tracker.join_matches_desired(obj, _desired_channel):
 			_set_status("joined")
 			_set_ready(true)
-
 func _ensure_logger() -> void:
 	if _log != null and is_instance_valid(_log):
 		return
 	_log = _DeskIrcLog.new()
-
 func _log_line(line: String) -> void:
 	if line.strip_edges() == "":
 		return

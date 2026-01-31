@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/VrOffices.gd" id="1"]
 [ext_resource type="PackedScene" path="res://vr_offices/camera/OrbitCameraRig.tscn" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://vr_offices/ui/SavingOverlay.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://vr_offices/fx/MoveIndicator.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/WorkspaceOverlay.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://vr_offices/ui/DeskOverlay.tscn" id="12"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/ActionHintOverlay.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/IrcOverlay.tscn" id="11"]
 
@@ -70,6 +71,8 @@ position = Vector3(0, 0, 0)
 [node name="SavingOverlay" parent="UI" instance=ExtResource("7")]
 
 [node name="WorkspaceOverlay" parent="UI" instance=ExtResource("9")]
+
+[node name="DeskOverlay" parent="UI" instance=ExtResource("12")]
 
 [node name="ActionHintOverlay" parent="UI" instance=ExtResource("10")]
 

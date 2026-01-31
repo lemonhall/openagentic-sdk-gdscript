@@ -87,6 +87,19 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 						if bool(workspace_ctrl.call("handle_rmb_release", mb.position)):
 							_rmb_down = false
 							return
+					var desk := _try_find_desk_from_click(mb.position)
+					if desk != null and owner.has_method("open_desk_context_menu"):
+						var did: String = ""
+						if desk.has_method("get"):
+							var v: Variant = desk.get("desk_id")
+							if v != null:
+								did = String(v).strip_edges()
+						if did.strip_edges() == "":
+							did = desk.name
+						if did.strip_edges() != "":
+							owner.call("open_desk_context_menu", did, mb.position)
+							_rmb_down = false
+							return
 					# If an NPC is selected, RMB should keep working as "move to click" even inside a workspace.
 					# Use Shift+RMB as an explicit override to open the workspace context menu.
 					var has_selected := selected_npc != null and is_instance_valid(selected_npc)
