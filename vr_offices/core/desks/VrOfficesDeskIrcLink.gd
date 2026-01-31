@@ -19,6 +19,7 @@ var _client: Node = null
 var _status: String = "idle"
 var _ready: bool = false
 var _desired_channel: String = ""
+var _nick: String = ""
 var _join_tracker := _JoinTracker.new()
 var _log: RefCounted = null
 
@@ -31,6 +32,7 @@ func configure(config: Dictionary, save_id: String, workspace_id: String, desk_i
 	var nicklen := int(_config.get("nicklen_default", 9))
 	var channellen := int(_config.get("channellen_default", 50))
 	var nick := String(IrcNames.derive_nick(_save_id, _desk_id, nicklen))
+	_nick = nick
 	_desired_channel = String(IrcNames.derive_channel_for_workspace(_save_id, _workspace_id, _desk_id, channellen))
 
 	_ensure_client()
@@ -56,6 +58,9 @@ func configure(config: Dictionary, save_id: String, workspace_id: String, desk_i
 
 func get_desired_channel() -> String:
 	return _desired_channel
+
+func get_nick() -> String:
+	return _nick
 
 func get_status() -> String:
 	return _status

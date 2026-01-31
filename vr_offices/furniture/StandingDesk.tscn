@@ -1,11 +1,18 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/furniture/StandingDesk.gd" id="1"]
 [ext_resource type="Script" path="res://vr_offices/furniture/DeskIrcIndicator.gd" id="3"]
+[ext_resource type="Script" path="res://vr_offices/furniture/DeskNpcBindIndicator.gd" id="4"]
+[ext_resource type="Script" path="res://vr_offices/furniture/DeskNpcDeskChannelBridge.gd" id="6"]
 [ext_resource type="PackedScene" path="res://assets/office_pack_glb/Standing Desk.glb" id="2"]
+[ext_resource type="PackedScene" path="res://vr_offices/fx/MoveIndicator.tscn" id="5"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(1.5, 1.2, 0.9)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1"]
+radius = 0.55
+height = 0.4
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_1"]
 top_radius = 0.0
@@ -51,3 +58,25 @@ rotation = Vector3(3.14159, 0, 0)
 mesh = SubResource("CylinderMesh_1")
 material_override = SubResource("StandardMaterial3D_1")
 cast_shadow = 0
+
+[node name="NpcBindIndicator" type="Node3D" parent="."]
+position = Vector3(0, 0, -0.95)
+script = ExtResource("4")
+
+[node name="Area" type="Area3D" parent="NpcBindIndicator"]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NpcBindIndicator/Area"]
+position = Vector3(0, 0.2, 0)
+shape = SubResource("CylinderShape3D_1")
+
+[node name="Visual" parent="NpcBindIndicator" instance=ExtResource("5")]
+color = Color(1, 0.92, 0.45, 0.85)
+base_radius = 0.55
+pulse_amount = 0.2
+pulse_speed = 1.2
+y_offset = 0.02
+
+[node name="DeskChannelBridge" type="Node" parent="NpcBindIndicator"]
+script = ExtResource("6")

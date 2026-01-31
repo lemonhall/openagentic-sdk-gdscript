@@ -9,6 +9,7 @@ var _preview_valid := true
 var _preview_overlay: StandardMaterial3D = null
 var _centered_once := false
 @onready var _irc_indicator: Node3D = get_node_or_null("IrcIndicator") as Node3D
+@onready var _npc_bind_indicator: Node3D = get_node_or_null("NpcBindIndicator") as Node3D
 
 func _ready() -> void:
 	add_to_group("vr_offices_desk")
@@ -22,6 +23,8 @@ func set_preview(enabled: bool) -> void:
 	_is_preview = enabled
 	if _irc_indicator != null and _irc_indicator.has_method("set_suspended"):
 		_irc_indicator.call("set_suspended", _is_preview)
+	if _npc_bind_indicator != null and _npc_bind_indicator.has_method("set_suspended"):
+		_npc_bind_indicator.call("set_suspended", _is_preview)
 	if not _is_preview:
 		return
 	ensure_centered()

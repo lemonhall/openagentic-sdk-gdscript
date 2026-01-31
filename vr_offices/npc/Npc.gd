@@ -35,6 +35,7 @@ var _anim_player: AnimationPlayer = null
 var _anim_idle: StringName = &""
 var _anim_walk: StringName = &""
 var _anim_sprint: StringName = &""
+var _anim_work: StringName = &""
 var _anim_current: StringName = &""
 var _override_anim: StringName = &""
 var _override_left := 0.0
@@ -43,6 +44,10 @@ var _in_dialogue := false
 var _wander_enabled_before_dialogue := true
 var _dialogue_face_node: Node3D = null
 var _dialogue_face_pos: Vector3 = Vector3.ZERO
+
+# Desk binding / work state.
+var _desk_bound_id: String = ""
+var _skip_wait_after_goto := false
 
 # Right-click move command:
 var _goto_target_xz := Vector2.ZERO
@@ -141,12 +146,55 @@ func _autoplay_animation(root: Node) -> void:
 	_anim_idle = _pick_named_animation(anims, "idle")
 	_anim_walk = _pick_named_animation(anims, "walk")
 	_anim_sprint = _pick_named_animation(anims, "sprint")
+	_anim_work = _pick_named_animation(anims, "work")
+	if _anim_work == &"":
+		_anim_work = _pick_named_animation(anims, "typing")
+	if _anim_work == &"":
+		_anim_work = _pick_named_animation(anims, "interact-left")
+	if _anim_work == &"":
+		_anim_work = _pick_named_animation(anims, "interact-right")
 	_ensure_loop(_anim_idle)
 	_ensure_loop(_anim_walk)
 	_ensure_loop(_anim_sprint)
+	_ensure_loop(_anim_work)
 
 	var chosen := _anim_idle if _anim_idle != &"" else _pick_animation(anims)
 	_play_anim(chosen)
+
+func get_bound_desk_id() -> String:
+	return _desk_bound_id
+
+func on_desk_bound(desk_id: String) -> void:
+	var did := desk_id.strip_edges()
+	if did == "":
+		return
+	if _desk_bound_id == did:
+		return
+	_desk_bound_id = did
+	_skip_wait_after_goto = false
+	_goto_active = false
+	_waiting_for_work_left = 0.0
+	_wander_pause_left = 0.0
+	stop_override_animation()
+	wander_enabled = false
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_play_anim(_anim_work if _anim_work != &"" else _anim_idle)
+
+func on_desk_unbound(desk_id: String) -> void:
+	var did := desk_id.strip_edges()
+	if did != "" and _desk_bound_id != did:
+		return
+	if _desk_bound_id == "":
+		return
+	_desk_bound_id = ""
+	if _goto_active:
+		return
+	_waiting_for_work_left = 0.0
+	wander_enabled = true
+	_wander_pause_left = 0.0
+	_pick_new_wander_target()
+	_play_anim(_anim_idle)
 
 func play_animation_once(clip: String, duration: float = 0.7, lock_wander: bool = true) -> void:
 	if clip.strip_edges() == "":
@@ -222,6 +270,10 @@ func command_move_to(target_world_pos: Vector3) -> void:
 	# occur, resume wandering after `waiting_for_work_seconds`.
 	if _in_dialogue:
 		return
+	if _desk_bound_id != "":
+		# If we are leaving a desk binding, do not enter the old "wait for work" mode
+		# after reaching the target.
+		_skip_wait_after_goto = true
 	_goto_target_xz = Vector2(target_world_pos.x, target_world_pos.z)
 	_goto_active = true
 	_waiting_for_work_left = 0.0
@@ -303,11 +355,18 @@ func _update_wander(delta: float) -> void:
 		var cmd_to_target := _goto_target_xz - cmd_pos_xz
 		if cmd_to_target.length() <= maxf(0.05, wander_target_radius * 0.75):
 			_goto_active = false
-			_waiting_for_work_left = maxf(0.0, waiting_for_work_seconds)
 			velocity.x = 0.0
 			velocity.z = 0.0
 			_play_anim(_anim_idle)
 			move_target_reached.emit(npc_id, Vector3(_goto_target_xz.x, 0.0, _goto_target_xz.y))
+			if _skip_wait_after_goto:
+				_skip_wait_after_goto = false
+				_waiting_for_work_left = 0.0
+				wander_enabled = true
+				_wander_pause_left = 0.0
+				_pick_new_wander_target()
+			else:
+				_waiting_for_work_left = maxf(0.0, waiting_for_work_seconds)
 			return
 
 		var cmd_dir := cmd_to_target.normalized()
@@ -320,6 +379,13 @@ func _update_wander(delta: float) -> void:
 		if turn_speed > 0.0:
 			var target_yaw := atan2(-cmd_dir.x, -cmd_dir.y) + model_yaw_offset
 			rotation.y = lerp_angle(rotation.y, target_yaw, clampf(turn_speed * delta, 0.0, 1.0))
+		return
+
+	# Desk-bound work state: stand still and play a working loop.
+	if _desk_bound_id != "":
+		velocity.x = move_toward(velocity.x, 0.0, wander_speed * 3.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, wander_speed * 3.0 * delta)
+		_play_anim(_anim_work if _anim_work != &"" else _anim_idle)
 		return
 
 	# Waiting-for-work idle countdown: keep still until the timer completes, then resume wandering.
