@@ -20,7 +20,7 @@
 |---|---|---|---|---|
 | M1 | OA1 codec (Rust) | escape/unescape, UTF‑8 byte chunking, frame parse/make | `cd remote_daemon && cargo test` | done |
 | M2 | OA1 server (Rust) | REQ reassembly + RES/ERR chunked replies + limits | `cd remote_daemon && cargo test` | done |
-| M3 | Daemon wiring | Joined channels handle OA1 requests end-to-end | Manual (live IRC) | done |
+| M3 | Daemon wiring | Joined channels handle OA1 requests end-to-end | Manual (live IRC) | todo |
 
 ## Plan Index
 
@@ -33,3 +33,7 @@ Green:
 - `cd remote_daemon && cargo test` (PASS)
 - `scripts/run_godot_tests.sh --suite vr_offices` (PASS)
 - `scripts/run_godot_tests.sh --suite openagentic` (PASS)
+
+Pending:
+
+- Manual pairing test against a real IRC server (M3)
