@@ -14,6 +14,7 @@ cargo run -- --host <irc_host> --port <irc_port>
 
 - `Device code: ABCD1234`
 - `Data dir: .../openagentic_remote/<instance>/`
+- `IRC: ... as <nick>`（其中 `<nick>` 是 daemon 在 IRC 上的 nickname，某些服务器限制 `<=9`；可用 `--nick` 覆盖）
 - `Executor: echo`（默认不执行命令，只回显）
 
 把输出的 `Device code` 填到游戏里桌子的右键菜单：
@@ -80,4 +81,3 @@ cargo run -- --host <irc_host> --port <irc_port> --instance desk_2
 - 目前是明文 TCP IRC（不支持 TLS/SASL）。
 - 当前连接断开会退出进程（没有自动重连）；建议用 systemd/supervisor 做自动重启。
 - 捕获输出有上限（见源码 `max_capture_bytes` / `max_response_bytes`），超出会截断并带 `...[truncated]...`。
-

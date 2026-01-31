@@ -181,9 +181,22 @@ fn load_or_create_device_code(dir: &Path, override_code: Option<String>) -> std:
 
 fn derive_default_nick(device_code: &str) -> String {
     let code = device_code.to_ascii_lowercase();
-    let mut nick = format!("oa_remote_{}", code);
-    if nick.len() > 15 {
-        nick.truncate(15);
+    // Prefer a very short default for compatibility with older IRC servers
+    // (many advertise NICKLEN=9).
+    let mut nick = format!("oa{}", code);
+    if nick.len() > 9 {
+        nick.truncate(9);
     }
     nick
+}
+
+#[cfg(test)]
+mod tests {
+    use super::derive_default_nick;
+
+    #[test]
+    fn default_nick_is_short_and_stable() {
+        assert_eq!(derive_default_nick("MRZWJPECGJ"), "oamrzwjpe");
+        assert!(derive_default_nick("ABCD1234EF").len() <= 9);
+    }
 }

@@ -73,7 +73,12 @@ pub fn run_polling_join_loop(
 
         buf.clear();
         match reader.read_line(&mut buf) {
-            Ok(0) => return Ok(()),
+            Ok(0) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    "irc connection closed by peer",
+                ))
+            }
             Ok(_) => {
                 let line = buf.trim_end_matches(['\r', '\n']);
                 if let Some(token) = parse_ping_token(line) {
