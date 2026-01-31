@@ -1,29 +1,70 @@
 extends RefCounted
-
 static func is_headless() -> bool:
 	return DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless")
 
-static func spawn_floor_model(wrapper: Node3D, scene_path: String) -> void:
+static func spawn_floor_model(wrapper: Node3D, scene_path: String, allow_headless: bool = false) -> Node3D:
 	if wrapper == null:
-		return
+		return null
 	_clear_children(wrapper)
-	if is_headless():
-		return
+	if is_headless() and not allow_headless:
+		return null
 	var model := _instantiate_scene(wrapper, scene_path)
 	if model == null:
-		return
+		return null
+	_apply_office_pack_fitting(wrapper, model, scene_path)
 	_align_floor_model(wrapper, model)
+	return model
 
-static func spawn_wall_model(wrapper: Node3D, scene_path: String) -> void:
+static func spawn_wall_model(wrapper: Node3D, scene_path: String, allow_headless: bool = false) -> Node3D:
 	if wrapper == null:
-		return
+		return null
 	_clear_children(wrapper)
-	if is_headless():
-		return
+	if is_headless() and not allow_headless:
+		return null
 	var model := _instantiate_scene(wrapper, scene_path)
 	if model == null:
-		return
+		return null
+	_apply_office_pack_fitting(wrapper, model, scene_path)
 	_align_wall_model(wrapper, model)
+	return model
+
+static func _apply_office_pack_fitting(space: Node3D, model_root: Node3D, scene_path: String) -> void:
+	var cfg := _office_pack_cfg(scene_path)
+	if cfg.is_empty():
+		return
+	if cfg.has("rot_y"):
+		model_root.rotation.y += float(cfg.get("rot_y", 0.0))
+	var bounds := _compute_visual_bounds_local(space, model_root)
+	if bounds.size == Vector3.ZERO:
+		return
+	var scale := 1.0
+	if cfg.has("fit_y"):
+		var target_h := float(cfg.get("fit_y", 0.0))
+		if target_h > 0.0 and float(bounds.size.y) > 0.001:
+			scale = target_h / float(bounds.size.y)
+	elif cfg.has("fit_max"):
+		var target_max := float(cfg.get("fit_max", 0.0))
+		if target_max > 0.0:
+			var max_dim := maxf(maxf(float(bounds.size.x), float(bounds.size.y)), float(bounds.size.z))
+			if max_dim > 0.001:
+				scale = target_max / max_dim
+	if absf(scale - 1.0) > 0.0001:
+		model_root.scale = model_root.scale * scale
+
+static func _office_pack_cfg(scene_path: String) -> Dictionary:
+	if scene_path == "res://assets/office_pack_glb/Analog clock.glb":
+		return {"rot_y": PI * 0.5, "fit_max": 0.6}
+	if scene_path == "res://assets/office_pack_glb/Dartboard.glb":
+		return {"rot_y": PI * 0.5, "fit_max": 0.7}
+	if scene_path == "res://assets/office_pack_glb/Whiteboard.glb":
+		return {"rot_y": PI, "fit_y": 1.25}
+	if scene_path == "res://assets/office_pack_glb/Fire Exit Sign-0ywPpb36cyK.glb":
+		return {"rot_y": PI, "fit_max": 0.6}
+	if scene_path == "res://assets/office_pack_glb/Water Cooler.glb":
+		return {"fit_y": 1.6}
+	if scene_path == "res://assets/office_pack_glb/File Cabinet.glb":
+		return {"rot_y": PI * 0.5}
+	return {}
 
 static func _clear_children(n: Node) -> void:
 	if n == null:
@@ -49,7 +90,6 @@ static func _instantiate_scene(parent: Node, scene_path: String) -> Node3D:
 	return inst
 
 static func disable_collisions(root: Node) -> void:
-	# Decorations must not interfere with floor raycasts (mask=1).
 	if root == null:
 		return
 	var stack: Array[Node] = [root]
@@ -154,4 +194,3 @@ static func _aabb_corners(aabb: AABB) -> Array[Vector3]:
 		Vector3(p.x, p.y + s.y, p.z + s.z),
 		Vector3(p.x + s.x, p.y + s.y, p.z + s.z),
 	]
-

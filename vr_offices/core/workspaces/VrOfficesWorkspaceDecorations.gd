@@ -29,25 +29,25 @@ static func decorate_workspace(workspace_node: Node3D, workspace_id: String, rec
 	var hx := sx * 0.5
 	var hz := sz * 0.5
 
-	var seed := _fnv1a32(workspace_id.strip_edges())
-	var corner := int(seed % 4)
+	var decor_seed := _fnv1a32(workspace_id.strip_edges())
+	var corner := int(decor_seed % 4)
 
 	# Floor props (organization: keep under Decor).
 	var cabinet := _ensure_prop_wrapper(decor, "FileCabinet")
-	_place_on_floor(cabinet, Vector3(-hx + 0.75, 0.0, 0.0), seed)
+	_place_on_floor(cabinet, Vector3(-hx + 0.75, 0.0, 0.0), decor_seed)
 	_Props.spawn_floor_model(cabinet, FILE_CABINET_SCENE)
 
 	var plant := _ensure_prop_wrapper(decor, "Houseplant")
 	var plant_corner := corner ^ 3
-	_place_on_floor(plant, _corner_pos(hx, hz, plant_corner, 0.75), seed ^ 0x1234)
+	_place_on_floor(plant, _corner_pos(hx, hz, plant_corner, 0.75), decor_seed ^ 0x1234)
 	_Props.spawn_floor_model(plant, HOUSEPLANT_SCENE)
 
 	var cooler := _ensure_prop_wrapper(decor, "WaterCooler")
-	_place_on_floor(cooler, _corner_pos(hx, hz, corner, 0.85), seed ^ 0xBEEF)
+	_place_on_floor(cooler, _corner_pos(hx, hz, corner, 0.85), decor_seed ^ 0xBEEF)
 	_Props.spawn_floor_model(cooler, WATER_COOLER_SCENE)
 
 	var trash := _ensure_prop_wrapper(decor, "TrashcanSmall")
-	_place_on_floor(trash, _trashcan_pos(hx, hz, seed), seed ^ 0xD00D)
+	_place_on_floor(trash, _trashcan_pos(hx, hz, decor_seed), decor_seed ^ 0xD00D)
 	_Props.spawn_floor_model(trash, TRASHCAN_SMALL_SCENE)
 
 	# Wall props (may be attached to wall mesh nodes for visibility).
@@ -62,11 +62,11 @@ static func decorate_workspace(workspace_node: Node3D, workspace_id: String, rec
 	if wall_pos_x == null or wall_neg_x == null or wall_pos_z == null or wall_neg_z == null:
 		return
 
-	_place_wall_prop(wall_neg_z, "AnalogClock", ANALOG_CLOCK_SCENE, Vector3(0.0, 1.62, 0.0), PI, 0.0, seed)
-	_place_wall_prop(wall_pos_x, "Dartboard", DARTBOARD_SCENE, Vector3(0.0, 1.52, 0.0), PI * 0.5, -0.85, seed ^ 0x1111)
-	_place_wall_prop(wall_pos_z, "Whiteboard", WHITEBOARD_SCENE, Vector3(0.0, 1.38, 0.0), 0.0, 0.35, seed ^ 0x2222)
-	_place_wall_prop(wall_neg_x, "WallArt03", WALL_ART_03_SCENE, Vector3(0.0, 1.55, 0.0), -PI * 0.5, 0.85, seed ^ 0x3333)
-	_place_wall_prop(wall_pos_z, "FireExitSign", FIRE_EXIT_SIGN_SCENE, Vector3(0.0, 0.38, 0.0), 0.0, -0.75, seed ^ 0x4444)
+	_place_wall_prop(wall_neg_z, "AnalogClock", ANALOG_CLOCK_SCENE, Vector3(0.0, 1.62, 0.0), PI, 0.0)
+	_place_wall_prop(wall_pos_x, "Dartboard", DARTBOARD_SCENE, Vector3(0.0, 1.52, 0.0), PI * 0.5, -0.85)
+	_place_wall_prop(wall_neg_x, "Whiteboard", WHITEBOARD_SCENE, Vector3(0.0, 1.38, 0.0), -PI * 0.5, -0.35)
+	_place_wall_prop(wall_neg_x, "WallArt03", WALL_ART_03_SCENE, Vector3(0.0, 1.55, 0.0), -PI * 0.5, 0.85)
+	_place_wall_prop(wall_neg_z, "FireExitSign", FIRE_EXIT_SIGN_SCENE, Vector3(0.0, 0.38, 0.0), PI, -0.75)
 
 static func _ensure_prop_wrapper(parent: Node, name: String) -> Node3D:
 	if parent == null:
@@ -79,7 +79,7 @@ static func _ensure_prop_wrapper(parent: Node, name: String) -> Node3D:
 	parent.add_child(n)
 	return n
 
-static func _place_on_floor(n: Node3D, pos: Vector3, seed: int) -> void:
+static func _place_on_floor(n: Node3D, pos: Vector3, rng_seed: int) -> void:
 	if n == null:
 		return
 	n.position = pos
@@ -89,7 +89,7 @@ static func _place_on_floor(n: Node3D, pos: Vector3, seed: int) -> void:
 		# Face the workspace center.
 		n.rotation = Vector3(0.0, atan2(xz.x, xz.y), 0.0)
 	# Add a tiny deterministic yaw variance to avoid looking perfectly repeated.
-	var jitter := _rand01(seed) * 0.18 - 0.09
+	var jitter := _rand01(rng_seed) * 0.18 - 0.09
 	n.rotation.y += jitter
 
 static func _corner_pos(hx: float, hz: float, corner: int, margin: float) -> Vector3:
@@ -106,9 +106,9 @@ static func _corner_pos(hx: float, hz: float, corner: int, margin: float) -> Vec
 	var z := maxf(0.0, hz - margin) * z_sign
 	return Vector3(x, 0.0, z)
 
-static func _trashcan_pos(hx: float, hz: float, seed: int) -> Vector3:
+static func _trashcan_pos(hx: float, hz: float, rng_seed: int) -> Vector3:
 	# Place near the likely desk area (near center), but biased toward one side.
-	var side := -1.0 if ((seed >> 5) & 1) == 0 else 1.0
+	var side := -1.0 if ((rng_seed >> 5) & 1) == 0 else 1.0
 	var max_x := maxf(0.0, hx - 0.9)
 	var max_z := maxf(0.0, hz - 0.9)
 	var x := clampf(0.75 * side, -max_x, max_x)
@@ -121,8 +121,7 @@ static func _place_wall_prop(
 	scene_path: String,
 	center_world_hint: Vector3,
 	yaw: float,
-	along_offset: float,
-	seed: int
+	along_offset: float
 ) -> void:
 	if wall == null:
 		return
@@ -184,8 +183,8 @@ static func _wall_half_length(wall: MeshInstance3D) -> float:
 	var bm := wall.mesh as BoxMesh
 	if bm == null:
 		return 1.0
-	var len := maxf(float(bm.size.x), float(bm.size.z))
-	return len * 0.5
+	var wall_len := maxf(float(bm.size.x), float(bm.size.z))
+	return wall_len * 0.5
 
 static func _fnv1a32(s: String) -> int:
 	var h: int = 0x811C9DC5
@@ -195,6 +194,6 @@ static func _fnv1a32(s: String) -> int:
 		h = int((h * 0x01000193) & 0xFFFFFFFF)
 	return h
 
-static func _rand01(seed: int) -> float:
-	var v := int(((seed >> 8) ^ seed) & 0xFFFF)
+static func _rand01(rng_seed: int) -> float:
+	var v := int(((rng_seed >> 8) ^ rng_seed) & 0xFFFF)
 	return float(v) / 65535.0

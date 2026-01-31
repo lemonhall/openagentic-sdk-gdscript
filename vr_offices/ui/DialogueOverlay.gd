@@ -276,12 +276,12 @@ func _refresh_session_log_ui() -> void:
 	var bytes := -1
 	if path != "":
 		bytes = _read_file_len(path)
-	session_log_size_label.text = "events.jsonl=%s" % _format_bytes(bytes)
-	if path != "":
-		var abs := ProjectSettings.globalize_path(path)
-		session_log_size_label.tooltip_text = abs
-		if clear_session_log_button != null:
-			clear_session_log_button.tooltip_text = "Truncate: " + abs
+		session_log_size_label.text = "events.jsonl=%s" % _format_bytes(bytes)
+		if path != "":
+			var abs_path := ProjectSettings.globalize_path(path)
+			session_log_size_label.tooltip_text = abs_path
+			if clear_session_log_button != null:
+				clear_session_log_button.tooltip_text = "Truncate: " + abs_path
 	if clear_session_log_button != null:
 		clear_session_log_button.disabled = _busy or path == ""
 

@@ -1,31 +1,32 @@
 <!--
-  v47 — IRC Desks: Desk copy diagnostics includes computed RemoteBash should-be visibility
+  v47 — VR Offices: Workspace Decorations Bugfix (fit + wall alignment)
 -->
 
-# v47 — IRC Desks: Copy Diagnostics Includes RemoteBash Should-Be
+# v47 — VR Offices: Workspace Decorations Bugfix (Fit + Wall Alignment)
 
 ## Vision (this version)
 
-- Make multi-desk tool debugging faster:
-  - Desk diagnostics (the part you Copy) includes a computed line:
-    - `remote_bash_visible_should_be=true/false`
-- Keep expectations explicit:
-  - The computation follows current desk-bound tool visibility rules (v43):
-    - RemoteBash should be visible if and only if the desk is bound to an NPC and the desk has a valid paired `device_code`.
+Fix obvious decoration placement/scale issues in VR Offices workspaces:
+
+- Analog clock: no longer gigantic / floating in the room; properly wall-mounted.
+- Dartboard: properly wall-mounted (not floating ~meters away).
+- File cabinet: front faces the workspace center.
+- Water cooler: scaled to a reasonable height (less “presence”).
+- Whiteboard: visible + scaled to a reasonable size.
 
 ## Milestones
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Desk diagnostics copy | Desks panel copy text includes `remote_bash_visible_should_be=<true/false>` (computed) | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd` | done |
+| M1 | Prop fitting + alignment | Office Pack props are rotated/scaled/aligned consistently; regression test covers fitted bounds | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_workspace_decor_props_fit.gd` | done |
 
 ## Plan Index
 
-- `docs/plan/v47-irc-desks-copy-remote-bash-visible-should-be.md`
+- `docs/plan/v47-vr-offices-workspace-decorations-bugfix.md`
 
 ## Evidence
 
 Green:
 
-- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd` (PASS)
-- Note: `scripts/run_godot_tests.sh --suite vr_offices` currently fails in this workspace due to ongoing v46 work (unrelated to v47).
+- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_workspace_decor_props_fit.gd` (PASS)
+- `scripts/run_godot_tests.sh --suite vr_offices` (PASS)

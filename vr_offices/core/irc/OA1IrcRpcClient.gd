@@ -174,10 +174,10 @@ func _on_link_message_received(msg: RefCounted) -> void:
 
 	_inflight[req_id] = rec
 
-func _new_req_id(len: int = 12) -> String:
+func _new_req_id(count: int = 12) -> String:
 	var alphabet := "abcdefghijklmnopqrstuvwxyz0123456789"
 	var out := ""
-	for _i in range(len):
+	for _i in range(count):
 		out += alphabet[_rng.randi_range(0, alphabet.length() - 1)]
 	return out
 

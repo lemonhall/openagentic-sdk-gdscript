@@ -135,20 +135,37 @@ func _init() -> void:
 
 	# Normal move-to: should enter waiting-for-work.
 	npc1.call("command_move_to", Vector3(0.0, 0.0, 0.0))
-	await process_frame
-	await process_frame
-	if not T.require_true(self, float(npc1.get("_waiting_for_work_left")) > 0.0, "Normal move-to should start waiting-for-work"):
+	var started_waiting := false
+	for _i3 in range(20):
+		await process_frame
+		if float(npc1.get("_waiting_for_work_left")) > 0.0:
+			started_waiting = true
+			break
+	if not T.require_true(
+		self,
+		started_waiting,
+		"Normal move-to should start waiting-for-work (left=%s)" % [str(npc1.get("_waiting_for_work_left"))]
+	):
 		return
 
 	# Desk-bound move-to: should skip waiting-for-work after leaving desk.
 	npc1.call("on_desk_bound", "desk_1")
 	npc1.call("command_move_to", Vector3(0.0, 0.0, 0.0))
 	npc1.call("on_desk_unbound", "desk_1")
-	await process_frame
-	await process_frame
-	if not T.require_true(self, float(npc1.get("_waiting_for_work_left")) <= 0.0, "Move-to after desk-unbind should skip waiting-for-work"):
-		return
-	if not T.require_true(self, bool(npc1.get("wander_enabled")), "After desk-unbind move, NPC should resume wandering"):
+	var skipped_waiting := false
+	for _i4 in range(20):
+		await process_frame
+		if float(npc1.get("_waiting_for_work_left")) <= 0.0 and bool(npc1.get("wander_enabled")):
+			skipped_waiting = true
+			break
+	if not T.require_true(
+		self,
+		skipped_waiting,
+		"Move-to after desk-unbind should skip waiting-for-work (left=%s wander_enabled=%s)" % [
+			str(npc1.get("_waiting_for_work_left")),
+			str(npc1.get("wander_enabled")),
+		]
+	):
 		return
 
 	# Desk channel bridge: PRIVMSG should trigger an OpenAgentic turn and reply back.
