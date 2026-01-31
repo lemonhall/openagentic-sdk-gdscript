@@ -1,6 +1,9 @@
 mod device_code;
+mod exec;
 mod irc;
 mod matchers;
+mod oa1;
+mod rpc;
 
 use std::env;
 use std::fs;
@@ -22,6 +25,11 @@ fn main() -> std::io::Result<()> {
     let poll_seconds: u64 = arg_or_env(&args, "--poll-seconds", "OA_REMOTE_POLL_SECONDS")
         .and_then(|v| v.parse().ok())
         .unwrap_or(30);
+    let enable_bash = has_flag(&args, "--enable-bash")
+        || env_flag_true("OA_REMOTE_ENABLE_BASH");
+    let bash_timeout_sec: u64 = arg_or_env(&args, "--bash-timeout-sec", "OA_REMOTE_BASH_TIMEOUT_SEC")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(30);
     let password = arg_or_env(&args, "--password", "OA_IRC_PASSWORD");
     let override_code = arg_or_env(&args, "--device-code", "OA_REMOTE_DEVICE_CODE");
 
@@ -38,6 +46,7 @@ fn main() -> std::io::Result<()> {
     println!("Instance: {}", instance);
     println!("Data dir: {}", data_dir.display());
     println!("IRC: {}:{} as {}", host, port, nick);
+    println!("Executor: {}", if enable_bash { "bash" } else { "echo" });
 
     let cfg = irc::IrcConfig {
         host,
@@ -49,7 +58,13 @@ fn main() -> std::io::Result<()> {
         poll_interval: Duration::from_secs(poll_seconds.max(5)),
     };
 
-    irc::run_polling_join_loop(cfg, device_code)
+    let exec_cfg = exec::ExecConfig {
+        enable_bash,
+        bash_timeout: Duration::from_secs(bash_timeout_sec.max(1)),
+        max_capture_bytes: 128 * 1024,
+    };
+
+    irc::run_polling_join_loop(cfg, device_code, exec_cfg)
 }
 
 fn print_help() {
@@ -63,6 +78,8 @@ fn print_help() {
     println!("  --user <user>           (env OA_IRC_USER)");
     println!("  --realname <name>       (env OA_IRC_REALNAME)");
     println!("  --poll-seconds <n>      (env OA_REMOTE_POLL_SECONDS, default 30)");
+    println!("  --enable-bash           (env OA_REMOTE_ENABLE_BASH=1)");
+    println!("  --bash-timeout-sec <n>  (env OA_REMOTE_BASH_TIMEOUT_SEC, default 30)");
     println!("  --instance <name>       (env OA_REMOTE_INSTANCE, default 'default')");
     println!("  --device-code <code>    (env OA_REMOTE_DEVICE_CODE)");
     println!("  --data-home <dir>       (env OA_REMOTE_DATA_HOME)");
@@ -84,6 +101,20 @@ fn arg_value(args: &[String], flag: &str) -> Option<String> {
         }
     }
     None
+}
+
+fn has_flag(args: &[String], flag: &str) -> bool {
+    args.iter().any(|a| a == flag)
+}
+
+fn env_flag_true(key: &str) -> bool {
+    match env::var(key) {
+        Ok(v) => {
+            let t = v.trim().to_ascii_lowercase();
+            t == "1" || t == "true" || t == "yes" || t == "on"
+        }
+        Err(_) => false,
+    }
 }
 
 fn resolve_data_dir(data_home: Option<PathBuf>, instance: &str) -> std::io::Result<PathBuf> {
@@ -161,4 +192,3 @@ fn derive_default_nick(device_code: &str) -> String {
     }
     nick
 }
-
