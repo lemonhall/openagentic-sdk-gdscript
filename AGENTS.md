@@ -10,6 +10,7 @@ This repo expects **disciplined, test-backed iteration**:
 - Keep slices small:
   - one slice → one `git commit` → one `git push`
 - If you change behavior, add/adjust tests so the regression can’t ship again.
+- **Never discard local changes without an explicit request.** Do not run `git restore`, `git checkout --`, `git reset --hard`, `git clean`, etc. to “clean up” the working tree unless the user explicitly asks; keep commits clean by staging only intended paths via `git add <paths>`.
 
 ## 1) Architecture Overview
 
