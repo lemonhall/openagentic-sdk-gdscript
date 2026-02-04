@@ -5,6 +5,9 @@ const _PREFIX_V1 := "OAMEDIA1 "
 const _MAX_LINE_LEN := 512
 const _MAX_NAME_LEN := 128
 
+const _FRAG_PREFIX := "OAMEDIA1F "
+const _MAX_FRAG_PARTS := 64
+
 const _KIND_IMAGE := "image"
 const _KIND_AUDIO := "audio"
 const _KIND_VIDEO := "video"
@@ -61,6 +64,105 @@ static func decode_v1(line: String) -> Dictionary:
 	if not bool(chk.get("ok", false)):
 		return chk
 	return {"ok": true, "ref": chk.get("ref", {})}
+
+static func irc_encode_lines(media_line: String, max_len: int) -> Array[String]:
+	var line := media_line.strip_edges()
+	if line == "":
+		return []
+	if max_len < 24:
+		return []
+	if not line.begins_with(_PREFIX_V1):
+		return []
+	if line.length() <= max_len:
+		return [line]
+
+	# Split payload into explicitly-indexed fragments to avoid corrupting base64url/JSON.
+	var payload := line.substr(_PREFIX_V1.length()).strip_edges()
+	if payload == "":
+		return []
+
+	var mid := _message_id_from_line(line)
+	# Conservative overhead using worst-case part counters.
+	var overhead := _FRAG_PREFIX.length() + mid.length() + 1 + "64/64".length() + 1
+	var max_payload := max_len - overhead
+	if max_payload < 8:
+		return []
+
+	var parts: Array[String] = []
+	var cur := payload
+	while cur != "":
+		parts.append(cur.substr(0, max_payload))
+		cur = cur.substr(max_payload)
+		if parts.size() > _MAX_FRAG_PARTS:
+			return []
+
+	var total := parts.size()
+	var out: Array[String] = []
+	for i in range(total):
+		out.append("%s%s %d/%d %s" % [_FRAG_PREFIX, mid, i + 1, total, parts[i]])
+	return out
+
+static func irc_parse_fragment(line: String) -> Dictionary:
+	var s := line.strip_edges()
+	if not s.begins_with(_FRAG_PREFIX):
+		return {"ok": false, "error": "NotAFragment"}
+	var rest := s.substr(_FRAG_PREFIX.length()).strip_edges()
+	# Expect: <mid> <i>/<n> <payload>
+	var sp1 := rest.find(" ")
+	if sp1 <= 0:
+		return {"ok": false, "error": "InvalidFragment"}
+	var mid := rest.substr(0, sp1).strip_edges()
+	rest = rest.substr(sp1 + 1).strip_edges()
+	var sp2 := rest.find(" ")
+	if sp2 <= 0:
+		return {"ok": false, "error": "InvalidFragment"}
+	var idxspec := rest.substr(0, sp2).strip_edges()
+	var payload := rest.substr(sp2 + 1).strip_edges()
+	if mid == "" or payload == "":
+		return {"ok": false, "error": "InvalidFragment"}
+	var slash := idxspec.find("/")
+	if slash <= 0:
+		return {"ok": false, "error": "InvalidFragment"}
+	var a := idxspec.substr(0, slash)
+	var b := idxspec.substr(slash + 1)
+	if not a.is_valid_int() or not b.is_valid_int():
+		return {"ok": false, "error": "InvalidFragment"}
+	var idx := int(a)
+	var total := int(b)
+	if idx < 1 or total < 1 or idx > total or total > _MAX_FRAG_PARTS:
+		return {"ok": false, "error": "InvalidFragment"}
+	return {"ok": true, "message_id": mid, "index": idx, "total": total, "payload_part": payload}
+
+static func irc_reassemble(message_id: String, total: int, parts: Dictionary) -> Dictionary:
+	var mid := message_id.strip_edges()
+	if mid == "" or total < 1 or total > _MAX_FRAG_PARTS:
+		return {"ok": false, "error": "InvalidFragment"}
+	if typeof(parts) != TYPE_DICTIONARY:
+		return {"ok": false, "error": "InvalidFragment"}
+	var payload := ""
+	for i in range(1, total + 1):
+		if not parts.has(i):
+			return {"ok": false, "error": "MissingPart"}
+		payload += String(parts.get(i, ""))
+	var line := _PREFIX_V1 + payload
+	if line.length() > _MAX_LINE_LEN:
+		return {"ok": false, "error": "InvalidLine"}
+	# Validate that the reconstructed line parses as a media ref.
+	var dec := decode_v1(line)
+	if not bool(dec.get("ok", false)):
+		return {"ok": false, "error": "InvalidMediaRef"}
+	return {"ok": true, "line": line}
+
+static func _message_id_from_line(line: String) -> String:
+	# Deterministic and safe: derive from sha256 prefix when possible.
+	var d := decode_v1(line)
+	if bool(d.get("ok", false)) and typeof(d.get("ref", null)) == TYPE_DICTIONARY:
+		var ref: Dictionary = d.get("ref", {})
+		var sha := String(ref.get("sha256", "")).strip_edges().to_lower()
+		if sha.length() >= 12:
+			return sha.substr(0, 12)
+	# Fallback: random suffix.
+	return ("m%08x" % randi()).to_lower()
 
 static func _validate_ref(ref: Dictionary) -> Dictionary:
 	if ref == null:

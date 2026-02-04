@@ -3,6 +3,8 @@ extends Node
 @export_range(0, 16, 1) var max_queue := 4
 @export_range(50, 450, 10) var max_irc_message_len := 360
 
+const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
+
 var _indicator: Node = null
 var _desk: Node = null
 var _link: Node = null
@@ -10,6 +12,9 @@ var _link: Node = null
 var _busy := false
 var _queue: Array[String] = []
 var _reply_buf := ""
+
+# Fragment reassembly: mid -> {total:int, parts:Dictionary<int,String>}
+var _media_frags: Dictionary = {}
 
 func _ready() -> void:
 	_indicator = get_parent() as Node
@@ -98,7 +103,43 @@ func _on_irc_message_received(msg: RefCounted) -> void:
 	if text.begins_with("OA1 "):
 		return
 
+	if _try_absorb_media_fragment(text):
+		return
+
 	_enqueue(text)
+
+func _try_absorb_media_fragment(text: String) -> bool:
+	if text.begins_with("OAMEDIA1F "):
+		if _media_frags.size() > 32:
+			# Safety: avoid unbounded growth if fragments are spammed.
+			_media_frags.clear()
+		var p: Dictionary = _OAMediaRef.irc_parse_fragment(text)
+		if not bool(p.get("ok", false)):
+			return false
+		var mid := String(p.get("message_id", "")).strip_edges()
+		var idx := int(p.get("index", 0))
+		var total := int(p.get("total", 0))
+		var payload := String(p.get("payload_part", ""))
+		if mid == "" or idx < 1 or total < 1 or payload == "":
+			return true
+		var st0: Variant = _media_frags.get(mid, null)
+		var st: Dictionary = st0 as Dictionary if typeof(st0) == TYPE_DICTIONARY else {"total": total, "parts": {}}
+		if int(st.get("total", total)) != total:
+			_media_frags.erase(mid)
+			st = {"total": total, "parts": {}}
+		var parts0: Variant = st.get("parts", {})
+		var parts: Dictionary = parts0 as Dictionary if typeof(parts0) == TYPE_DICTIONARY else {}
+		parts[idx] = payload
+		st["parts"] = parts
+		st["total"] = total
+		_media_frags[mid] = st
+		if parts.size() >= total:
+			var rr: Dictionary = _OAMediaRef.irc_reassemble(mid, total, parts)
+			_media_frags.erase(mid)
+			if bool(rr.get("ok", false)):
+				_enqueue(String(rr.get("line", "")))
+		return true
+	return false
 
 func _enqueue(text: String) -> void:
 	if _busy:
@@ -156,6 +197,17 @@ func _send_irc_text(text: String) -> void:
 	var max_len := max_irc_message_len
 	if max_len < 50:
 		max_len = 50
+
+	# Never chunk-split OAMEDIA1 base64 payload without explicit fragment headers.
+	if msg.begins_with("OAMEDIA1 "):
+		var lines: Array[String] = _OAMediaRef.irc_encode_lines(msg, max_len)
+		if lines.size() == 0:
+			_link.call("send_channel_message", "[OAMEDIA] message too long to send safely")
+			return
+		for l in lines:
+			_link.call("send_channel_message", l)
+		return
+
 	while msg.length() > max_len:
 		_link.call("send_channel_message", msg.substr(0, max_len))
 		msg = msg.substr(max_len)
