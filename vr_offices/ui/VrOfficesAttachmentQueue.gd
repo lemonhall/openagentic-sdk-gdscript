@@ -3,6 +3,8 @@ class_name VrOfficesAttachmentQueue
 
 signal changed
 
+const MAX_NAME_LEN := 128
+
 const STATE_PENDING := "pending"
 const STATE_UPLOADING := "uploading"
 const STATE_SENT := "sent"
@@ -18,6 +20,8 @@ func enqueue(path: String, meta: Dictionary = {}) -> int:
 		return 0
 
 	var name := _basename(p)
+	if name.length() > MAX_NAME_LEN:
+		name = name.substr(0, MAX_NAME_LEN)
 	var item := {
 		"id": _next_id,
 		"path": p,
@@ -102,4 +106,3 @@ static func _basename(path: String) -> String:
 	var p := path
 	p = p.replace("\\", "/")
 	return p.get_file()
-

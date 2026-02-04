@@ -13,6 +13,8 @@ const LIMITS: Dictionary = {
 	"video/mp4": 64 * 1024 * 1024,
 }
 
+const MAX_NAME_LEN := 128
+
 static func validate_path_for_upload(path: String) -> Dictionary:
 	var p := path.strip_edges()
 	if p == "":
@@ -38,7 +40,10 @@ static func validate_path_for_upload(path: String) -> Dictionary:
 	if n > limit:
 		return {"ok": false, "error": "TooLarge", "bytes": n, "limit": limit, "mime": mime}
 
-	return {"ok": true, "mime": mime, "bytes": n, "name": _basename(p)}
+	var name := _basename(p)
+	if name.length() > MAX_NAME_LEN:
+		name = name.substr(0, MAX_NAME_LEN)
+	return {"ok": true, "mime": mime, "bytes": n, "name": name}
 
 static func upload_file(
 	path: String,
@@ -149,4 +154,3 @@ static func sha256_hex(b: PackedByteArray) -> String:
 static func _basename(path: String) -> String:
 	var p := path.replace("\\", "/")
 	return p.get_file()
-

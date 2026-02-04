@@ -24,6 +24,18 @@ func _init() -> void:
 	if not T.require_eq(self, String(it3.get("name", "")), "c.jpg", "basename should not leak path"):
 		return
 
+	# Long display names are truncated to keep chat/logs safe.
+	var long_name := ""
+	for _i in range(200):
+		long_name += "a"
+	var id4 := int(q.call("enqueue", "/tmp/%s.png" % long_name, {"bytes": 1, "mime": "image/png"}))
+	if not T.require_true(self, id4 > 0, "expected id4"):
+		return
+	var it4: Dictionary = q.call("get_item", id4)
+	var nm4 := String(it4.get("name", ""))
+	if not T.require_true(self, nm4.length() <= 128, "expected name <= 128 chars"):
+		return
+
 	if not T.require_eq(self, String(it1.get("state", "")), "pending"):
 		return
 
