@@ -16,13 +16,13 @@
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M0 | Docs | PRD exists with Req IDs; v50 plan links Req IDs; scope/phasing is explicit | `git diff` | todo |
-| M1 | Protocol | `OAMEDIA1` format + parser with strict validation (allowlist + ≤512 chars); unit tests cover valid/invalid cases | `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_media_ref_parser.gd` | todo |
-| M2 | Service (skeleton) | Separate media service directory (not `proxy/`); upload/download require bearer; MIME sniff + allowlist | `node media_service/server.mjs --help` | todo |
-| M3 | Dialogue (image) | DialogueOverlay renders image attachments with local cache + integrity checks; regression test | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image.gd` | todo |
-| M4 | Agent tools | `MediaUpload` + `MediaFetch` tools enforce workspace sandbox and do not expose host paths | `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_tool_media_upload_fetch.gd` | todo |
-| M5 | IRC transport | IRC payload rules + bridge handling for `OAMEDIA1` (no OA1 conflict; fit under ~360 chars or fragment/reassemble); tests for encode/decode | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_irc_media_ref_transport.gd` | todo |
-| M6 | E2E harness | Local IRC test server + sender tool to validate both directions without manual UI inspection | `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` | todo |
+| M0 | Docs | PRD exists with Req IDs; v50 plan links Req IDs; scope/phasing is explicit | `git diff` | done |
+| M1 | Protocol | `OAMEDIA1` format + parser with strict validation (allowlist + ≤512 chars); unit tests cover valid/invalid cases | `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_media_ref_parser.gd` | done |
+| M2 | Service (skeleton) | Separate media service directory (not `proxy/`); upload/download require bearer; MIME sniff + allowlist | `node media_service/server.mjs --help` | done |
+| M3 | Dialogue (image) | DialogueOverlay renders image attachments with local cache + integrity checks; regression test | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image.gd` | done |
+| M4 | Agent tools | `MediaUpload` + `MediaFetch` tools enforce workspace sandbox and do not expose host paths | `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_tool_media_upload_fetch.gd` | done |
+| M5 | IRC transport | IRC payload rules + bridge handling for `OAMEDIA1` (no OA1 conflict; fit under ~360 chars or fragment/reassemble); tests for encode/decode | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_irc_media_ref_transport.gd` | done |
+| M6 | E2E harness | Local IRC test server + sender tool to validate both directions without manual UI inspection | `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` | done |
 
 ## Plan Index
 
@@ -34,7 +34,14 @@
 
 ## Evidence
 
-TBD (this version not executed yet).
+Green:
+
+- `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_media_ref_parser.gd` (PASS)
+- `node media_service/server.mjs --help` (OK)
+- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image.gd` (PASS)
+- `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_tool_media_upload_fetch.gd` (PASS)
+- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_irc_media_ref_transport.gd` (PASS)
+- `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` (PASS)
 
 ## Gaps (next versions)
 
