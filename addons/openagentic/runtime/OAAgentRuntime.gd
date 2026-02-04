@@ -4,6 +4,7 @@ class_name OAAgentRuntime
 const _OAReplay := preload("res://addons/openagentic/runtime/OAReplay.gd")
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _OASkills := preload("res://addons/openagentic/core/OASkills.gd")
+const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
 
 var _store
 var _tool_runner
@@ -69,6 +70,151 @@ func _tool_schemas(ctx: Dictionary) -> Array:
 			schema["description"] = t.description
 		out.append(schema)
 	return out
+
+func _mime_from_path(p: String) -> String:
+	var s := p.strip_edges().to_lower()
+	if s.ends_with(".png"):
+		return "image/png"
+	if s.ends_with(".jpg") or s.ends_with(".jpeg"):
+		return "image/jpeg"
+	if s.ends_with(".webp"):
+		return "image/webp"
+	if s.ends_with(".gif"):
+		return "image/gif"
+	return ""
+
+func _find_recent_mediafetch_between_last_two_user_messages(events: Array) -> Dictionary:
+	# Option A: after a successful MediaFetch, inject that image into the *next* user message.
+	# We detect the most recent successful MediaFetch that happened between the previous
+	# and current user.message events.
+	var last_user_idx := -1
+	for i in range(events.size() - 1, -1, -1):
+		if typeof(events[i]) == TYPE_DICTIONARY and String((events[i] as Dictionary).get("type", "")) == "user.message":
+			last_user_idx = i
+			break
+	if last_user_idx < 0:
+		return {"ok": false, "error": "NoUserMessage"}
+	var prev_user_idx := -1
+	for j in range(last_user_idx - 1, -1, -1):
+		if typeof(events[j]) == TYPE_DICTIONARY and String((events[j] as Dictionary).get("type", "")) == "user.message":
+			prev_user_idx = j
+			break
+	if prev_user_idx < 0:
+		return {"ok": false, "error": "NoPrevUserMessage"}
+
+	var start := prev_user_idx + 1
+	var end := last_user_idx
+	var uses: Dictionary = {}
+	for k in range(start, end):
+		var e0: Variant = events[k]
+		if typeof(e0) != TYPE_DICTIONARY:
+			continue
+		var e: Dictionary = e0 as Dictionary
+		if String(e.get("type", "")) != "tool.use":
+			continue
+		var name := String(e.get("name", "")).strip_edges()
+		if name != "MediaFetch":
+			continue
+		var call_id := String(e.get("tool_use_id", "")).strip_edges()
+		if call_id == "":
+			continue
+		uses[call_id] = e
+
+	var best: Dictionary = {}
+	for k2 in range(start, end):
+		var e1: Variant = events[k2]
+		if typeof(e1) != TYPE_DICTIONARY:
+			continue
+		var e2: Dictionary = e1 as Dictionary
+		if String(e2.get("type", "")) != "tool.result":
+			continue
+		var call_id2 := String(e2.get("tool_use_id", "")).strip_edges()
+		if call_id2 == "" or not uses.has(call_id2):
+			continue
+		var out0: Variant = e2.get("output", null)
+		if typeof(out0) != TYPE_DICTIONARY:
+			continue
+		var out: Dictionary = out0 as Dictionary
+		if not bool(out.get("ok", false)):
+			continue
+		var file_path := String(out.get("file_path", out.get("filePath", ""))).strip_edges()
+		if file_path == "":
+			continue
+
+		var mime := ""
+		var use: Dictionary = uses.get(call_id2, {})
+		var inp0: Variant = use.get("input", {})
+		var inp: Dictionary = inp0 as Dictionary if typeof(inp0) == TYPE_DICTIONARY else {}
+		var media_ref := String(inp.get("media_ref", inp.get("mediaRef", ""))).strip_edges()
+		if media_ref != "":
+			var dec: Dictionary = _OAMediaRef.decode_v1(media_ref)
+			if bool(dec.get("ok", false)) and typeof(dec.get("ref", null)) == TYPE_DICTIONARY:
+				var ref: Dictionary = dec.get("ref", {})
+				mime = String(ref.get("mime", "")).strip_edges().to_lower()
+		if mime == "":
+			mime = _mime_from_path(file_path)
+		if mime == "":
+			continue
+
+		best = {"ok": true, "file_path": file_path, "mime": mime, "call_id": call_id2}
+	return best if bool(best.get("ok", false)) else {"ok": false, "error": "NoSuccessfulMediaFetch"}
+
+func _inject_recent_media_image_into_last_user_message(input_items: Array, events: Array, ctx: Dictionary) -> Array:
+	var pick: Dictionary = _find_recent_mediafetch_between_last_two_user_messages(events)
+	if not bool(pick.get("ok", false)):
+		return input_items
+	var workspace_root := String(ctx.get("workspace_root", "")).rstrip("/")
+	if workspace_root.strip_edges() == "":
+		return input_items
+
+	var rel := String(pick.get("file_path", "")).strip_edges()
+	if rel == "" or rel.begins_with("/") or rel.find("..") != -1 or rel.find(":") != -1:
+		return input_items
+	var p := "%s/%s" % [workspace_root, rel]
+	var f := FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return input_items
+	var n := f.get_length()
+	if n <= 0:
+		f.close()
+		return input_items
+	# Keep a conservative upper bound to avoid blowing up request size.
+	if n > 12 * 1024 * 1024:
+		f.close()
+		return input_items
+	var bytes := f.get_buffer(n)
+	f.close()
+	if bytes.is_empty():
+		return input_items
+
+	var mime := String(pick.get("mime", "")).strip_edges().to_lower()
+	if mime == "":
+		return input_items
+	var b64 := String(Marshalls.raw_to_base64(bytes))
+	if b64.strip_edges() == "":
+		return input_items
+	var data_url := "data:%s;base64,%s" % [mime, b64]
+
+	for i3 in range(input_items.size() - 1, -1, -1):
+		if typeof(input_items[i3]) != TYPE_DICTIONARY:
+			continue
+		var it3: Dictionary = input_items[i3] as Dictionary
+		if String(it3.get("role", "")) != "user":
+			continue
+		var c0: Variant = it3.get("content", "")
+		var parts: Array = []
+		if typeof(c0) == TYPE_STRING:
+			var txt := String(c0)
+			parts.append({"type": "input_text", "text": txt})
+		elif typeof(c0) == TYPE_ARRAY:
+			parts = (c0 as Array).duplicate(true)
+		else:
+			parts.append({"type": "input_text", "text": ""})
+		parts.append({"type": "input_image", "image_url": data_url})
+		it3["content"] = parts
+		input_items[i3] = it3
+		break
+	return input_items
 
 func _provider_stream(req: Dictionary, on_model_event: Callable) -> void:
 	# Support either an object with .stream(req, cb) or a Dictionary with key "stream" as Callable.
@@ -170,14 +316,31 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 		steps += 1
 		var events: Array = _store.read_events(npc_id)
 		var input_items: Array = _OAReplay.rebuild_responses_input(events)
+		input_items = _inject_recent_media_image_into_last_user_message(input_items, events, ctx)
 		if override_user_text.strip_edges() != "":
 			for i in range(input_items.size() - 1, -1, -1):
 				if typeof(input_items[i]) != TYPE_DICTIONARY:
 					continue
 				var it: Dictionary = input_items[i] as Dictionary
-				if String(it.get("role", "")) == "user" and typeof(it.get("content", null)) == TYPE_STRING:
+				if String(it.get("role", "")) != "user":
+					continue
+				var c0: Variant = it.get("content", null)
+				if typeof(c0) == TYPE_STRING:
 					it["content"] = override_user_text
 					input_items[i] = it
+					break
+				if typeof(c0) == TYPE_ARRAY:
+					var parts: Array = (c0 as Array).duplicate(true)
+					for j in range(parts.size()):
+						if typeof(parts[j]) != TYPE_DICTIONARY:
+							continue
+						var p: Dictionary = parts[j] as Dictionary
+						if String(p.get("type", "")) == "input_text":
+							p["text"] = override_user_text
+							parts[j] = p
+							it["content"] = parts
+							input_items[i] = it
+							break
 					break
 
 		# Optional system preamble (used when save_id is passed in).

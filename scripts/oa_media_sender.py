@@ -6,6 +6,7 @@ import json
 import os
 import socket
 import sys
+import urllib.error
 import urllib.request
 
 
@@ -65,9 +66,33 @@ def http_post_upload(base_url: str, token: str, file_path: str, name: str | None
     if caption:
         headers["x-oa-caption"] = caption[:128]
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = resp.read()
-    j = json.loads(data.decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+    except urllib.error.HTTPError as e:
+        raw = b""
+        try:
+            raw = e.read() or b""
+        except Exception:
+            pass
+
+        msg = f"upload failed: HTTP {getattr(e, 'code', '?')} {getattr(e, 'reason', '')}".strip()
+        if raw:
+            try:
+                j = json.loads(raw.decode("utf-8", errors="replace"))
+                err = (j.get("error") or "").strip()
+                detail = (j.get("message") or "").strip()
+                if err or detail:
+                    msg = f"{msg}: {err} {detail}".strip()
+            except Exception:
+                snippet = raw[:4096].decode("utf-8", errors="replace").strip()
+                if snippet:
+                    msg = f"{msg}: {snippet}".strip()
+        raise RuntimeError(msg) from None
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"upload failed: {e}") from None
+
+    j = json.loads(data.decode("utf-8", errors="replace"))
     if not j.get("ok", False):
         raise RuntimeError(f"upload failed: {j.get('error')} {j.get('message')}")
     return j
@@ -157,4 +182,3 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except KeyboardInterrupt:
         raise SystemExit(130)
-

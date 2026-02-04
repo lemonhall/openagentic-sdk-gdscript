@@ -523,6 +523,30 @@ static func tools() -> Array:
 		var tok := String(ctx.get("media_bearer_token", OS.get_environment("OPENAGENTIC_MEDIA_BEARER_TOKEN"))).strip_edges()
 		if base.ends_with("/"):
 			base = base.rstrip("/")
+		# VR Offices stores media config per save slot under:
+		#   user://openagentic/saves/<save_id>/vr_offices/media_config.json
+		# To keep the LLM/tool path working without requiring environment variables,
+		# fall back to reading that file when present.
+		if base == "" or tok == "":
+			var sid := String(ctx.get("save_id", "")).strip_edges()
+			if sid != "":
+				var p := "%s/vr_offices/media_config.json" % _OAPaths.save_root(sid)
+				if FileAccess.file_exists(p):
+					var f := FileAccess.open(p, FileAccess.READ)
+					if f != null:
+						var txt := f.get_as_text()
+						f.close()
+						var obj0: Variant = JSON.parse_string(txt)
+						if typeof(obj0) == TYPE_DICTIONARY:
+							var obj: Dictionary = obj0 as Dictionary
+							var base2 := String(obj.get("base_url", obj.get("baseUrl", ""))).strip_edges()
+							var tok2 := String(obj.get("bearer_token", obj.get("bearerToken", ""))).strip_edges()
+							if base2.ends_with("/"):
+								base2 = base2.rstrip("/")
+							if base == "" and base2 != "":
+								base = base2
+							if tok == "" and tok2 != "":
+								tok = tok2
 		return {"ok": base != "" and tok != "", "base_url": base, "token": tok}
 
 	var media_upload_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:

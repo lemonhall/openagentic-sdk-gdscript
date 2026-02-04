@@ -41,8 +41,6 @@ def main() -> int:
     irc_channel_var = tk.StringVar(value="#test")
     irc_nick_var = tk.StringVar(value="oa_sender")
 
-    out_text = tk.Text(root, height=6, width=80)
-
     def pick_file() -> None:
         p = filedialog.askopenfilename()
         if p:
@@ -77,6 +75,8 @@ def main() -> int:
 
     frm = tk.Frame(root)
     frm.pack(fill="both", expand=True, padx=8, pady=8)
+
+    out_text = tk.Text(frm, height=6, width=80)
 
     row = 0
     tk.Label(frm, text="File").grid(row=row, column=0, sticky="w")
@@ -122,4 +122,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

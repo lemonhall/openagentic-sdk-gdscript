@@ -111,6 +111,14 @@ export OPENAGENTIC_MEDIA_STORE_DIR="/tmp/oa-media"
 node media_service/server.mjs --host 127.0.0.1 --port 8788
 ```
 
+Windows PowerShell（如果你是在 Windows 上直接跑 `node`，不要用 `/tmp/...` 这种路径）：
+
+```powershell
+$env:OPENAGENTIC_MEDIA_BEARER_TOKEN = "dev-token"
+$env:OPENAGENTIC_MEDIA_STORE_DIR = "$PWD\\.tmp\\oa-media"
+node media_service\\server.mjs --host 127.0.0.1 --port 8788
+```
+
 健康检查（可选）：
 
 ```bash
@@ -149,6 +157,20 @@ python3 scripts/oa_media_sender.py \
   --irc-port 6667 \
   --irc-channel "#test" \
   --irc-nick "oa_sender"
+```
+
+Windows PowerShell：
+
+```powershell
+$env:OPENAGENTIC_MEDIA_BASE_URL = "http://127.0.0.1:8788"
+$env:OPENAGENTIC_MEDIA_BEARER_TOKEN = "dev-token"
+
+python scripts\\oa_media_sender.py `
+  --file C:\\path\\to\\a.png `
+  --irc-host <your-irc-host> `
+  --irc-port 6667 `
+  --irc-channel \"#test\" `
+  --irc-nick \"oa_sender\"
 ```
 
 你会在终端看到一行 `OAMEDIA1 ...`，脚本会自动：
