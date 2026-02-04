@@ -209,6 +209,14 @@ python3 scripts/oa_media_sender.py --file /path/to/a.png --print-only
 
 也就是说，只要你把对应文件放到这个路径，UI 就能显示（并会校验 `bytes/sha256`）。
 
+补充：缓存文件扩展名与 mime 的对应关系（便于你在文件系统里快速定位）：
+
+- `image/png` → `.png`
+- `image/jpeg` → `.jpg`
+- `audio/mpeg` → `.mp3`
+- `audio/wav` → `.wav`
+- `video/mp4` → `.mp4`
+
 ## 手工工具（可选）：Tk 小窗口
 
 如果你更喜欢点选文件：
