@@ -9,6 +9,7 @@ const _MediaCache := preload("res://vr_offices/ui/VrOfficesMediaCache.gd")
 const _AttachmentQueue := preload("res://vr_offices/ui/VrOfficesAttachmentQueue.gd")
 const _MediaUploader := preload("res://vr_offices/ui/VrOfficesMediaUploader.gd")
 const _MediaConfig := preload("res://vr_offices/core/media/VrOfficesMediaConfig.gd")
+const _MediaDownloader := preload("res://vr_offices/core/media/VrOfficesMediaDownloader.gd")
 
 @onready var title_label: Label = %TitleLabel
 @onready var session_log_size_label: Label = %SessionLogSizeLabel
@@ -508,25 +509,23 @@ func _add_media_message(is_user: bool, ref: Dictionary) -> void:
 	var kind := String(ref.get("kind", "")).strip_edges()
 	var mime := String(ref.get("mime", "")).strip_edges()
 	if kind == "image" and (mime == "image/png" or mime == "image/jpeg"):
-		var tr := TextureRect.new()
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
-		tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		var sid := _resolve_save_id()
 		var tex := _MediaCache.load_cached_image_texture(sid, ref)
 		if tex != null:
+			var tr := TextureRect.new()
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tr.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
+			tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			tr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 			tr.texture = tex
+			bubble.add_child(tr)
 		else:
-			# Fallback placeholder (download will be added in later slices/e2e harness).
 			var lbl := Label.new()
-			lbl.text = "Image unavailable"
+			lbl.text = "Downloading image…"
 			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			bubble.add_child(lbl)
-			_finish_media_row(is_user, row, spacer, bubble)
-			return
-		bubble.add_child(tr)
+			call_deferred("_download_and_render_image", bubble, lbl, ref, sid, bubble_width)
 	else:
 		var lbl2 := Label.new()
 		if kind == "audio":
@@ -539,6 +538,46 @@ func _add_media_message(is_user: bool, ref: Dictionary) -> void:
 		bubble.add_child(lbl2)
 
 	_finish_media_row(is_user, row, spacer, bubble)
+
+func _download_and_render_image(bubble: PanelContainer, lbl: Label, ref: Dictionary, save_id: String, bubble_width: float) -> void:
+	if bubble == null or lbl == null:
+		return
+	if not is_instance_valid(bubble) or not is_instance_valid(lbl):
+		return
+	var cfg: Dictionary = _effective_media_cfg()
+	var base_url := String(cfg.get("base_url", "")).strip_edges()
+	var bearer := String(cfg.get("bearer_token", "")).strip_edges()
+	if base_url == "" or bearer == "":
+		lbl.text = "Image unavailable (MissingMediaConfig)"
+		return
+
+	var rr: Dictionary = await _MediaDownloader.download_to_cache(save_id, ref, base_url, bearer, _media_transport_override)
+	if not is_instance_valid(lbl):
+		return
+	if not bool(rr.get("ok", false)):
+		lbl.text = "Image unavailable (%s)" % String(rr.get("error", "DownloadFailed"))
+		return
+
+	var tex := _MediaCache.load_cached_image_texture(save_id, ref)
+	if tex == null:
+		lbl.text = "Image unavailable (CacheInvalid)"
+		return
+
+	if not is_instance_valid(bubble):
+		return
+	for c0 in bubble.get_children():
+		var n := c0 as Node
+		if n != null:
+			n.queue_free()
+
+	var tr := TextureRect.new()
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
+	tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	tr.texture = tex
+	bubble.add_child(tr)
 
 func _finish_media_row(is_user: bool, row: HBoxContainer, spacer: Control, bubble: PanelContainer) -> void:
 	if is_user:
