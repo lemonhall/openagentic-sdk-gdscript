@@ -73,6 +73,24 @@ func _init() -> void:
 		return
 	if not T.require_true(self, decor.get_node_or_null("WaterCooler") != null, "Expected Decor/WaterCooler"):
 		return
+	var vending := decor.get_node_or_null("VendingMachine") as Node3D
+	if not T.require_true(self, vending != null, "Expected Decor/VendingMachine"):
+		return
+	# Basic invariants: placed near a wall and faces inward.
+	var pos := vending.position
+	var hx := 1.5 # create_workspace rect size.x / 2
+	var hz := 2.0 # create_workspace rect size.y / 2
+	if not T.require_true(self, absf(absf(pos.x) - hx) <= 0.7, "Expected VendingMachine near an X wall"):
+		return
+	if not T.require_true(self, absf(pos.z) <= hz - 0.2 + 1e-4, "Expected VendingMachine within Z bounds"):
+		return
+	var to_center := Vector3(-pos.x, 0.0, -pos.z)
+	if not T.require_true(self, to_center.length() > 0.01, "Expected VendingMachine not at workspace center"):
+		return
+	var forward := -vending.global_transform.basis.z
+	if not T.require_true(self, forward.dot(to_center.normalized()) > 0.6, "Expected VendingMachine facing workspace center"):
+		return
+
 	# Wall props may be attached under wall mesh nodes for visibility.
 	if not T.require_true(self, _find_descendant_named(child, "AnalogClock") != null, "Expected AnalogClock node"):
 		return

@@ -1,67 +1,64 @@
 extends RefCounted
-
 const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
-
 const ANALOG_CLOCK_SCENE := "res://assets/office_pack_glb/Analog clock.glb"
 const DARTBOARD_SCENE := "res://assets/office_pack_glb/Dartboard.glb"
 const FIRE_EXIT_SIGN_SCENE := "res://assets/office_pack_glb/Fire Exit Sign-0ywPpb36cyK.glb"
 const FILE_CABINET_SCENE := "res://assets/office_pack_glb/File Cabinet.glb"
 const HOUSEPLANT_SCENE := "res://assets/office_pack_glb/Houseplant-bfLOqIV5uP.glb"
 const TRASHCAN_SMALL_SCENE := "res://assets/office_pack_glb/Trashcan Small.glb"
+const VENDING_MACHINE_SCENE := "res://assets/office_pack_glb/Vending Machine.glb"
 const WALL_ART_03_SCENE := "res://assets/office_pack_glb/Wall Art 03.glb"
 const WATER_COOLER_SCENE := "res://assets/office_pack_glb/Water Cooler.glb"
 const WHITEBOARD_SCENE := "res://assets/office_pack_glb/Whiteboard.glb"
-
 const _WALL_EPS := 0.02
-
+const _VENDING_WALL_INSET := 0.55
+const _VENDING_ALONG_MARGIN := 0.9
 static func decorate_workspace(workspace_node: Node3D, workspace_id: String, rect_xz: Rect2) -> void:
 	if workspace_node == null:
 		return
-
 	var decor := workspace_node.get_node_or_null("Decor") as Node3D
 	if decor == null:
 		decor = Node3D.new()
 		decor.name = "Decor"
 		workspace_node.add_child(decor)
-
 	var sx := maxf(0.001, float(rect_xz.size.x))
 	var sz := maxf(0.001, float(rect_xz.size.y))
 	var hx := sx * 0.5
 	var hz := sz * 0.5
-
 	var decor_seed := _fnv1a32(workspace_id.strip_edges())
 	var corner := int(decor_seed % 4)
-
 	# Floor props (organization: keep under Decor).
 	var cabinet := _ensure_prop_wrapper(decor, "FileCabinet")
 	_place_on_floor(cabinet, Vector3(-hx + 0.75, 0.0, 0.0), decor_seed)
 	_Props.spawn_floor_model(cabinet, FILE_CABINET_SCENE)
-
 	var plant := _ensure_prop_wrapper(decor, "Houseplant")
 	var plant_corner := corner ^ 3
 	_place_on_floor(plant, _corner_pos(hx, hz, plant_corner, 0.75), decor_seed ^ 0x1234)
 	_Props.spawn_floor_model(plant, HOUSEPLANT_SCENE)
-
 	var cooler := _ensure_prop_wrapper(decor, "WaterCooler")
 	_place_on_floor(cooler, _corner_pos(hx, hz, corner, 0.85), decor_seed ^ 0xBEEF)
 	_Props.spawn_floor_model(cooler, WATER_COOLER_SCENE)
-
+	var vending := _ensure_prop_wrapper(decor, "VendingMachine")
+	var along_limit := maxf(0.0, hz - _VENDING_ALONG_MARGIN)
+	var along := 0.0
+	if along_limit > 0.001:
+		along = (_rand01(decor_seed ^ 0xC0FFEE) * 2.0 - 1.0) * minf(0.75, along_limit)
+	var wall_x := maxf(0.0, hx - _VENDING_WALL_INSET)
+	_place_on_floor(vending, Vector3(wall_x, 0.0, along), decor_seed ^ 0xC0FFEE)
+	_Props.spawn_floor_model(vending, VENDING_MACHINE_SCENE)
 	var trash := _ensure_prop_wrapper(decor, "TrashcanSmall")
 	_place_on_floor(trash, _trashcan_pos(hx, hz, decor_seed), decor_seed ^ 0xD00D)
 	_Props.spawn_floor_model(trash, TRASHCAN_SMALL_SCENE)
-
 	# Wall props (may be attached to wall mesh nodes for visibility).
 	var walls := workspace_node.get_node_or_null("Walls") as Node3D
 	if walls == null:
 		return
-
 	var wall_pos_x := walls.get_node_or_null("WallPosX") as MeshInstance3D
 	var wall_neg_x := walls.get_node_or_null("WallNegX") as MeshInstance3D
 	var wall_pos_z := walls.get_node_or_null("WallPosZ") as MeshInstance3D
 	var wall_neg_z := walls.get_node_or_null("WallNegZ") as MeshInstance3D
 	if wall_pos_x == null or wall_neg_x == null or wall_pos_z == null or wall_neg_z == null:
 		return
-
 	_place_wall_prop(wall_neg_z, "AnalogClock", ANALOG_CLOCK_SCENE, Vector3(0.0, 1.62, 0.0), PI, 0.0)
 	_place_wall_prop(wall_pos_x, "Dartboard", DARTBOARD_SCENE, Vector3(0.0, 1.52, 0.0), PI * 0.5, -0.85)
 	_place_wall_prop(wall_neg_x, "Whiteboard", WHITEBOARD_SCENE, Vector3(0.0, 1.38, 0.0), -PI * 0.5, -0.35)

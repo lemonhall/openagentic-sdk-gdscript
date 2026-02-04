@@ -60,6 +60,8 @@ static func _office_pack_cfg(scene_path: String) -> Dictionary:
 		return {"rot_y": PI, "fit_y": 1.25}
 	if scene_path == "res://assets/office_pack_glb/Fire Exit Sign-0ywPpb36cyK.glb":
 		return {"rot_y": PI, "fit_max": 0.6}
+	if scene_path == "res://assets/office_pack_glb/Vending Machine.glb":
+		return {"rot_y": PI, "fit_y": 1.85}
 	if scene_path == "res://assets/office_pack_glb/Water Cooler.glb":
 		return {"fit_y": 1.6}
 	if scene_path == "res://assets/office_pack_glb/File Cabinet.glb":
