@@ -22,6 +22,7 @@
 | M3 | Dialogue (image) | DialogueOverlay renders image attachments with local cache + integrity checks; regression test | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image.gd` | todo |
 | M4 | Agent tools | `MediaUpload` + `MediaFetch` tools enforce workspace sandbox and do not expose host paths | `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_tool_media_upload_fetch.gd` | todo |
 | M5 | IRC transport | IRC payload rules + bridge handling for `OAMEDIA1` (no OA1 conflict; fit under ~360 chars or fragment/reassemble); tests for encode/decode | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_irc_media_ref_transport.gd` | todo |
+| M6 | E2E harness | Local IRC test server + sender tool to validate both directions without manual UI inspection | `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` | todo |
 
 ## Plan Index
 

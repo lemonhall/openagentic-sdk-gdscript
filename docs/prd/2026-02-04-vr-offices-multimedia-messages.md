@@ -120,6 +120,43 @@
   - 视频（MP4）：≤ **64 MiB**
 - 文件名/标题最大长度：**128**（超出截断或拒绝；避免日志污染）
 
+## Verification Strategy（E2E 与自动化）
+
+目标：在不依赖人工肉眼看 UI 的情况下，仍然能对“多媒体传输链路”做可重复验证；必要时提供一个“人类发送端”工具用于手工 e2e。
+
+### E2E Flow A — Player → (IRC) → Remote Agent（可自动化）
+
+链路：游戏内选择文件 → 上传媒体服务 → 发送 `OAMEDIA1` 到 IRC → 接收侧解析 → 下载到本地/工作区 → 将 **workspace 相对路径** 交给对面 agent。
+
+自动化验证思路：
+
+- 在测试中启动一个最小 IRC server（本地 TCP）以避免依赖公网 IRC。
+- 在测试中启动媒体服务（本地 HTTP）。
+- 运行一个“接收侧”的 openagentic/agent runtime（可 headless），收到消息后执行下载并落盘。
+- 验证点：
+  - 接收侧 workspace/cache 目录存在目标文件
+  - `sha256/bytes` 校验通过
+  - 返回给 agent 的路径是 workspace 相对路径（不含绝对路径/盘符）
+
+### E2E Flow B — Remote Agent → (IRC) → Player（需要设计；可半自动）
+
+链路：对面 agent 上传媒体 → 发送 `OAMEDIA1` 到 IRC → 玩家游戏接收 → 解析 → 下载到 per-save cache →（可选）展示/播放。
+
+自动化验证思路（不要求“真的播放成功”）：
+
+- 在 headless VR Offices 中连接本地 IRC server 并订阅目标频道。
+- 用一个脚本客户端发送 `OAMEDIA1` 消息到频道（模拟“对面 agent”）。
+- 验证点：
+  - 玩家侧 per-save cache 目录出现文件
+  - `sha256/bytes` 校验通过
+  - 对无效 ref 显示明确占位（可通过 UI 节点/状态断言，不要求截图）
+
+手工验证工具（可选）：
+
+- 提供一个轻量“发送端”小工具（例如 Python/Tk），支持：
+  - 选择文件 → 上传 → 自动生成 `OAMEDIA1` → 发送到 IRC
+  - 用于你手动对着游戏做 e2e（对面发给玩家/玩家发给对面都能复用）
+
 ## Acceptance (Global DoD)
 
 以下每条都必须能被测试/命令二元验证：

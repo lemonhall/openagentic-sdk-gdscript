@@ -153,6 +153,35 @@ scripts/run_godot_tests.sh --one tests/addons/openagentic/test_tool_media_upload
 scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_irc_media_ref_transport.gd
 ```
 
+### Slice 6 — E2E harness (both directions)
+
+Goal: make your final verification repeatable:
+
+- Flow A: game sends media → upload → IRC → receiver downloads → passes workspace path to agent.
+- Flow B: “remote agent” sends media → IRC → player downloads to per-save cache (display optional).
+
+Design (planned):
+
+- Add a minimal IRC server implementation for tests (enough for NICK/USER/JOIN/PRIVMSG broadcast).
+- Add a sender helper (either a tiny script client or a Python/Tk tool) that can:
+  - upload a local file to the media service
+  - send the resulting `OAMEDIA1 ...` line into the IRC channel
+- Add a headless VR Offices test that:
+  - joins local IRC server
+  - receives `OAMEDIA1`
+  - downloads into cache/workspace and asserts file integrity on disk (no screenshots required)
+
+Acceptance (hard):
+
+- Test asserts the downloaded file exists under the expected per-save cache/workspace directory and matches `sha256/bytes`.
+- Test asserts no bearer token is present in any transmitted chat line.
+
+Verify (planned):
+
+```bash
+scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd
+```
+
 ## Risks
 
 - Godot MP4 playback viability: confirm early; if not supported in target builds, keep MP4 as “download-only” and defer playback.
