@@ -23,6 +23,21 @@ IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4�
 
 注意：v50 的 VR Offices `DialogueOverlay` 目前只做了“图片从本地缓存渲染”；音频/视频的 UI 播放不在 v50 交付范围。
 
+## 先说清楚：为什么你看到的 NPC 聊天框 UI “没变”
+
+v50 交付的是“多媒体传输与安全链路”的底座（协议、工具、服务、IRC 分片、E2E），**没有**在 `DialogueOverlay` 里新增“选择文件/上传/插入媒体”的按钮。
+
+所以你在游戏里看到的仍然是：
+
+- 一个输入框 + `Send` 按钮（发文本）
+
+你要发送图片给 NPC/agent，v50 的方式是：
+
+- **先在外部把文件上传**，得到一行 `OAMEDIA1 ...`
+- **再把这行文本粘贴进聊天框**发送
+
+这也是为什么 UI 不变但功能已经可用：多媒体在 v50 被表示为“可解析的文本引用”。
+
 ## 准备工作
 
 ### 1) 启动媒体服务（单独进程）
@@ -84,6 +99,25 @@ python3 scripts/oa_media_sender.py \
 ```bash
 python3 scripts/oa_media_sender.py --file /path/to/a.png --print-only
 ```
+
+## 玩家 → NPC（直接对话框）：如何从 NPC 聊天框发送图片
+
+NPC 聊天框不是 IRC，它只是把你输入的文本交给 OpenAgentic（NPC/agent）。
+
+步骤：
+
+1) 先生成一行 `OAMEDIA1 ...`（终端会输出这行文本）：
+
+```bash
+export OPENAGENTIC_MEDIA_BASE_URL="http://127.0.0.1:8788"
+export OPENAGENTIC_MEDIA_BEARER_TOKEN="dev-token"
+python3 scripts/oa_media_sender.py --file /path/to/a.png --print-only
+```
+
+2) 复制终端输出的整行 `OAMEDIA1 ...`
+3) 粘贴到 VR Offices 的 NPC 对话框输入框里，点 `Send`
+4) 再补一句明确指令让 NPC 去取文件（否则它未必会主动调用工具），例如：
+   - “请用 `MediaFetch` 下载我刚发的 `OAMEDIA1` 图片到你的 workspace，然后描述图片内容。”
 
 ### 步骤 B：让对面 agent 把媒体下载到自己的 workspace
 
@@ -163,4 +197,3 @@ token 一旦泄露，持有人就能上传/下载媒体。建议：
 ### 3) 我能发视频/音频吗？
 
 媒体服务层面支持 MP3/WAV/MP4 的允许列表与大小限制；但 VR Offices 的对话 UI 侧在 v50 只实现了图片缓存渲染，音频/视频播放属于后续版本范围。
-
