@@ -13,6 +13,7 @@ Design goals:
 
 ```bash
 export OPENAGENTIC_MEDIA_BEARER_TOKEN="dev-token"
+export OPENAGENTIC_MEDIA_STORE_DIR="/tmp/oa-media"
 node media_service/server.mjs --host 127.0.0.1 --port 8788
 ```
 
@@ -36,3 +37,15 @@ curl -s http://127.0.0.1:8788/healthz
   - `x-oa-sha256`
   - `x-oa-kind`
 
+## Storage & Cleanup
+
+The service enforces:
+
+- Per-file allowlist + size limits (by magic-byte sniff)
+- Total store max bytes (evicts oldest-first)
+- Optional TTL cleanup
+
+Environment variables:
+
+- `OPENAGENTIC_MEDIA_STORE_MAX_BYTES` (default: `536870912` / 512 MiB)
+- `OPENAGENTIC_MEDIA_STORE_TTL_SEC` (default: `0`, disabled)

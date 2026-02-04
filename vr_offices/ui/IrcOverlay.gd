@@ -2,6 +2,11 @@ extends Control
 
 const IrcTestClient := preload("res://vr_offices/ui/IrcTestClient.gd")
 const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
+const _MediaConfig := preload("res://vr_offices/core/media/VrOfficesMediaConfig.gd")
+const _MediaConfigStore := preload("res://vr_offices/core/media/VrOfficesMediaConfigStore.gd")
+const _MediaHealth := preload("res://vr_offices/core/media/VrOfficesMediaHealth.gd")
+const _MediaCache := preload("res://vr_offices/ui/VrOfficesMediaCache.gd")
+const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLog.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
 @onready var close_button: Button = %CloseButton
@@ -35,6 +40,16 @@ const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 @onready var copy_desk_info_button: Button = %CopyDeskInfoButton
 @onready var desk_log: RichTextLabel = %DeskLog
 
+@onready var media_base_url_edit: LineEdit = %MediaBaseUrlEdit
+@onready var media_token_edit: LineEdit = %MediaTokenEdit
+@onready var media_save_button: Button = %MediaSaveButton
+@onready var media_reload_button: Button = %MediaReloadButton
+@onready var media_health_button: Button = %MediaHealthButton
+@onready var media_health_label: Label = %MediaHealthLabel
+@onready var media_open_folder_button: Button = %MediaOpenFolderButton
+@onready var send_log_refresh_button: Button = %SendLogRefreshButton
+@onready var send_log_list: ItemList = %SendLogList
+
 var _world: Node = null
 var _desk_manager: RefCounted = null
 var _config: Dictionary = {}
@@ -42,6 +57,8 @@ var _config: Dictionary = {}
 var _test_client: Node = null
 var _selected_desk_id: String = ""
 var _desk_snapshots: Array[Dictionary] = []
+
+var _media_transport_override: Callable = Callable()
 
 func _ready() -> void:
 	visible = false
@@ -72,11 +89,23 @@ func _ready() -> void:
 	if copy_desk_info_button != null:
 		copy_desk_info_button.pressed.connect(_on_copy_desk_info_pressed)
 
+	if media_save_button != null:
+		media_save_button.pressed.connect(_on_media_save_pressed)
+	if media_reload_button != null:
+		media_reload_button.pressed.connect(_on_media_reload_pressed)
+	if media_health_button != null:
+		media_health_button.pressed.connect(_on_media_health_pressed)
+	if media_open_folder_button != null:
+		media_open_folder_button.pressed.connect(_on_media_open_folder_pressed)
+	if send_log_refresh_button != null:
+		send_log_refresh_button.pressed.connect(_refresh_send_log)
+
 	if backdrop != null:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
 
 	_update_test_status("")
 	_ensure_test_client()
+	_update_media_health("")
 
 func bind(world: Node, desk_manager: RefCounted) -> void:
 	_world = world
@@ -93,6 +122,8 @@ func open() -> void:
 	visible = true
 	_load_fields_from_config()
 	_refresh_desks()
+	_load_media_fields()
+	_refresh_send_log()
 	call_deferred("_grab_focus")
 
 func open_for_desk(desk_id: String) -> void:
@@ -112,6 +143,114 @@ func close() -> void:
 func _grab_focus() -> void:
 	if host_edit != null:
 		host_edit.grab_focus()
+
+func _resolve_save_id() -> String:
+	var oa := get_node_or_null("/root/OpenAgentic") as Node
+	if oa == null:
+		return ""
+	var v: Variant = oa.get("save_id") if oa.has_method("get") else null
+	return String(v).strip_edges() if v != null else ""
+
+func _effective_media_cfg() -> Dictionary:
+	var env: Dictionary = _MediaConfig.from_environment()
+	var sid := _resolve_save_id()
+	if sid != "":
+		var rd: Dictionary = _MediaConfigStore.load_config(sid)
+		if bool(rd.get("ok", false)) and typeof(rd.get("config", null)) == TYPE_DICTIONARY:
+			var cfg: Dictionary = rd.get("config", {})
+			var base := String(cfg.get("base_url", "")).strip_edges()
+			var tok := String(cfg.get("bearer_token", "")).strip_edges()
+			var base2 := base if base != "" else String(env.get("base_url", "")).strip_edges()
+			var tok2 := tok if tok != "" else String(env.get("bearer_token", "")).strip_edges()
+			return {"base_url": base2, "bearer_token": tok2}
+	return env
+
+func _load_media_fields() -> void:
+	var cfg: Dictionary = _effective_media_cfg()
+	if media_base_url_edit != null:
+		media_base_url_edit.text = String(cfg.get("base_url", "")).strip_edges()
+	if media_token_edit != null:
+		media_token_edit.text = String(cfg.get("bearer_token", "")).strip_edges()
+	_update_media_health("")
+
+func _on_media_save_pressed() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		_update_media_health("Missing save_id")
+		return
+	var base := media_base_url_edit.text.strip_edges() if media_base_url_edit != null else ""
+	var tok := media_token_edit.text.strip_edges() if media_token_edit != null else ""
+	var wr: Dictionary = _MediaConfigStore.save_config(sid, {"base_url": base, "bearer_token": tok})
+	if bool(wr.get("ok", false)):
+		_update_media_health("Saved")
+	else:
+		_update_media_health("Save failed: %s" % String(wr.get("error", "WriteFailed")))
+	_refresh_send_log()
+
+func _on_media_reload_pressed() -> void:
+	_load_media_fields()
+	_refresh_send_log()
+
+func _on_media_health_pressed() -> void:
+	var base := media_base_url_edit.text.strip_edges() if media_base_url_edit != null else ""
+	if base == "":
+		_update_media_health("Missing base URL")
+		return
+	_update_media_health("Checking…")
+	var rr: Dictionary = await _MediaHealth.check_health(base, _media_transport_override)
+	if not bool(rr.get("ok", false)):
+		_update_media_health("FAIL %d (%sms)" % [int(rr.get("status", 0)), int(rr.get("ms", 0))])
+		return
+	_update_media_health("OK %d (%sms)" % [int(rr.get("status", 0)), int(rr.get("ms", 0))])
+
+func _on_media_open_folder_pressed() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		_update_media_health("Missing save_id")
+		return
+	var dir := String(_MediaCache.media_cache_dir(sid)).strip_edges()
+	if dir == "":
+		_update_media_health("Bad cache dir")
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	if DisplayServer.get_name() == "headless":
+		_update_media_health("Headless: cannot open folder")
+		return
+	OS.shell_open(ProjectSettings.globalize_path(dir))
+
+func _refresh_send_log() -> void:
+	if send_log_list == null:
+		return
+	send_log_list.clear()
+	var sid := _resolve_save_id()
+	if sid == "":
+		send_log_list.add_item("(Missing save_id)")
+		return
+	var rd: Dictionary = _MediaSendLog.list_recent(sid, 50)
+	if not bool(rd.get("ok", false)):
+		send_log_list.add_item("(Read failed)")
+		return
+	var items0: Variant = rd.get("items", [])
+	var items: Array = items0 as Array if typeof(items0) == TYPE_ARRAY else []
+	for it0 in items:
+		if typeof(it0) != TYPE_DICTIONARY:
+			continue
+		var it: Dictionary = it0 as Dictionary
+		var ts := int(it.get("ts", 0))
+		var npc := String(it.get("npc_id", ""))
+		var ref0: Variant = it.get("ref", {})
+		var ref: Dictionary = ref0 as Dictionary if typeof(ref0) == TYPE_DICTIONARY else {}
+		var name := String(ref.get("name", ""))
+		var mid := String(ref.get("id", ""))
+		var mime := String(ref.get("mime", ""))
+		send_log_list.add_item("%d %s %s %s %s" % [ts, npc, mid, mime, name])
+
+func _update_media_health(text: String) -> void:
+	if media_health_label != null:
+		media_health_label.text = text
+
+func _test_set_media_transport(transport: Callable) -> void:
+	_media_transport_override = transport
 
 func _gui_input(event: InputEvent) -> void:
 	if not visible:

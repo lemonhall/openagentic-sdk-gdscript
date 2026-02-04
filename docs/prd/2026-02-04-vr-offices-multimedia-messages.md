@@ -82,6 +82,24 @@
   - `OAMEDIA1` 的 `name` 必须使用**basename**（不得泄露本机完整路径）；
   - 上传前必须做类型与大小校验（扩展名仅作提示；最终以服务端魔数嗅探为准）。
 
+### Configuration UX（玩家侧：不用环境变量也能配置）
+
+（动机：只用环境变量配置媒体服务对玩家/调试都不友好。）
+
+- **REQ-013** 游戏内提供 Settings 界面用于配置媒体服务：
+  - 可编辑 `OPENAGENTIC_MEDIA_BASE_URL`（等价配置项）；
+  - 可编辑 bearer token（等价配置项，默认隐藏输入）；
+  - 配置应当按 save slot 持久化（落盘在 `user://openagentic/saves/<save_id>/` 下的某个明确路径）。
+- **REQ-014** Settings 中可以测试媒体服务健康度：
+  - 点击按钮请求 `GET /healthz` 并显示结果；
+  - 明确显示失败原因（例如：不可达/非 200）。
+- **REQ-015** Settings 中可以快速打开“玩家侧接收缓存目录”：
+  - 打开 `user://openagentic/saves/<save_id>/cache/media/`（或等价路径）；
+  - 若目录不存在则创建。
+- **REQ-016** Settings 中可查看“媒体发送记录”（最小实现：只记录，不做收藏/重发）：
+  - 至少记录：时间、NPC（若有）、媒体 `id/kind/mime/bytes/sha256/name?`；
+  - 便于调试与未来扩展（例如收藏夹）。
+
 ### Agent workflow（发送/接收）
 
 - **REQ-007** Agent 侧工具与流程：

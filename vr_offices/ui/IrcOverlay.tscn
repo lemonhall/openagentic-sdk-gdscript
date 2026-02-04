@@ -72,7 +72,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "IRC"
+text = "Settings"
 
 [node name="CloseButton" type="Button" parent="Panel/VBox/Header"]
 unique_name_in_owner = true
@@ -80,6 +80,101 @@ layout_mode = 2
 text = "Close"
 
 [node name="Tabs" type="TabContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Media" type="VBoxContainer" parent="Panel/VBox/Tabs"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MediaFormPanel" type="PanelContainer" parent="Panel/VBox/Tabs/Media"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="MediaForm" type="GridContainer" parent="Panel/VBox/Tabs/Media/MediaFormPanel"]
+layout_mode = 2
+columns = 2
+
+[node name="MediaBaseUrlLabel" type="Label" parent="Panel/VBox/Tabs/Media/MediaFormPanel/MediaForm"]
+layout_mode = 2
+text = "Media base URL"
+
+[node name="MediaBaseUrlEdit" type="LineEdit" parent="Panel/VBox/Tabs/Media/MediaFormPanel/MediaForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(520, 0)
+placeholder_text = "http://127.0.0.1:8788"
+
+[node name="MediaTokenLabel" type="Label" parent="Panel/VBox/Tabs/Media/MediaFormPanel/MediaForm"]
+layout_mode = 2
+text = "Bearer token"
+
+[node name="MediaTokenEdit" type="LineEdit" parent="Panel/VBox/Tabs/Media/MediaFormPanel/MediaForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(520, 0)
+secret = true
+placeholder_text = "dev-token"
+
+[node name="MediaControls" type="HBoxContainer" parent="Panel/VBox/Tabs/Media"]
+layout_mode = 2
+
+[node name="MediaSaveButton" type="Button" parent="Panel/VBox/Tabs/Media/MediaControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+
+[node name="MediaReloadButton" type="Button" parent="Panel/VBox/Tabs/Media/MediaControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reload"
+
+[node name="MediaHealthButton" type="Button" parent="Panel/VBox/Tabs/Media/MediaControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Test health"
+
+[node name="MediaHealthLabel" type="Label" parent="Panel/VBox/Tabs/Media/MediaControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="MediaOpenFolderButton" type="Button" parent="Panel/VBox/Tabs/Media/MediaControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open receive folder"
+
+[node name="MediaHintLabel" type="Label" parent="Panel/VBox/Tabs/Media"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Note: media config is stored per save slot under user://openagentic/saves/<save_id>/"
+
+[node name="SendLogPanel" type="PanelContainer" parent="Panel/VBox/Tabs/Media"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="SendLogVBox" type="VBoxContainer" parent="Panel/VBox/Tabs/Media/SendLogPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SendLogHeader" type="HBoxContainer" parent="Panel/VBox/Tabs/Media/SendLogPanel/SendLogVBox"]
+layout_mode = 2
+
+[node name="SendLogTitle" type="Label" parent="Panel/VBox/Tabs/Media/SendLogPanel/SendLogVBox/SendLogHeader"]
+layout_mode = 2
+text = "Send log"
+
+[node name="SendLogRefreshButton" type="Button" parent="Panel/VBox/Tabs/Media/SendLogPanel/SendLogVBox/SendLogHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refresh"
+
+[node name="SendLogList" type="ItemList" parent="Panel/VBox/Tabs/Media/SendLogPanel/SendLogVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

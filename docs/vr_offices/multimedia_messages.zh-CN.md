@@ -10,10 +10,11 @@
 ## 快速开始（最短路径）
 
 1) 启动媒体服务（见「准备工作」）
-2) 在启动 VR Offices 之前设置环境变量：
-   - `OPENAGENTIC_MEDIA_BASE_URL=http://127.0.0.1:8788`
-   - `OPENAGENTIC_MEDIA_BEARER_TOKEN=dev-token`
-3) 进游戏 → 打开 NPC 对话框 → 点击 `Attach` 或拖拽文件进对话框
+2) 进游戏 → 左上角点 `Settings…` → `Media` 页签里填：
+   - Media base URL：`http://127.0.0.1:8788`
+   - Bearer token：`dev-token`
+   - 点 `Test health` 确认是 `OK 200`
+3) 打开 NPC 对话框 → 点击 `Attach` 或拖拽文件进对话框
 4) 等队列里显示 `sent` 后，如果你希望 NPC “真的去下载并理解内容”，建议再补一句明确指令，例如：
    - “请用 `MediaFetch` 下载我刚发的媒体，然后描述/转写/总结它。”
 
@@ -24,7 +25,7 @@ IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4�
 1) **把媒体文件上传到一个独立的媒体服务**（不和 `proxy/` 放一起）；
 2) 聊天里只发送一个**媒体引用**（文本行）：`OAMEDIA1 ...`（或分片 `OAMEDIA1F ...`）；
 3) 接收端（尤其是 agent）拿到引用后，通过工具把媒体**下载到自己的安全目录**（NPC workspace），得到一个**相对路径**供后续使用；
-4)（可选）玩家 UI 侧可以把媒体落盘到 `user://.../cache/` 并展示（v50 目前仅实现“从缓存展示图片”，自动下载展示会在后续版本补齐）。
+4)（可选）玩家 UI 侧可以把媒体落盘到 `user://.../cache/` 并展示（**v52+**：图片在 cache miss 时会自动下载到 `user://.../cache/media/` 并展示；音频/视频仍是占位提示）。
 
 关键安全点：
 
@@ -54,7 +55,7 @@ IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4�
 
 - 图片：自己发送的图片会写入本地 cache，所以聊天里能立刻显示缩略图。
 - 音频/视频：目前会显示一个占位提示（preview not implemented），发送与落盘仍是有效的。
-- 对面发来的图片：仍然只会“从本地 cache 尝试加载”；自动下载展示属于后续迭代。
+- 对面发来的图片：**v52+** 在 cache miss 时会自动下载并展示（需要正确配置 media base/token）；失败会显示确定性的错误占位。
 
 ### 你怎么用（一步步）
 
@@ -81,6 +82,7 @@ IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4�
 
 - 文件名会被截断到 **128 字符以内**（用于显示与写入 `OAMEDIA1` 的 `name` 字段）；聊天里只会出现 basename，不会出现你的本机绝对路径。
 - `Cancel All`/取消单条是“尽力而为”：它会阻止后续发送，但不保证能中断已经在进行中的 HTTP 上传请求。
+- 缓存会做“最佳努力”的自动清理（v53）：可用 `OPENAGENTIC_MEDIA_CACHE_MAX_BYTES` / `OPENAGENTIC_MEDIA_CACHE_TTL_SEC` 调整 per-save cache 上限与 TTL。
 
 ## v50 回顾：为什么当时 NPC 聊天框 UI “没变”（历史原因）
 
@@ -117,7 +119,9 @@ curl -s http://127.0.0.1:8788/healthz
 
 ### 2) 给 VR Offices / agent 配置媒体服务地址与 token
 
-在启动 VR Offices 的环境里设置：
+推荐（v54+）：在游戏里配置（`Settings…` → `Media`）。
+
+也可以在启动 VR Offices 的环境里设置环境变量（适合 CI / headless / 开发）：
 
 - `OPENAGENTIC_MEDIA_BASE_URL`：例如 `http://127.0.0.1:8788`
 - `OPENAGENTIC_MEDIA_BEARER_TOKEN`：例如 `dev-token`
@@ -193,13 +197,15 @@ python3 scripts/oa_media_sender.py --file /path/to/a.png --print-only
 
 （v50 没有强制让 agent 自动下载；它是否调用 `MediaFetch` 取决于模型行为/提示词。）
 
-## agent →（IRC）→ 玩家：对面发媒体给你（v50 的现状）
+## agent →（IRC）→ 玩家：对面发媒体给你（v52+ 的现状）
 
-这条链路在“传输与落盘”层面是可验证的（见下方 E2E），但玩家 UI 的“自动下载并展示”在 v50 还不完整：
+这条链路在“传输与落盘”层面是可验证的（见下方 E2E）；从 **v52** 开始，玩家 UI 侧的“自动下载并展示图片”也已补齐：
 
 - 对面 agent 可以 `MediaUpload` 得到 `OAMEDIA1 ...` 并通过 IRC 发给你；
-- VR Offices 的 `DialogueOverlay` 能识别 `OAMEDIA1 ...`，但 **只会尝试从本地缓存目录加载图片**；
-- v50 还没有实现：收到 `OAMEDIA1` 后自动去媒体服务下载到 `user://.../cache/media/` 再展示。
+- VR Offices 的 `DialogueOverlay` 能识别 `OAMEDIA1 ...`：
+  - 若本地 cache 已存在且校验通过：直接展示；
+  - 若 cache 缺失/校验失败：自动从媒体服务下载到 `user://.../cache/media/`，校验 `bytes/sha256` 后展示；
+  - 若 media 配置缺失/鉴权失败：显示确定性的错误占位（不会崩溃）。
 
 ### 如果你就是想在 UI 里看到图片（手工办法）
 

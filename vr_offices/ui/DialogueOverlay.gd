@@ -10,6 +10,8 @@ const _AttachmentQueue := preload("res://vr_offices/ui/VrOfficesAttachmentQueue.
 const _MediaUploader := preload("res://vr_offices/ui/VrOfficesMediaUploader.gd")
 const _MediaConfig := preload("res://vr_offices/core/media/VrOfficesMediaConfig.gd")
 const _MediaDownloader := preload("res://vr_offices/core/media/VrOfficesMediaDownloader.gd")
+const _MediaConfigStore := preload("res://vr_offices/core/media/VrOfficesMediaConfigStore.gd")
+const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLog.gd")
 
 @onready var title_label: Label = %TitleLabel
 @onready var session_log_size_label: Label = %SessionLogSizeLabel
@@ -197,7 +199,19 @@ func _reset_attachments() -> void:
 func _effective_media_cfg() -> Dictionary:
 	if _media_base_url_override.strip_edges() != "" or _media_bearer_token_override.strip_edges() != "":
 		return {"base_url": _media_base_url_override.strip_edges(), "bearer_token": _media_bearer_token_override.strip_edges()}
-	return _MediaConfig.from_environment()
+	var env: Dictionary = _MediaConfig.from_environment()
+	var sid := _resolve_save_id()
+	if sid == "":
+		return env
+	var rd: Dictionary = _MediaConfigStore.load_config(sid)
+	if bool(rd.get("ok", false)) and typeof(rd.get("config", null)) == TYPE_DICTIONARY:
+		var cfg: Dictionary = rd.get("config", {})
+		var base := String(cfg.get("base_url", "")).strip_edges()
+		var tok := String(cfg.get("bearer_token", "")).strip_edges()
+		var base2 := base if base != "" else String(env.get("base_url", "")).strip_edges()
+		var tok2 := tok if tok != "" else String(env.get("bearer_token", "")).strip_edges()
+		return {"base_url": base2, "bearer_token": tok2}
+	return env
 
 func _refresh_attachments_ui() -> void:
 	if attachments_panel == null or attachments_list == null or _attachments == null:
@@ -334,7 +348,6 @@ func _attachment_worker() -> void:
 		var next_id := _next_pending_attachment_id()
 		if next_id <= 0:
 			return
-
 		if _attachments == null:
 			return
 
@@ -371,6 +384,13 @@ func _attachment_worker() -> void:
 		_attachments.mark_sent(next_id, line)
 		add_user_message(line)
 		message_submitted.emit(line)
+		var ref0: Variant = up.get("ref", null)
+		if typeof(ref0) == TYPE_DICTIONARY:
+			_MediaSendLog.append(_resolve_save_id(), {
+				"ts": int(Time.get_unix_time_from_system()),
+				"npc_id": _npc_id,
+				"ref": ref0,
+			})
 
 func _next_pending_attachment_id() -> int:
 	if _attachments == null:

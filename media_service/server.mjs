@@ -25,6 +25,8 @@ if (args.help) {
 
 Environment variables:
   HOST, PORT, OPENAGENTIC_MEDIA_STORE_DIR, OPENAGENTIC_MEDIA_BEARER_TOKEN
+  OPENAGENTIC_MEDIA_STORE_MAX_BYTES (default: 536870912)
+  OPENAGENTIC_MEDIA_STORE_TTL_SEC (default: 0)
 `);
   process.exit(0);
 }
@@ -36,6 +38,18 @@ const STORE_DIR = args.storeDir || process.env.OPENAGENTIC_MEDIA_STORE_DIR || "/
 const BEARER_TOKEN = args.bearerToken || process.env.OPENAGENTIC_MEDIA_BEARER_TOKEN || "";
 
 const MAX_NAME_LEN = 128;
+const DEFAULT_STORE_MAX_BYTES = 512 * 1024 * 1024;
+
+function intEnv(name, fallback) {
+  const raw = (process.env[name] || "").trim();
+  if (!raw) return fallback;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || Number.isNaN(n)) return fallback;
+  return n;
+}
+
+const STORE_MAX_BYTES = intEnv("OPENAGENTIC_MEDIA_STORE_MAX_BYTES", DEFAULT_STORE_MAX_BYTES);
+const STORE_TTL_SEC = intEnv("OPENAGENTIC_MEDIA_STORE_TTL_SEC", 0);
 
 const LIMITS = {
   "image/png": 8 * 1024 * 1024,
@@ -70,8 +84,16 @@ function requireAuth(req) {
 function safeHeaderValue(v) {
   const s = (v || "").toString().trim();
   if (!s) return "";
+  if (s.includes("\n") || s.includes("\r")) return "";
   if (s.length > MAX_NAME_LEN) return s.slice(0, MAX_NAME_LEN);
   return s;
+}
+
+function isSafeId(id) {
+  const s = (id || "").toString().trim();
+  if (!s) return false;
+  if (s.length > 128) return false;
+  return /^[A-Za-z0-9_-]+$/.test(s);
 }
 
 function sniffMime(buf) {
@@ -132,6 +154,65 @@ function metaPathForId(id) {
   return path.join(STORE_DIR, `${id}.json`);
 }
 
+function safeUnlink(p) {
+  try {
+    fs.unlinkSync(p);
+  } catch {
+    // ignore
+  }
+}
+
+function cleanupStore({ ttlSec = 0, maxBytes = 0, needBytes = 0 } = {}) {
+  ensureStore();
+  const now = Date.now();
+  const entries = [];
+
+  for (const name of fs.readdirSync(STORE_DIR)) {
+    if (!name.endsWith(".bin")) continue;
+    const id = name.slice(0, -".bin".length);
+    if (!isSafeId(id)) continue;
+    const pBin = filePathForId(id);
+    const pMeta = metaPathForId(id);
+    try {
+      const st = fs.statSync(pBin);
+      if (!st.isFile()) continue;
+      entries.push({ id, pBin, pMeta, bytes: st.size || 0, mtimeMs: st.mtimeMs || 0 });
+    } catch {
+      // ignore
+    }
+  }
+
+  if (ttlSec > 0) {
+    const cutoff = now - ttlSec * 1000;
+    for (const e of entries) {
+      if (e.mtimeMs > 0 && e.mtimeMs < cutoff) {
+        safeUnlink(e.pBin);
+        safeUnlink(e.pMeta);
+      }
+    }
+  }
+
+  let kept = [];
+  let total = 0;
+  for (const e of entries) {
+    if (!fs.existsSync(e.pBin) || !fs.existsSync(e.pMeta)) continue;
+    kept.push(e);
+    total += e.bytes;
+  }
+
+  if (maxBytes > 0 && needBytes >= 0 && total + needBytes > maxBytes) {
+    kept.sort((a, b) => (a.mtimeMs || 0) - (b.mtimeMs || 0));
+    for (const e of kept) {
+      if (total + needBytes <= maxBytes) break;
+      safeUnlink(e.pBin);
+      safeUnlink(e.pMeta);
+      total -= e.bytes;
+    }
+  }
+
+  return { ok: maxBytes <= 0 || total + needBytes <= maxBytes, totalBytes: total, maxBytes };
+}
+
 function readMeta(id) {
   const p = metaPathForId(id);
   if (!fs.existsSync(p)) return null;
@@ -166,6 +247,9 @@ const server = http.createServer(async (req, res) => {
       if (limit <= 0) return bad(res, 415, "unsupported_mime", "unsupported media type");
       if (body.total > limit) return bad(res, 413, "too_large", `exceeds limit for ${sniff.mime}`);
 
+      const cleaned = cleanupStore({ ttlSec: STORE_TTL_SEC, maxBytes: STORE_MAX_BYTES, needBytes: body.total });
+      if (!cleaned.ok) return bad(res, 507, "store_full", "media store is full");
+
       const sha256 = crypto.createHash("sha256").update(body.buf).digest("hex");
       const id = makeId();
       const name = safeHeaderValue(req.headers["x-oa-name"]);
@@ -188,6 +272,7 @@ const server = http.createServer(async (req, res) => {
 
       const id = url.pathname.slice("/media/".length).trim();
       if (!id) return bad(res, 400, "invalid_id", "missing id");
+      if (!isSafeId(id)) return bad(res, 400, "invalid_id", "unsafe id");
 
       const p = filePathForId(id);
       const meta = readMeta(id);
@@ -218,4 +303,3 @@ server.listen(PORT, HOST, () => {
   // eslint-disable-next-line no-console
   console.log(`[openagentic-media] store: ${STORE_DIR}`);
 });
-
