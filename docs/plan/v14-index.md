@@ -1,42 +1,34 @@
-# v14 Index — VR Offices Workspaces “Room Walls” (2 Walls, No Occlusion) + Spawn FX
+# v14 Index — VR Offices Desk Double-Click Opens Desks Tab
 
 ## Vision (v14)
 
-When a workspace is created, it should feel like the player “built a small room” without blocking the view:
-
-- The workspace renders a **two-wall (L-shape) room** around the workspace floor.
-- As the camera rotates, the **two walls closest to the camera disappear**, and the **two far walls remain** (always only two walls visible).
-- The walls and floor appear with a light “duang” spawn effect when the workspace is created.
+Double-clicking a desk should open the “Settings” overlay focused on the **Desks** tab (not whichever tab index happens to be `2` after adding/removing tabs).
 
 ## Milestones (facts panel)
 
-1. **Plan:** write an executable v14 plan with tests. (done)
-2. **Visuals:** add 4 wall meshes to WorkspaceArea; show only 2 based on camera quadrant. (done)
-3. **FX:** play a short spawn animation on create (not on load). (done)
-4. **Verify:** tests + headless run. (done)
+1. **Plan:** write an executable v14 plan with a regression test. (done)
+2. **Test (RED):** add a failing test proving `open_for_desk()` selects the Desks tab. (done)
+3. **Fix (GREEN):** make `open_for_desk()` select the **Desks** tab by name, not hardcoded index. (done)
+4. **Verify:** run targeted headless tests. (done)
 
 ## Plans (v14)
 
-- `docs/plan/v14-vr-offices-workspace-walls.md`
+- `docs/plan/v14-vr-offices-desk-doubleclick-opens-desks-tab.md`
 
 ## Definition of Done (DoD)
 
-- A workspace node contains wall visuals (no collisions required).
-- Only 2 walls are visible at a time (L-shape), determined from camera position relative to workspace center:
-  - Hide the wall on the camera side for X and Z axes.
-  - Show the opposite wall for each axis.
-- On workspace creation, walls + floor play a short “duang” animation.
-- Tests cover:
-  - WorkspaceArea contains expected wall nodes after configure.
-  - Wall selection logic is deterministic.
+- `vr_offices/ui/IrcOverlay.gd` does **not** hardcode tab indices for desk-focused open.
+- Calling `open_for_desk(<desk_id>)` results in the TabContainer showing the **Desks** tab, even if tab ordering changes (e.g., Media tab inserted).
+- Regression test added that fails on the old behavior and passes after the fix.
 
 ## Verification
 
-- WSL2 + Linux Godot:
-  - Follow `AGENTS.md` “Running tests (WSL2 + Linux Godot)”.
+- Run the new regression test:
+  - `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_irc_overlay_open_for_desk_selects_desks_tab.gd`
+- Run the existing settings overlay tab presence test (sanity):
+  - `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_settings_overlay_has_media_tab.gd`
 
 ## Evidence
 
 - Tests:
-  - `tests/projects/vr_offices/test_vr_offices_workspace_walls_selection.gd`
-  - `tests/projects/vr_offices/test_vr_offices_workspaces_nodes.gd`
+  - `tests/projects/vr_offices/test_vr_offices_irc_overlay_open_for_desk_selects_desks_tab.gd`

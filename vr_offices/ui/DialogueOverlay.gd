@@ -232,7 +232,7 @@ func _refresh_attachments_ui() -> void:
 			continue
 		var it: Dictionary = it0 as Dictionary
 		var id := int(it.get("id", 0))
-		var name := String(it.get("name", "")).strip_edges()
+		var attachment_name := String(it.get("name", "")).strip_edges()
 		var bytes := int(it.get("bytes", -1))
 		var mime := String(it.get("mime", "")).strip_edges()
 		var st := String(it.get("state", "")).strip_edges()
@@ -246,7 +246,7 @@ func _refresh_attachments_ui() -> void:
 
 		var label := Label.new()
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var detail := name
+		var detail := attachment_name
 		if mime != "":
 			detail += " (%s)" % mime
 		if bytes >= 0:
@@ -532,14 +532,14 @@ func _add_media_message(is_user: bool, ref: Dictionary) -> void:
 		var sid := _resolve_save_id()
 		var tex := _MediaCache.load_cached_image_texture(sid, ref)
 		if tex != null:
-			var tr := TextureRect.new()
-			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tr.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
-			tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			tr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			tr.texture = tex
-			bubble.add_child(tr)
+			var tex_rect := TextureRect.new()
+			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tex_rect.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
+			tex_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			tex_rect.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			tex_rect.texture = tex
+			bubble.add_child(tex_rect)
 		else:
 			var lbl := Label.new()
 			lbl.text = "Downloading image…"
@@ -590,14 +590,14 @@ func _download_and_render_image(bubble: PanelContainer, lbl: Label, ref: Diction
 		if n != null:
 			n.queue_free()
 
-	var tr := TextureRect.new()
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
-	tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	tr.texture = tex
-	bubble.add_child(tr)
+	var tex_rect := TextureRect.new()
+	tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tex_rect.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
+	tex_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tex_rect.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	tex_rect.texture = tex
+	bubble.add_child(tex_rect)
 
 func _finish_media_row(is_user: bool, row: HBoxContainer, spacer: Control, bubble: PanelContainer) -> void:
 	if is_user:
@@ -622,8 +622,8 @@ func _test_has_any_image_message() -> bool:
 		var row := row0 as Node
 		if row == null:
 			continue
-		var tr := _find_texture_rect(row)
-		if tr != null:
+		var found_tex_rect := _find_texture_rect(row)
+		if found_tex_rect != null:
 			return true
 	return false
 

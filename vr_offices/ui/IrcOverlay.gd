@@ -128,8 +128,7 @@ func open() -> void:
 
 func open_for_desk(desk_id: String) -> void:
 	open()
-	if tabs != null:
-		tabs.current_tab = 2 # Desks
+	_select_tab_by_name("Desks")
 	call_deferred("_focus_desk_id", desk_id)
 
 func close() -> void:
@@ -143,6 +142,15 @@ func close() -> void:
 func _grab_focus() -> void:
 	if host_edit != null:
 		host_edit.grab_focus()
+
+func _select_tab_by_name(tab_name: String) -> void:
+	if tabs == null:
+		return
+	for i in range(tabs.get_child_count()):
+		var c := tabs.get_child(i) as Control
+		if c != null and c.name == tab_name:
+			tabs.current_tab = i
+			return
 
 func _resolve_save_id() -> String:
 	var oa := get_node_or_null("/root/OpenAgentic") as Node
@@ -240,10 +248,10 @@ func _refresh_send_log() -> void:
 		var npc := String(it.get("npc_id", ""))
 		var ref0: Variant = it.get("ref", {})
 		var ref: Dictionary = ref0 as Dictionary if typeof(ref0) == TYPE_DICTIONARY else {}
-		var name := String(ref.get("name", ""))
+		var media_name := String(ref.get("name", ""))
 		var mid := String(ref.get("id", ""))
 		var mime := String(ref.get("mime", ""))
-		send_log_list.add_item("%d %s %s %s %s" % [ts, npc, mid, mime, name])
+		send_log_list.add_item("%d %s %s %s %s" % [ts, npc, mid, mime, media_name])
 
 func _update_media_health(text: String) -> void:
 	if media_health_label != null:
