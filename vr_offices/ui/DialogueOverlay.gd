@@ -7,6 +7,8 @@ const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
 const _MediaCache := preload("res://vr_offices/ui/VrOfficesMediaCache.gd")
 const _AttachmentQueue := preload("res://vr_offices/ui/VrOfficesAttachmentQueue.gd")
+const _MediaUploader := preload("res://vr_offices/ui/VrOfficesMediaUploader.gd")
+const _MediaConfig := preload("res://vr_offices/core/media/VrOfficesMediaConfig.gd")
 
 @onready var title_label: Label = %TitleLabel
 @onready var session_log_size_label: Label = %SessionLogSizeLabel
@@ -31,6 +33,11 @@ var _save_id: String = ""
 var _busy := false
 var _assistant_rtl: RichTextLabel = null
 var _attachments = null
+var _attachments_worker_running := false
+
+var _media_base_url_override: String = ""
+var _media_bearer_token_override: String = ""
+var _media_transport_override: Callable = Callable()
 
 const _BUBBLE_MIN_WIDTH := 320.0
 const _BUBBLE_MAX_WIDTH := 720.0
@@ -186,6 +193,11 @@ func _reset_attachments() -> void:
 		_attachments.changed.connect(_refresh_attachments_ui)
 	_refresh_attachments_ui()
 
+func _effective_media_cfg() -> Dictionary:
+	if _media_base_url_override.strip_edges() != "" or _media_bearer_token_override.strip_edges() != "":
+		return {"base_url": _media_base_url_override.strip_edges(), "bearer_token": _media_bearer_token_override.strip_edges()}
+	return _MediaConfig.from_environment()
+
 func _refresh_attachments_ui() -> void:
 	if attachments_panel == null or attachments_list == null or _attachments == null:
 		return
@@ -262,6 +274,11 @@ func _on_attach_pressed() -> void:
 		return
 	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILES
+	file_dialog.filters = PackedStringArray([
+		"*.png,*.jpg,*.jpeg ; Images (PNG/JPEG)",
+		"*.mp3,*.wav ; Audio (MP3/WAV)",
+		"*.mp4 ; Video (MP4)",
+	])
 	file_dialog.popup_centered_ratio(0.75)
 
 func _on_files_selected(paths: PackedStringArray) -> void:
@@ -285,7 +302,87 @@ func _enqueue_attachment_paths(paths: PackedStringArray) -> void:
 		var s := String(p).strip_edges()
 		if s == "":
 			continue
-		_attachments.enqueue(s, {})
+		var v: Dictionary = _MediaUploader.validate_path_for_upload(s)
+		var id := int(_attachments.enqueue(s, {"bytes": int(v.get("bytes", -1)), "mime": String(v.get("mime", ""))}))
+		if not bool(v.get("ok", false)):
+			_attachments.mark_failed(id, String(v.get("error", "InvalidFile")))
+	_kick_attachment_worker()
+
+func _kick_attachment_worker() -> void:
+	if _attachments_worker_running:
+		return
+	_attachments_worker_running = true
+	call_deferred("_run_attachment_worker")
+
+func _run_attachment_worker() -> void:
+	await _attachment_worker()
+	_attachments_worker_running = false
+
+func _attachment_worker() -> void:
+	# Sequential, non-blocking:
+	# - Upload one file at a time
+	# - Send one message at a time (respecting Dialogue busy state)
+	while true:
+		if not visible:
+			return
+		if _busy:
+			if get_tree() != null:
+				await get_tree().process_frame
+			continue
+
+		var next_id := _next_pending_attachment_id()
+		if next_id <= 0:
+			return
+
+		if _attachments == null:
+			return
+
+		_attachments.mark_uploading(next_id)
+		var it: Dictionary = _attachments.get_item(next_id)
+		var path := String(it.get("path", "")).strip_edges()
+		if path == "":
+			_attachments.mark_failed(next_id, "BadPath")
+			continue
+
+		var cfg: Dictionary = _effective_media_cfg()
+		var base_url := String(cfg.get("base_url", "")).strip_edges()
+		var bearer := String(cfg.get("bearer_token", "")).strip_edges()
+		if base_url == "" or bearer == "":
+			_attachments.mark_failed(next_id, "MissingMediaConfig")
+			continue
+
+		var up: Dictionary = await _MediaUploader.upload_file(path, _resolve_save_id(), base_url, bearer, "", _media_transport_override)
+		var st_after: String = String(_attachments.get_item(next_id).get("state", ""))
+		if st_after == "cancelled":
+			continue
+		if not bool(up.get("ok", false)):
+			_attachments.mark_failed(next_id, String(up.get("error", "UploadFailed")))
+			continue
+
+		var line := String(up.get("media_ref", "")).strip_edges()
+		if line == "" or not line.begins_with("OAMEDIA1 "):
+			_attachments.mark_failed(next_id, "EncodeFailed")
+			continue
+		if bearer != "" and line.find(bearer) != -1:
+			_attachments.mark_failed(next_id, "TokenLeak")
+			continue
+
+		_attachments.mark_sent(next_id, line)
+		add_user_message(line)
+		message_submitted.emit(line)
+
+func _next_pending_attachment_id() -> int:
+	if _attachments == null:
+		return 0
+	var items0: Variant = _attachments.list_items()
+	var items: Array = items0 as Array if typeof(items0) == TYPE_ARRAY else []
+	for it0 in items:
+		if typeof(it0) != TYPE_DICTIONARY:
+			continue
+		var it: Dictionary = it0 as Dictionary
+		if String(it.get("state", "")) == "pending":
+			return int(it.get("id", 0))
+	return 0
 
 func _test_enqueue_attachment_paths(paths: PackedStringArray) -> void:
 	_enqueue_attachment_paths(paths)
@@ -294,6 +391,17 @@ func _test_attachment_row_count() -> int:
 	if attachments_list == null:
 		return 0
 	return attachments_list.get_child_count()
+
+func _test_set_media_config(base_url: String, bearer_token: String, transport: Callable) -> void:
+	_media_base_url_override = base_url
+	_media_bearer_token_override = bearer_token
+	_media_transport_override = transport
+
+func _test_attachment_items() -> Array:
+	if _attachments == null:
+		return []
+	var out0: Variant = _attachments.list_items()
+	return out0 as Array if typeof(out0) == TYPE_ARRAY else []
 
 func _add_message(is_user: bool, text: String) -> RichTextLabel:
 	var t := text.strip_edges()

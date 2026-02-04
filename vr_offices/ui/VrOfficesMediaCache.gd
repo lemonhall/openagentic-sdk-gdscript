@@ -46,9 +46,21 @@ static func load_cached_image_texture(save_id: String, ref: Dictionary) -> Textu
 		return null
 	return ImageTexture.create_from_image(img)
 
+static func store_cached_bytes(save_id: String, ref: Dictionary, bytes: PackedByteArray) -> Dictionary:
+	var p := media_cache_path(save_id, ref)
+	if p == "":
+		return {"ok": false, "error": "BadCachePath"}
+	var abs_dir := ProjectSettings.globalize_path(p.get_base_dir())
+	DirAccess.make_dir_recursive_absolute(abs_dir)
+	var f := FileAccess.open(p, FileAccess.WRITE)
+	if f == null:
+		return {"ok": false, "error": "WriteFailed"}
+	f.store_buffer(bytes)
+	f.close()
+	return {"ok": true, "path": p}
+
 static func sha256_hex(b: PackedByteArray) -> String:
 	var hc := HashingContext.new()
 	hc.start(HashingContext.HASH_SHA256)
 	hc.update(b)
 	return hc.finish().hex_encode()
-
