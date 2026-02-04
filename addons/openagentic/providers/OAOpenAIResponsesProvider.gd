@@ -14,6 +14,29 @@ var _auth_is_bearer: bool
 const _OASseParserScript := preload("res://addons/openagentic/providers/OASseParser.gd")
 var _parser = _OASseParserScript.new()
 
+func _test_decode_lines_from_chunks(chunks: Array) -> PackedStringArray:
+	# Utility for tests and debugging: decode newline-terminated UTF-8 lines from
+	# arbitrarily chunked byte arrays without breaking multi-byte sequences.
+	var out := PackedStringArray()
+	var buf := PackedByteArray()
+
+	for c in chunks:
+		if typeof(c) != TYPE_PACKED_BYTE_ARRAY:
+			continue
+		buf.append_array(c as PackedByteArray)
+		while true:
+			var idx := buf.find(10) # '\n'
+			if idx < 0:
+				break
+			var line_bytes := buf.slice(0, idx + 1)
+			buf = buf.slice(idx + 1, buf.size())
+			out.append(line_bytes.get_string_from_utf8())
+
+	# Tail (may not end with newline).
+	if buf.size() > 0:
+		out.append(buf.get_string_from_utf8())
+	return out
+
 func _init(base_url: String, auth_header: String = "", auth_token: String = "", auth_is_bearer: bool = true) -> void:
 	_base_url = String(base_url).rstrip("/")
 	_auth_header = String(auth_header).strip_edges()
@@ -129,6 +152,7 @@ func stream(req: Dictionary, on_event: Callable) -> void:
 	var code := client.get_response_code()
 	if code >= 400:
 		# Drain body so we can report a helpful error message (common cause: invalid payload).
+		var err_bytes := PackedByteArray()
 		var err_body := ""
 		while client.get_status() == HTTPClient.STATUS_BODY:
 			client.poll()
@@ -136,16 +160,22 @@ func stream(req: Dictionary, on_event: Callable) -> void:
 			if chunk.size() == 0:
 				await _tree().process_frame
 				continue
-			err_body += chunk.get_string_from_utf8()
+			err_bytes.append_array(chunk)
+			if err_bytes.size() >= 8000:
+				err_body = err_bytes.get_string_from_utf8()
+				if err_body.length() >= 4000:
+					err_body = err_body.substr(0, 4000) + "\n...[truncated]..."
+					break
+		if err_body == "":
+			err_body = err_bytes.get_string_from_utf8()
 			if err_body.length() >= 4000:
 				err_body = err_body.substr(0, 4000) + "\n...[truncated]..."
-				break
 		push_error("OAOpenAIResponsesProvider: HTTP %s\n%s" % [code, err_body])
 		on_event.call({"type": "done", "error": "http_%s" % code, "details": err_body})
 		return
 
 	_parser.reset()
-	var buf := ""
+	var buf_bytes := PackedByteArray()
 	var done := false
 
 	while client.get_status() == HTTPClient.STATUS_BODY and not done:
@@ -154,18 +184,21 @@ func stream(req: Dictionary, on_event: Callable) -> void:
 		if chunk.size() == 0:
 			await _tree().process_frame
 			continue
-		buf += chunk.get_string_from_utf8()
+		buf_bytes.append_array(chunk)
 		while true:
-			var idx := buf.find("\n")
+			var idx := buf_bytes.find(10) # '\n'
 			if idx < 0:
 				break
-			var line := buf.substr(0, idx + 1)
-			buf = buf.substr(idx + 1)
+			var line_bytes := buf_bytes.slice(0, idx + 1)
+			buf_bytes = buf_bytes.slice(idx + 1, buf_bytes.size())
+			var line := line_bytes.get_string_from_utf8()
 			done = _parser.feed_line(line, on_event)
 			if done:
 				break
 
 	# Flush any tail.
-	if not done and buf.strip_edges() != "":
-		_parser.feed_line(buf, on_event)
+	if not done and buf_bytes.size() > 0:
+		var tail := buf_bytes.get_string_from_utf8()
+		if tail.strip_edges() != "":
+			_parser.feed_line(tail, on_event)
 	_parser.feed_line("", on_event)

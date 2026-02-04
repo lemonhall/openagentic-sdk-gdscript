@@ -50,6 +50,14 @@ func _init() -> void:
 	if not T.require_true(self, overlay.visible == true, "DialogueOverlay.open() should show overlay"):
 		return
 
+	# Layout: dialogue panel should occupy ~2/3 of the screen height.
+	var panel := overlay.get_node_or_null("Panel") as Control
+	if not T.require_true(self, panel != null, "Missing DialogueOverlay Panel"):
+		return
+	var panel_height_ratio := panel.anchor_bottom - panel.anchor_top
+	if not T.require_true(self, panel_height_ratio >= 0.63, "Expected dialogue panel height >= ~2/3. Got: %s" % str(panel_height_ratio)):
+		return
+
 	var title := overlay.get_node("Panel/VBox/Header/TitleLabel") as Label
 	if not T.require_true(self, title != null, "Missing TitleLabel"):
 		return
