@@ -84,6 +84,23 @@ export OPENAI_BASE_URL=https://api.openai.com/v1  # optional
 node proxy/server.mjs
 ```
 
+## Local dev: start proxy + media + remote daemon
+
+To reduce startup friction, this repo includes a root launcher script and a unified `.env`:
+
+```bash
+cp .env.example .env
+# edit .env (set OPENAI_API_KEY, OPENAGENTIC_MEDIA_BEARER_TOKEN, etc.)
+
+bash dev-up.sh --no-daemon
+```
+
+To run a command with the same environment:
+
+```bash
+bash dev-up.sh --no-daemon -- godot4 --path .
+```
+
 ## Tests (local)
 
 This repo includes headless test scripts under `tests/` (requires `godot4` locally):

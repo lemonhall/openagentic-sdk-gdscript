@@ -16,6 +16,14 @@ Office Pack-glb.zip
 proxy/node_modules/
 proxy/.env
 
+# Root unified env (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Dev launcher logs/state
+.dev/
+
 # Local tools (e.g., Linux Godot binary)
 tools/
 

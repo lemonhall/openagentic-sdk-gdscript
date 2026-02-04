@@ -84,6 +84,23 @@ export OPENAI_BASE_URL=https://api.openai.com/v1  # 可选
 node proxy/server.mjs
 ```
 
+## 本地开发：一键启动 proxy + media + remote daemon
+
+为减少每次手动启动多个进程的麻烦，仓库根目录提供了启动器脚本，并统一用 `.env` 管理配置/Key：
+
+```bash
+cp .env.example .env
+# 编辑 .env（至少设置 OPENAI_API_KEY、OPENAGENTIC_MEDIA_BEARER_TOKEN 等）
+
+bash dev-up.sh --no-daemon
+```
+
+如需在同一环境变量下直接启动某个命令：
+
+```bash
+bash dev-up.sh --no-daemon -- godot4 --path .
+```
+
 ## 测试（本地）
 
 仓库 `tests/` 里提供了 headless 测试脚本（本地需要 `godot4`）：

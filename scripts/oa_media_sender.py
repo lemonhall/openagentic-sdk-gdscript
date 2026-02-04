@@ -9,6 +9,8 @@ import sys
 import urllib.error
 import urllib.request
 
+from oa_dotenv import load_dotenv_file, load_repo_dotenv
+
 
 def b64url_encode(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode("ascii").rstrip("=")
@@ -120,25 +122,60 @@ def irc_send(host: str, port: int, nick: str, channel: str, lines: list[str]) ->
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Upload a media file and emit/send an OAMEDIA1 reference.")
+    ap.add_argument("--env-file", default="", help="Optional path to a .env file (defaults to repo root .env if present)")
     ap.add_argument("--file", required=True, help="Path to local file to upload")
-    ap.add_argument("--media-base-url", default=os.environ.get("OPENAGENTIC_MEDIA_BASE_URL", ""), help="Media service base URL")
-    ap.add_argument("--token", default=os.environ.get("OPENAGENTIC_MEDIA_BEARER_TOKEN", ""), help="Media service bearer token")
+    ap.add_argument("--media-base-url", default="", help="Media service base URL (or env OPENAGENTIC_MEDIA_BASE_URL)")
+    ap.add_argument("--token", default="", help="Media service bearer token (or env OPENAGENTIC_MEDIA_BEARER_TOKEN)")
     ap.add_argument("--name", default="", help="Optional filename override")
     ap.add_argument("--caption", default="", help="Optional caption")
     ap.add_argument("--print-only", action="store_true", help="Only print the OAMEDIA1 line (do not send to IRC)")
-    ap.add_argument("--irc-host", default="", help="IRC host")
-    ap.add_argument("--irc-port", type=int, default=6667, help="IRC port")
-    ap.add_argument("--irc-channel", default="#test", help="IRC channel")
-    ap.add_argument("--irc-nick", default="oa_sender", help="IRC nick")
-    ap.add_argument("--irc-max-len", type=int, default=360, help="Max IRC message length")
+    ap.add_argument("--check", action="store_true", help="Validate config and exit (no upload)")
+    ap.add_argument("--send", action="store_true", help="Send the reference to IRC (requires IRC config; otherwise prints only)")
+    ap.add_argument("--irc-host", default=None, help="IRC host (or env OA_IRC_HOST)")
+    ap.add_argument("--irc-port", type=int, default=None, help="IRC port (or env OA_IRC_PORT, default 6667)")
+    ap.add_argument("--irc-channel", default=None, help="IRC channel (or env OA_SENDER_IRC_CHANNEL, default #test)")
+    ap.add_argument("--irc-nick", default=None, help="IRC nick (or env OA_SENDER_IRC_NICK, default oa_sender)")
+    ap.add_argument("--irc-max-len", type=int, default=None, help="Max IRC message length (or env OA_SENDER_IRC_MAX_LEN, default 360)")
     args = ap.parse_args()
 
-    if not args.media_base_url or not args.token:
+    if args.env_file.strip():
+        load_dotenv_file(args.env_file.strip(), override=False)
+    else:
+        load_repo_dotenv(override=False)
+
+    media_base_url = (args.media_base_url or os.environ.get("OPENAGENTIC_MEDIA_BASE_URL", "")).strip()
+    token = (args.token or os.environ.get("OPENAGENTIC_MEDIA_BEARER_TOKEN", "")).strip()
+
+    irc_host = (args.irc_host if args.irc_host is not None else os.environ.get("OA_IRC_HOST", "")).strip()
+    irc_port = int((args.irc_port if args.irc_port is not None else os.environ.get("OA_IRC_PORT", "6667")).strip() or "6667")
+    irc_channel = (args.irc_channel if args.irc_channel is not None else os.environ.get("OA_SENDER_IRC_CHANNEL", "#test")).strip() or "#test"
+    irc_nick = (args.irc_nick if args.irc_nick is not None else os.environ.get("OA_SENDER_IRC_NICK", "oa_sender")).strip() or "oa_sender"
+    irc_max_len = int((args.irc_max_len if args.irc_max_len is not None else os.environ.get("OA_SENDER_IRC_MAX_LEN", "360")).strip() or "360")
+
+    if not media_base_url or not token:
         raise SystemExit("Missing --media-base-url/--token (or env OPENAGENTIC_MEDIA_BASE_URL/OPENAGENTIC_MEDIA_BEARER_TOKEN)")
 
+    if args.check:
+        if not os.path.isfile(args.file):
+            raise SystemExit(f"Missing file: {args.file}")
+        want_send = args.send or (args.irc_host is not None)
+        if want_send and not args.print_only:
+            if not irc_host:
+                raise SystemExit("Missing IRC host (--irc-host or env OA_IRC_HOST)")
+            if not (1 <= irc_port <= 65535):
+                raise SystemExit("Invalid IRC port")
+            if not irc_channel.startswith("#"):
+                raise SystemExit("IRC channel must start with #")
+            if not irc_nick:
+                raise SystemExit("Missing IRC nick")
+            if irc_max_len < 64:
+                raise SystemExit("IRC max len too small")
+        print("OK")
+        return 0
+
     meta = http_post_upload(
-        args.media_base_url,
-        args.token,
+        media_base_url,
+        token,
         args.file,
         args.name or os.path.basename(args.file),
         args.caption or "",
@@ -169,11 +206,13 @@ def main() -> int:
 
     if args.print_only:
         return 0
-    if not args.irc_host:
+
+    want_send = args.send or (args.irc_host is not None)
+    if not want_send or not irc_host:
         return 0
 
-    lines = irc_encode_lines(line, args.irc_max_len)
-    irc_send(args.irc_host, args.irc_port, args.irc_nick, args.irc_channel, lines)
+    lines = irc_encode_lines(line, irc_max_len)
+    irc_send(irc_host, irc_port, irc_nick, irc_channel, lines)
     return 0
 
 

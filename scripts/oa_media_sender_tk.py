@@ -5,6 +5,8 @@ import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+from oa_dotenv import load_repo_dotenv
+
 
 def run_cli(file_path: str, base_url: str, token: str, caption: str, irc_host: str, irc_port: str, irc_channel: str, irc_nick: str) -> str:
     cmd = [
@@ -28,6 +30,7 @@ def run_cli(file_path: str, base_url: str, token: str, caption: str, irc_host: s
 
 
 def main() -> int:
+    load_repo_dotenv(override=False)
     root = tk.Tk()
     root.title("OpenAgentic Media Sender")
 
@@ -36,10 +39,10 @@ def main() -> int:
     token_var = tk.StringVar(value=os.environ.get("OPENAGENTIC_MEDIA_BEARER_TOKEN", ""))
     caption_var = tk.StringVar()
 
-    irc_host_var = tk.StringVar()
-    irc_port_var = tk.StringVar(value="6667")
-    irc_channel_var = tk.StringVar(value="#test")
-    irc_nick_var = tk.StringVar(value="oa_sender")
+    irc_host_var = tk.StringVar(value=os.environ.get("OA_IRC_HOST", ""))
+    irc_port_var = tk.StringVar(value=os.environ.get("OA_IRC_PORT", "6667"))
+    irc_channel_var = tk.StringVar(value=os.environ.get("OA_SENDER_IRC_CHANNEL", "#test"))
+    irc_nick_var = tk.StringVar(value=os.environ.get("OA_SENDER_IRC_NICK", "oa_sender"))
 
     def pick_file() -> None:
         p = filedialog.askopenfilename()

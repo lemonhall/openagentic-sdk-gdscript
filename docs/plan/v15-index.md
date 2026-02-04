@@ -1,22 +1,36 @@
-# v15 Index — VR Offices Desk Rotation Placement Bugfix
+# v15 Index — Root Dev Launcher + Unified .env
 
 ## Vision (v15)
 
-Desk placement should honor the player’s preview rotation: the placed desk’s orientation must match the ghost preview orientation (0°/90°/180°/270°).
+Local development should be one command instead of three terminals:
+
+- Start **proxy + media service + rust remote daemon** together from repo root.
+- All keys/config are standardized in a single root `.env` (with a committed `.env.example`).
 
 ## Milestones (facts panel)
 
-1. **Plan:** write an executable v15 plan with tests. (todo)
-2. **Fix:** update yaw snapping / footprint logic for 4 rotations. (todo)
-3. **Verify:** regression test + headless run. (todo)
+1. **Plan:** write an executable v15 plan with a check command. (done)
+2. **Env:** add root `.env.example` and ensure secrets are ignored. (done)
+3. **Launcher:** add `dev-up.sh` to start the three processes. (done)
+4. **Verify:** add a lightweight check script and run it. (done)
 
 ## Plans (v15)
 
-- `docs/plan/v15-vr-offices-desk-rotation-bugfix.md`
+- `docs/plan/v15-root-dev-launcher-and-env.md`
 
 ## Definition of Done (DoD)
 
-- Rotating the ghost preview to 180° or 270° results in a placed desk with the same yaw.
-- Desk footprint logic treats 90° and 270° as “swapped X/Z”.
-- Tests cover the 4-snap yaw behavior.
+- Root `.env` is ignored by git; `.env.example` is committed.
+- `dev-up.sh --check` validates required tooling/env and exits non-zero on missing requirements.
+- `dev-up.sh` starts:
+  - `proxy/server.mjs` on `OPENAGENTIC_PROXY_HOST:OPENAGENTIC_PROXY_PORT`
+  - `media_service/server.mjs` on `OPENAGENTIC_MEDIA_HOST:OPENAGENTIC_MEDIA_PORT`
+  - `remote_daemon` via `cargo run` (unless `--no-daemon`)
+- A minimal regression check exists (`scripts/test_dev_up_check.sh`) and passes.
+
+## Verification
+
+- `bash scripts/test_dev_up_check.sh`
+- Optional:
+  - `bash dev-up.sh --check --no-daemon`
 
