@@ -274,6 +274,39 @@ func _init() -> void:
 	if not T.require_true(self, (got.get("bytes", PackedByteArray()) as PackedByteArray) == png_bytes, "Bytes mismatch"):
 		return
 
+	# Player-side: DialogueOverlay should be able to download to per-save cache and render.
+	var DialogueScene := load("res://vr_offices/ui/DialogueOverlay.tscn")
+	if DialogueScene == null:
+		T.fail_and_quit(self, "Missing DialogueOverlay.tscn")
+		return
+	var dlg: Control = (DialogueScene as PackedScene).instantiate()
+	get_root().add_child(dlg)
+	await process_frame
+	dlg.call("open", "npc_player", "NPC", save_id)
+	await process_frame
+	if dlg.has_method("_test_set_media_config"):
+		dlg.call("_test_set_media_config", "http://media.local", bearer, transport)
+
+	var dec: Dictionary = MediaRef.call("decode_v1", got_line)
+	if not T.require_true(self, bool(dec.get("ok", false)), "Expected decode ok"):
+		return
+	var ref: Dictionary = dec.get("ref", {})
+	var cache_path := ""
+	if dlg.has_method("_test_get_media_cache_path"):
+		cache_path = String(dlg.call("_test_get_media_cache_path", ref))
+	if not T.require_true(self, cache_path.strip_edges() != "", "Expected cache path"):
+		return
+
+	dlg.call("add_user_message", got_line)
+	for _i in range(180):
+		if FileAccess.file_exists(cache_path) and bool(dlg.call("_test_has_any_image_message")):
+			break
+		await process_frame
+	if not T.require_true(self, FileAccess.file_exists(cache_path), "Expected player cache file after download"):
+		return
+	if not T.require_true(self, bool(dlg.call("_test_has_any_image_message")), "Expected player DialogueOverlay render"):
+		return
+
 	# Cleanup.
 	server.stop()
 	T.pass_and_quit(self)
