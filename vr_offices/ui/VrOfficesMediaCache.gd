@@ -23,6 +23,12 @@ static func media_cache_path(save_id: String, ref: Dictionary) -> String:
 		ext = ".png"
 	elif mime == "image/jpeg":
 		ext = ".jpg"
+	elif mime == "audio/mpeg":
+		ext = ".mp3"
+	elif mime == "audio/wav":
+		ext = ".wav"
+	elif mime == "video/mp4":
+		ext = ".mp4"
 	return "%s/%s_%s%s" % [dir, id, sha, ext]
 
 static func load_cached_image_texture(save_id: String, ref: Dictionary) -> Texture2D:
