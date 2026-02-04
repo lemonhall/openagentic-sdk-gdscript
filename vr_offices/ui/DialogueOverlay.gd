@@ -6,15 +6,21 @@ signal closed
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
 const _MediaCache := preload("res://vr_offices/ui/VrOfficesMediaCache.gd")
+const _AttachmentQueue := preload("res://vr_offices/ui/VrOfficesAttachmentQueue.gd")
 
 @onready var title_label: Label = %TitleLabel
 @onready var session_log_size_label: Label = %SessionLogSizeLabel
 @onready var clear_session_log_button: Button = %ClearSessionLogButton
 @onready var messages: VBoxContainer = %Messages
 @onready var scroll: ScrollContainer = %Scroll
+@onready var attachments_panel: Control = %AttachmentsPanel
+@onready var attachments_list: VBoxContainer = %AttachmentsList
+@onready var cancel_all_button: Button = %CancelAllButton
 @onready var input: LineEdit = %Input
+@onready var attach_button: Button = %AttachButton
 @onready var send_button: Button = %SendButton
 @onready var close_button: Button = %CloseButton
+@onready var file_dialog: FileDialog = %FileDialog
 @onready var panel: Control = $Panel
 @onready var backdrop: ColorRect = $Backdrop
 
@@ -24,6 +30,7 @@ var _save_id: String = ""
 
 var _busy := false
 var _assistant_rtl: RichTextLabel = null
+var _attachments = null
 
 const _BUBBLE_MIN_WIDTH := 320.0
 const _BUBBLE_MAX_WIDTH := 720.0
@@ -32,12 +39,24 @@ const _BUBBLE_WIDTH_RATIO := 0.72
 func _ready() -> void:
 	visible = false
 	send_button.pressed.connect(_on_send_pressed)
+	if attach_button != null:
+		attach_button.pressed.connect(_on_attach_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 	input.text_submitted.connect(_on_input_submitted)
 	if backdrop != null:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
 	if clear_session_log_button != null:
 		clear_session_log_button.pressed.connect(_on_clear_session_log_pressed)
+	if cancel_all_button != null:
+		cancel_all_button.pressed.connect(_on_cancel_all_pressed)
+	if file_dialog != null:
+		file_dialog.files_selected.connect(_on_files_selected)
+		file_dialog.file_selected.connect(_on_file_selected)
+
+	if get_tree() != null and get_tree().has_signal("files_dropped"):
+		get_tree().files_dropped.connect(_on_files_dropped)
+
+	_reset_attachments()
 
 func _gui_input(event: InputEvent) -> void:
 	# When the overlay is visible, it should "own" mouse interactions so that the
@@ -88,9 +107,12 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	visible = true
 	_busy = false
 	_assistant_rtl = null
+	_reset_attachments()
 	_clear_messages()
 	input.text = ""
 	input.editable = true
+	if attach_button != null:
+		attach_button.disabled = false
 	send_button.disabled = false
 	_refresh_session_log_ui()
 	call_deferred("_grab_focus")
@@ -112,6 +134,10 @@ func set_busy(is_busy: bool) -> void:
 	_busy = is_busy
 	input.editable = not is_busy
 	send_button.disabled = is_busy
+	if attach_button != null:
+		attach_button.disabled = is_busy
+	if cancel_all_button != null:
+		cancel_all_button.disabled = is_busy
 	_refresh_session_log_ui()
 
 func add_user_message(text: String) -> void:
@@ -153,6 +179,121 @@ func _submit() -> void:
 	input.text = ""
 	add_user_message(t)
 	message_submitted.emit(t)
+
+func _reset_attachments() -> void:
+	_attachments = _AttachmentQueue.new()
+	if _attachments != null:
+		_attachments.changed.connect(_refresh_attachments_ui)
+	_refresh_attachments_ui()
+
+func _refresh_attachments_ui() -> void:
+	if attachments_panel == null or attachments_list == null or _attachments == null:
+		return
+	for c in attachments_list.get_children():
+		var n := c as Node
+		if n != null:
+			n.queue_free()
+
+	var items0: Variant = _attachments.list_items()
+	var items: Array = items0 as Array if typeof(items0) == TYPE_ARRAY else []
+	attachments_panel.visible = not items.is_empty()
+	if cancel_all_button != null:
+		cancel_all_button.disabled = _busy or items.is_empty()
+
+	for it0 in items:
+		if typeof(it0) != TYPE_DICTIONARY:
+			continue
+		var it: Dictionary = it0 as Dictionary
+		var id := int(it.get("id", 0))
+		var name := String(it.get("name", "")).strip_edges()
+		var bytes := int(it.get("bytes", -1))
+		var mime := String(it.get("mime", "")).strip_edges()
+		var st := String(it.get("state", "")).strip_edges()
+		var err := String(it.get("error", "")).strip_edges()
+		var progress := float(it.get("progress", 0.0))
+
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 10)
+		row.set_meta("attachment_id", id)
+
+		var label := Label.new()
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var detail := name
+		if mime != "":
+			detail += " (%s)" % mime
+		if bytes >= 0:
+			detail += "  %s" % _format_bytes(bytes)
+		label.text = detail
+		row.add_child(label)
+
+		var pb := ProgressBar.new()
+		pb.custom_minimum_size = Vector2(140, 0)
+		pb.min_value = 0.0
+		pb.max_value = 100.0
+		pb.value = clampf(progress, 0.0, 1.0) * 100.0
+		pb.indeterminate = (st == "uploading")
+		row.add_child(pb)
+
+		var st_label := Label.new()
+		st_label.text = st if err == "" else ("%s: %s" % [st, err])
+		row.add_child(st_label)
+
+		var cancel := Button.new()
+		cancel.text = "X"
+		cancel.disabled = _busy or (st == "sent") or (st == "failed") or (st == "cancelled")
+		cancel.pressed.connect(func() -> void: _on_cancel_item_pressed(id))
+		row.add_child(cancel)
+
+		attachments_list.add_child(row)
+
+func _on_cancel_item_pressed(item_id: int) -> void:
+	if _busy or _attachments == null:
+		return
+	_attachments.cancel_item(item_id)
+
+func _on_cancel_all_pressed() -> void:
+	if _busy or _attachments == null:
+		return
+	_attachments.cancel_all()
+
+func _on_attach_pressed() -> void:
+	if _busy or file_dialog == null:
+		return
+	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILES
+	file_dialog.popup_centered_ratio(0.75)
+
+func _on_files_selected(paths: PackedStringArray) -> void:
+	_enqueue_attachment_paths(paths)
+
+func _on_file_selected(path: String) -> void:
+	# Defensive: in case file_mode is not multi-select on some platform.
+	_enqueue_attachment_paths(PackedStringArray([path]))
+
+func _on_files_dropped(files: PackedStringArray) -> void:
+	if not visible or _busy:
+		return
+	_enqueue_attachment_paths(files)
+
+func _enqueue_attachment_paths(paths: PackedStringArray) -> void:
+	if _attachments == null:
+		_reset_attachments()
+	if _attachments == null:
+		return
+	for p in paths:
+		var s := String(p).strip_edges()
+		if s == "":
+			continue
+		_attachments.enqueue(s, {})
+
+func _test_enqueue_attachment_paths(paths: PackedStringArray) -> void:
+	_enqueue_attachment_paths(paths)
+
+func _test_attachment_row_count() -> int:
+	if attachments_list == null:
+		return 0
+	return attachments_list.get_child_count()
 
 func _add_message(is_user: bool, text: String) -> RichTextLabel:
 	var t := text.strip_edges()

@@ -54,5 +54,37 @@ func _init() -> void:
 	if not T.require_eq(self, String(q.call("get_item", id3).get("state", "")), "cancelled"):
 		return
 
-	T.pass_and_quit(self)
+	# Basic DialogueOverlay wiring exists (Attach button, queue container, test hooks).
+	var DialogueScene := load("res://vr_offices/ui/DialogueOverlay.tscn")
+	if DialogueScene == null:
+		T.fail_and_quit(self, "Missing DialogueOverlay.tscn")
+		return
+	var dlg: Control = (DialogueScene as PackedScene).instantiate()
+	get_root().add_child(dlg)
+	await process_frame
 
+	var attach_btn := dlg.get_node_or_null("Panel/VBox/Footer/AttachButton") as Button
+	if not T.require_true(self, attach_btn != null, "Expected DialogueOverlay AttachButton"):
+		return
+	var attachments_panel := dlg.get_node_or_null("Panel/VBox/AttachmentsPanel") as Control
+	if not T.require_true(self, attachments_panel != null, "Expected DialogueOverlay AttachmentsPanel"):
+		return
+	var file_dialog := dlg.get_node_or_null("FileDialog") as FileDialog
+	if not T.require_true(self, file_dialog != null, "Expected DialogueOverlay FileDialog"):
+		return
+
+	if not dlg.has_method("_test_enqueue_attachment_paths"):
+		T.fail_and_quit(self, "DialogueOverlay missing _test_enqueue_attachment_paths()")
+		return
+	if not dlg.has_method("_test_attachment_row_count"):
+		T.fail_and_quit(self, "DialogueOverlay missing _test_attachment_row_count()")
+		return
+
+	dlg.call("_test_enqueue_attachment_paths", PackedStringArray(["/tmp/a.png", "/tmp/b.jpg"]))
+	await process_frame
+
+	var n := int(dlg.call("_test_attachment_row_count"))
+	if not T.require_eq(self, n, 2, "Expected 2 attachment rows after enqueue"):
+		return
+
+	T.pass_and_quit(self)
