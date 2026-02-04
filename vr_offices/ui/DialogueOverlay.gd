@@ -529,7 +529,12 @@ func _add_media_message(is_user: bool, ref: Dictionary) -> void:
 		bubble.add_child(tr)
 	else:
 		var lbl2 := Label.new()
-		lbl2.text = "Unsupported media"
+		if kind == "audio":
+			lbl2.text = "Audio message (preview not implemented)"
+		elif kind == "video":
+			lbl2.text = "Video message (preview not implemented)"
+		else:
+			lbl2.text = "Unsupported media"
 		lbl2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bubble.add_child(lbl2)
 
