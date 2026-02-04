@@ -131,3 +131,7 @@ Defaults (override via env vars):
 - `OPENAGENTIC_PROXY_BASE_URL` (default `http://127.0.0.1:8787/v1`)
 - `OPENAGENTIC_MODEL` (default `gpt-5.2`)
 - `OPENAGENTIC_SAVE_ID` (default `slot1`)
+
+Multimedia messages (v50):
+
+- `docs/vr_offices/multimedia_messages.zh-CN.md`
