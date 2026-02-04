@@ -75,7 +75,8 @@
 
 - **REQ-009** 在 IRC 文本中传递 media ref 的协议约束：
   - 不与 `OA1 ` 冲突（OA1 保留给工具 RPC）
-  - 单行可传输（尽量控制长度，必要时可分片但需可重组）
+  - 单行可传输；若超过 IRC 单行上限（例如 desk bridge 当前默认约 `360` 字符），必须使用**分片协议**（带 `message_id`、`part/total`）并可重组
+  - 禁止对 `OAMEDIA1` 负载进行“硬截断分段发送”（否则 base64url/JSON 会损坏）；必须用显式分片格式
   - Desk bridge 与（未来）IRC UI 能识别并按 media ref 处理
 
 ## Proposed Format (v1)
@@ -120,13 +121,26 @@
   - 视频（MP4）：≤ **64 MiB**
 - 文件名/标题最大长度：**128**（超出截断或拒绝；避免日志污染）
 
+## Configuration (v1)
+
+媒体服务连接信息由本地配置/环境变量提供（不进入消息内容）：
+
+- `OPENAGENTIC_MEDIA_BASE_URL`：例如 `http://127.0.0.1:8788`
+- `OPENAGENTIC_MEDIA_BEARER_TOKEN`：用于 upload/download 的 bearer token
+
+约束：
+
+- `OPENAGENTIC_MEDIA_BASE_URL` 必须对 IRC 参与方“接收端”可达（同机 / 局域网 / 公网均可，但必须可连通）；否则接收端无法下载媒体。
+
 ## Verification Strategy（E2E 与自动化）
 
 目标：在不依赖人工肉眼看 UI 的情况下，仍然能对“多媒体传输链路”做可重复验证；必要时提供一个“人类发送端”工具用于手工 e2e。
 
 ### E2E Flow A — Player → (IRC) → Remote Agent（可自动化）
 
-链路：游戏内选择文件 → 上传媒体服务 → 发送 `OAMEDIA1` 到 IRC → 接收侧解析 → 下载到本地/工作区 → 将 **workspace 相对路径** 交给对面 agent。
+链路：选择文件 → 上传媒体服务 → 发送 `OAMEDIA1` 到 IRC → 接收侧解析 → 下载到本地/工作区 → 将 **workspace 相对路径** 交给对面 agent。
+
+注：v50 自动化不强依赖“游戏内文件选择 UI”；可以用脚本发送端替代（更可重复）。
 
 自动化验证思路：
 
@@ -144,7 +158,7 @@
 
 自动化验证思路（不要求“真的播放成功”）：
 
-- 在 headless VR Offices 中连接本地 IRC server 并订阅目标频道。
+- 在 VR Offices 测试环境中订阅本地 IRC server 目标频道（需注意：当前 `VrOfficesDeskIrcLink` 在 headless 会跳过网络连接；E2E harness 需要绕过或引入“允许 headless 网络”的测试开关）。
 - 用一个脚本客户端发送 `OAMEDIA1` 消息到频道（模拟“对面 agent”）。
 - 验证点：
   - 玩家侧 per-save cache 目录出现文件

@@ -144,6 +144,7 @@ scripts/run_godot_tests.sh --one tests/addons/openagentic/test_tool_media_upload
 1) **Red**: `tests/projects/vr_offices/test_irc_media_ref_transport.gd` covers:
    - message length constraints (fit under desk defaults like ~360 chars, or fragment with reassembly)
    - no conflict with `OA1 `
+   - guardrail: `OAMEDIA1` must **not** be naively chunk-split (base64url/JSON would corrupt)
 2) **Green**:
    - implement encode/decode helpers
    - update desk channel bridge to pass through or handle `OAMEDIA1` safely
@@ -166,10 +167,21 @@ Design (planned):
 - Add a sender helper (either a tiny script client or a Python/Tk tool) that can:
   - upload a local file to the media service
   - send the resulting `OAMEDIA1 ...` line into the IRC channel
+  - recommended deliverables:
+    - `scripts/oa_media_sender.py` (CLI, scriptable)
+    - `scripts/oa_media_sender_tk.py` (Tk GUI, manual e2e)
 - Add a headless VR Offices test that:
   - joins local IRC server
   - receives `OAMEDIA1`
   - downloads into cache/workspace and asserts file integrity on disk (no screenshots required)
+
+Reality check (current code):
+
+- `vr_offices/core/desks/VrOfficesDeskIrcLink.gd` currently skips network connection when `DisplayServer.get_name()=="headless"` (status becomes `headless`).
+- Therefore, the harness must choose one:
+  1) add a **test-only** allow switch so desk IRC link can connect in headless, or
+  2) use a fake/in-memory IRC transport for automated tests, or
+  3) run E2E as a `scripts/` harness with a non-headless Godot binary.
 
 Acceptance (hard):
 
