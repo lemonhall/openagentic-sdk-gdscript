@@ -18,9 +18,9 @@ This version fixes those gaps with tests + evidence.
 
 | Milestone | Scope | DoD | Verify | Status |
 |---|---|---|---|---|
-| M1 | Dialogue | Missing/invalid cached image triggers download to per-save cache; verifies sha/bytes; shows deterministic error on failure | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image_download.gd` | todo |
-| M2 | Media service | Real server smoke check validates auth + MIME sniff behavior | `node media_service/smoke_test.mjs` | todo |
-| M3 | E2E | Extend E2E to also validate “remote → player cache” path using the same local IRC + transport | `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` | todo |
+| M1 | Dialogue | Missing/invalid cached image triggers download to per-save cache; verifies sha/bytes; shows deterministic error on failure | `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image_download.gd` | done |
+| M2 | Media service | Real server smoke check validates auth + MIME sniff behavior | `node media_service/smoke_test.mjs` | done |
+| M3 | E2E | Extend E2E to also validate “remote → player cache” path using the same local IRC + transport | `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` | done |
 
 ## PRD Trace
 
@@ -36,5 +36,7 @@ PRD: `docs/prd/2026-02-04-vr-offices-multimedia-messages.md`
 
 ## Evidence
 
-TBD.
-
+- 2026-02-04: `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_dialogue_media_image_download.gd` → PASS
+- 2026-02-04: `node media_service/smoke_test.mjs` → PASS
+- 2026-02-04: `scripts/run_godot_tests.sh --one tests/e2e/test_multimedia_flow.gd` → PASS
+- 2026-02-04: `scripts/run_godot_tests.sh --suite vr_offices` → PASS
