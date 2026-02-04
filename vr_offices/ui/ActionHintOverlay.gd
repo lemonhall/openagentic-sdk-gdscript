@@ -10,4 +10,3 @@ func show_hint(text: String) -> void:
 
 func hide_hint() -> void:
 	visible = false
-

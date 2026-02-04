@@ -27,4 +27,3 @@ func _apply_visual(t: float) -> void:
 		var mat := mesh.material_override as ShaderMaterial
 		mat.set_shader_parameter("u_color", color)
 		mat.set_shader_parameter("u_pulse", k)
-
