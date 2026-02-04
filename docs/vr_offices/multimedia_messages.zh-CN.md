@@ -7,6 +7,16 @@
 - v50：把“多媒体在纯文本通道里怎么安全地传递”这件事做扎实（协议、服务、工具、IRC 分片、E2E）
 - v51：把玩家侧体验补齐：**在 NPC 对话框里直接点“Attach/附件”或拖拽文件发送**
 
+## 快速开始（最短路径）
+
+1) 启动媒体服务（见「准备工作」）
+2) 在启动 VR Offices 之前设置环境变量：
+   - `OPENAGENTIC_MEDIA_BASE_URL=http://127.0.0.1:8788`
+   - `OPENAGENTIC_MEDIA_BEARER_TOKEN=dev-token`
+3) 进游戏 → 打开 NPC 对话框 → 点击 `Attach` 或拖拽文件进对话框
+4) 等队列里显示 `sent` 后，如果你希望 NPC “真的去下载并理解内容”，建议再补一句明确指令，例如：
+   - “请用 `MediaFetch` 下载我刚发的媒体，然后描述/转写/总结它。”
+
 ## 这套能力解决什么问题
 
 IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4。v50 的做法是：
@@ -40,6 +50,12 @@ IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4�
 4) 生成并发送一行 `OAMEDIA1 ...` 给 NPC/agent（聊天里**不会**包含 token，也不会包含你的本机绝对路径）；
 5) 为了让“我自己发出去的图片也能立刻显示”，客户端会把文件 bytes 落盘到 `user://.../cache/media/`（并做 `bytes/sha256` 校验）。
 
+补充说明（当前实现口径）：
+
+- 图片：自己发送的图片会写入本地 cache，所以聊天里能立刻显示缩略图。
+- 音频/视频：目前会显示一个占位提示（preview not implemented），发送与落盘仍是有效的。
+- 对面发来的图片：仍然只会“从本地 cache 尝试加载”；自动下载展示属于后续迭代。
+
 ### 你怎么用（一步步）
 
 前提：你已经完成下方「准备工作」（启动媒体服务 + 配置环境变量）。
@@ -59,6 +75,12 @@ IRC 和对话系统本质是“纯文本通道”，无法直接传 PNG/MP3/MP4�
 - `MissingMediaConfig`：你没有配置 `OPENAGENTIC_MEDIA_BASE_URL` / `OPENAGENTIC_MEDIA_BEARER_TOKEN`，或者为空
 - `UnsupportedType`：文件类型不在白名单（只允许 png/jpg/jpeg/mp3/wav/mp4）
 - `TooLarge`：超过大小限制（图片≤8MiB，音频≤20MiB，视频≤64MiB）
+- `UploadFailed`：媒体服务不可达/鉴权失败/服务返回错误（先跑 `curl http://127.0.0.1:8788/healthz` 看服务是否活着）
+
+细节：
+
+- 文件名会被截断到 **128 字符以内**（用于显示与写入 `OAMEDIA1` 的 `name` 字段）；聊天里只会出现 basename，不会出现你的本机绝对路径。
+- `Cancel All`/取消单条是“尽力而为”：它会阻止后续发送，但不保证能中断已经在进行中的 HTTP 上传请求。
 
 ## v50 回顾：为什么当时 NPC 聊天框 UI “没变”（历史原因）
 
