@@ -4,6 +4,8 @@ class_name OAStandardTools
 const _OATool := preload("res://addons/openagentic/core/OATool.gd")
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _OAWorkspaceFs := preload("res://addons/openagentic/core/OAWorkspaceFs.gd")
+const _OAMediaHttp := preload("res://addons/openagentic/core/OAMediaHttp.gd")
+const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
 const _OASkills := preload("res://addons/openagentic/core/OASkills.gd")
 const _SessionStoreScript := preload("res://addons/openagentic/core/OAJsonlNpcSessionStore.gd")
 
@@ -513,6 +515,171 @@ static func tools() -> Array:
 
 	var skill_schema: Dictionary = {"type": "object", "properties": {"name": {"type": "string"}}}
 	out.append(_OATool.new("Skill", "Load an NPC Skill by name. Skills live at workspace/skills/<skill-name>/SKILL.md.", skill_fn, skill_schema))
+
+	# --- Media tools (upload/fetch) ---
+
+	var _resolve_media_cfg: Callable = func(ctx: Dictionary) -> Dictionary:
+		var base := String(ctx.get("media_base_url", OS.get_environment("OPENAGENTIC_MEDIA_BASE_URL"))).strip_edges()
+		var tok := String(ctx.get("media_bearer_token", OS.get_environment("OPENAGENTIC_MEDIA_BEARER_TOKEN"))).strip_edges()
+		if base.ends_with("/"):
+			base = base.rstrip("/")
+		return {"ok": base != "" and tok != "", "base_url": base, "token": tok}
+
+	var media_upload_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:
+		var chk := _require_workspace_root(ctx)
+		if not bool(chk.ok):
+			return {"ok": false, "error": "MissingWorkspace"}
+		var cfg := _resolve_media_cfg.call(ctx)
+		if not bool(cfg.get("ok", false)):
+			return {"ok": false, "error": "MissingMediaConfig", "message": "Set OPENAGENTIC_MEDIA_BASE_URL and OPENAGENTIC_MEDIA_BEARER_TOKEN (or pass via ctx)."}
+
+		var fs := _workspace_fs(ctx)
+		var file_path := String(input.get("file_path", input.get("filePath", input.get("path", "")))).strip_edges()
+		if file_path == "":
+			return {"ok": false, "error": "InvalidInput", "message": "MediaUpload: 'file_path' must be a non-empty string"}
+
+		var rr: Dictionary = fs.read_bytes(file_path)
+		if not bool(rr.get("ok", false)):
+			return rr
+		var bytes: PackedByteArray = rr.get("bytes", PackedByteArray())
+		if bytes.is_empty():
+			return {"ok": false, "error": "InvalidInput", "message": "MediaUpload: empty file"}
+
+		var name := String(input.get("name", "")).strip_edges()
+		if name == "":
+			name = file_path.get_file()
+		var caption := String(input.get("caption", "")).strip_edges()
+		var url := String(cfg.get("base_url", "")) + "/upload"
+
+		var headers := {
+			"authorization": "Bearer " + String(cfg.get("token", "")),
+			"x-oa-name": name,
+		}
+		if caption != "":
+			headers["x-oa-caption"] = caption
+
+		var transport0: Variant = ctx.get("media_transport", null)
+		var transport: Callable = transport0 as Callable if typeof(transport0) == TYPE_CALLABLE else Callable()
+
+		var res: Dictionary = await _OAMediaHttp.request(HTTPClient.METHOD_POST, url, headers, bytes, 15.0, transport)
+		if not bool(res.get("ok", false)):
+			return res
+		var status := int(res.get("status", 0))
+		if status < 200 or status >= 300:
+			return {"ok": false, "error": "HttpError", "status": status}
+		var body: PackedByteArray = res.get("body", PackedByteArray())
+		var txt := body.get_string_from_utf8()
+		var parsed := JSON.new()
+		if parsed.parse(txt) != OK or typeof(parsed.data) != TYPE_DICTIONARY:
+			return {"ok": false, "error": "InvalidJSON"}
+		var meta: Dictionary = parsed.data as Dictionary
+		if not bool(meta.get("ok", false)):
+			return {"ok": false, "error": String(meta.get("error", "UploadFailed")), "message": String(meta.get("message", ""))}
+
+		var ref := {
+			"id": String(meta.get("id", "")),
+			"kind": String(meta.get("kind", "")),
+			"mime": String(meta.get("mime", "")),
+			"bytes": int(meta.get("bytes", 0)),
+			"sha256": String(meta.get("sha256", "")),
+		}
+		if String(meta.get("name", "")).strip_edges() != "":
+			ref["name"] = String(meta.get("name", ""))
+		if String(meta.get("caption", "")).strip_edges() != "":
+			ref["caption"] = String(meta.get("caption", ""))
+		var line := String(_OAMediaRef.encode_v1(ref))
+		if line == "":
+			return {"ok": false, "error": "InvalidMediaRef"}
+		return {"ok": true, "media_ref": line, "meta": ref}
+
+	var media_upload_schema: Dictionary = {
+		"type": "object",
+		"properties": {
+			"file_path": {"type": "string"},
+			"filePath": {"type": "string"},
+			"path": {"type": "string"},
+			"name": {"type": "string"},
+			"caption": {"type": "string"},
+		},
+		"required": ["file_path"],
+	}
+	out.append(_OATool.new("MediaUpload", "Upload a file from the NPC workspace to the media service and return an OAMEDIA1 reference.", media_upload_fn, media_upload_schema, true))
+
+	var media_fetch_fn: Callable = func(input: Dictionary, ctx: Dictionary) -> Variant:
+		var chk := _require_workspace_root(ctx)
+		if not bool(chk.ok):
+			return {"ok": false, "error": "MissingWorkspace"}
+		var cfg := _resolve_media_cfg.call(ctx)
+		if not bool(cfg.get("ok", false)):
+			return {"ok": false, "error": "MissingMediaConfig", "message": "Set OPENAGENTIC_MEDIA_BASE_URL and OPENAGENTIC_MEDIA_BEARER_TOKEN (or pass via ctx)."}
+
+		var fs := _workspace_fs(ctx)
+		var media_ref := String(input.get("media_ref", input.get("mediaRef", ""))).strip_edges()
+		if media_ref == "":
+			return {"ok": false, "error": "InvalidInput", "message": "MediaFetch: 'media_ref' must be a non-empty string"}
+		var dec: Dictionary = _OAMediaRef.decode_v1(media_ref)
+		if not bool(dec.get("ok", false)) or typeof(dec.get("ref", null)) != TYPE_DICTIONARY:
+			return {"ok": false, "error": "InvalidMediaRef"}
+		var ref: Dictionary = dec.get("ref", {})
+		var id := String(ref.get("id", "")).strip_edges()
+		if id == "":
+			return {"ok": false, "error": "InvalidMediaRef"}
+
+		var url := String(cfg.get("base_url", "")) + "/media/" + id
+		var headers := {"authorization": "Bearer " + String(cfg.get("token", ""))}
+		var transport0: Variant = ctx.get("media_transport", null)
+		var transport: Callable = transport0 as Callable if typeof(transport0) == TYPE_CALLABLE else Callable()
+		var res: Dictionary = await _OAMediaHttp.request(HTTPClient.METHOD_GET, url, headers, PackedByteArray(), 15.0, transport)
+		if not bool(res.get("ok", false)):
+			return res
+		var status := int(res.get("status", 0))
+		if status != 200:
+			return {"ok": false, "error": "HttpError", "status": status}
+		var body: PackedByteArray = res.get("body", PackedByteArray())
+		var expected_bytes := int(ref.get("bytes", -1))
+		var expected_sha := String(ref.get("sha256", "")).strip_edges().to_lower()
+		if expected_bytes > 0 and body.size() != expected_bytes:
+			return {"ok": false, "error": "IntegrityError", "message": "bytes mismatch"}
+		if expected_sha != "":
+			var hc := HashingContext.new()
+			hc.start(HashingContext.HASH_SHA256)
+			hc.update(body)
+			var got_sha := hc.finish().hex_encode()
+			if got_sha != expected_sha:
+				return {"ok": false, "error": "IntegrityError", "message": "sha256 mismatch"}
+
+		var dest := String(input.get("dest_path", input.get("destPath", ""))).strip_edges()
+		if dest == "":
+			var mime := String(ref.get("mime", "")).strip_edges().to_lower()
+			var ext := ".bin"
+			if mime == "image/png":
+				ext = ".png"
+			elif mime == "image/jpeg":
+				ext = ".jpg"
+			elif mime == "audio/mpeg":
+				ext = ".mp3"
+			elif mime == "audio/wav":
+				ext = ".wav"
+			elif mime == "video/mp4":
+				ext = ".mp4"
+			dest = "media/%s_%s%s" % [id, expected_sha, ext]
+
+		var wr: Dictionary = fs.write_bytes(dest, body)
+		if not bool(wr.get("ok", false)):
+			return wr
+		return {"ok": true, "file_path": dest, "bytes": body.size(), "sha256": expected_sha}
+
+	var media_fetch_schema: Dictionary = {
+		"type": "object",
+		"properties": {
+			"media_ref": {"type": "string"},
+			"mediaRef": {"type": "string"},
+			"dest_path": {"type": "string"},
+			"destPath": {"type": "string"},
+		},
+		"required": ["media_ref"],
+	}
+	out.append(_OATool.new("MediaFetch", "Fetch an OAMEDIA1 reference from the media service into the NPC workspace and return a workspace-relative path.", media_fetch_fn, media_fetch_schema, true))
 
 	for t in OAWebTools.tools():
 		out.append(t)

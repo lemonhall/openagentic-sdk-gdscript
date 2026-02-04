@@ -56,6 +56,20 @@ func write_text(rel_path: String, text: String) -> Dictionary:
 	f.close()
 	return {"ok": true}
 
+func write_bytes(rel_path: String, bytes: PackedByteArray) -> Dictionary:
+	var r := resolve(rel_path)
+	if not bool(r.get("ok", false)):
+		return r
+	var p := String(r.get("path", ""))
+	var abs := ProjectSettings.globalize_path(p)
+	DirAccess.make_dir_recursive_absolute(abs.get_base_dir())
+	var f: FileAccess = FileAccess.open(abs, FileAccess.WRITE)
+	if f == null:
+		return {"ok": false, "error": "IOError"}
+	f.store_buffer(bytes)
+	f.close()
+	return {"ok": true}
+
 func read_text(rel_path: String) -> Dictionary:
 	var r := resolve(rel_path)
 	if not bool(r.get("ok", false)):
@@ -70,6 +84,21 @@ func read_text(rel_path: String) -> Dictionary:
 	var txt := f.get_as_text()
 	f.close()
 	return {"ok": true, "text": String(txt)}
+
+func read_bytes(rel_path: String) -> Dictionary:
+	var r := resolve(rel_path)
+	if not bool(r.get("ok", false)):
+		return r
+	var p := String(r.get("path", ""))
+	var abs := ProjectSettings.globalize_path(p)
+	if not FileAccess.file_exists(abs):
+		return {"ok": false, "error": "NotFound"}
+	var f: FileAccess = FileAccess.open(abs, FileAccess.READ)
+	if f == null:
+		return {"ok": false, "error": "IOError"}
+	var buf := f.get_buffer(f.get_length())
+	f.close()
+	return {"ok": true, "bytes": buf}
 
 func list_dir(rel_dir: String = "") -> Dictionary:
 	var r := resolve(rel_dir)
