@@ -189,13 +189,20 @@ static func _web_search(input: Dictionary, ctx: Dictionary) -> Variant:
 	var api_key := String(ctx.get("tavily_api_key", "")).strip_edges()
 	if api_key == "":
 		return {"ok": false, "error": "MissingApiKey", "message": "WebSearch: missing TAVILY_API_KEY"}
+	var base_url := String(ctx.get("tavily_base_url", "")).strip_edges()
+	if base_url == "":
+		base_url = OS.get_environment("TAVILY_BASE_URL").strip_edges()
+	if base_url == "":
+		base_url = "https://api.tavily.com"
+	if base_url.ends_with("/"):
+		base_url = base_url.rstrip("/")
 
 	# Allow tests to inject transport.
 	var transport0: Variant = ctx.get("web_search_transport", null)
 	if typeof(transport0) == TYPE_CALLABLE and not (transport0 as Callable).is_null():
 		return _web_search_with_transport(query, max_results, allowed, blocked, api_key, transport0 as Callable)
 
-	return await _web_search_httpclient(query, max_results, allowed, blocked, api_key)
+	return await _web_search_httpclient(query, max_results, allowed, blocked, api_key, base_url)
 
 static func _web_search_with_transport(query: String, max_results: int, allowed: Array[String], blocked: Array[String], api_key: String, transport: Callable) -> Dictionary:
 	var payload := {"api_key": api_key, "query": query, "max_results": max_results}
@@ -204,8 +211,13 @@ static func _web_search_with_transport(query: String, max_results: int, allowed:
 		return {"ok": false, "error": "TransportError"}
 	return _filter_search_results(query, res0 as Dictionary, allowed, blocked)
 
-static func _web_search_httpclient(query: String, max_results: int, allowed: Array[String], blocked: Array[String], api_key: String) -> Variant:
-	var url := "https://api.tavily.com/search"
+static func _web_search_httpclient(query: String, max_results: int, allowed: Array[String], blocked: Array[String], api_key: String, base_url: String) -> Variant:
+	var base := base_url.strip_edges()
+	if base == "":
+		base = "https://api.tavily.com"
+	if base.ends_with("/"):
+		base = base.rstrip("/")
+	var url := base + "/search"
 	var payload := {"api_key": api_key, "query": query, "max_results": max_results}
 	var body := JSON.stringify(payload)
 

@@ -7,6 +7,9 @@ const _MediaConfigStore := preload("res://vr_offices/core/media/VrOfficesMediaCo
 const _MediaHealth := preload("res://vr_offices/core/media/VrOfficesMediaHealth.gd")
 const _MediaCache := preload("res://vr_offices/ui/VrOfficesMediaCache.gd")
 const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLog.gd")
+const _TavilyConfig := preload("res://addons/openagentic/core/OATavilyConfig.gd")
+const _TavilyConfigStore := preload("res://addons/openagentic/core/OATavilyConfigStore.gd")
+const _TavilyHealth := preload("res://vr_offices/core/websearch/VrOfficesTavilyHealth.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
 @onready var close_button: Button = %CloseButton
@@ -50,6 +53,13 @@ const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLo
 @onready var send_log_refresh_button: Button = %SendLogRefreshButton
 @onready var send_log_list: ItemList = %SendLogList
 
+@onready var tavily_base_url_edit: LineEdit = %TavilyBaseUrlEdit
+@onready var tavily_api_key_edit: LineEdit = %TavilyApiKeyEdit
+@onready var tavily_save_button: Button = %TavilySaveButton
+@onready var tavily_reload_button: Button = %TavilyReloadButton
+@onready var tavily_test_button: Button = %TavilyTestButton
+@onready var tavily_status_label: Label = %TavilyStatusLabel
+
 var _world: Node = null
 var _desk_manager: RefCounted = null
 var _config: Dictionary = {}
@@ -59,6 +69,7 @@ var _selected_desk_id: String = ""
 var _desk_snapshots: Array[Dictionary] = []
 
 var _media_transport_override: Callable = Callable()
+var _tavily_transport_override: Callable = Callable()
 
 func _ready() -> void:
 	visible = false
@@ -100,18 +111,27 @@ func _ready() -> void:
 	if send_log_refresh_button != null:
 		send_log_refresh_button.pressed.connect(_refresh_send_log)
 
+	if tavily_save_button != null:
+		tavily_save_button.pressed.connect(_on_tavily_save_pressed)
+	if tavily_reload_button != null:
+		tavily_reload_button.pressed.connect(_on_tavily_reload_pressed)
+	if tavily_test_button != null:
+		tavily_test_button.pressed.connect(_on_tavily_test_pressed)
+
 	if backdrop != null:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
 
 	_update_test_status("")
 	_ensure_test_client()
 	_update_media_health("")
+	_update_tavily_status("")
 
 func bind(world: Node, desk_manager: RefCounted) -> void:
 	_world = world
 	_desk_manager = desk_manager
 	if _world != null and _world.has_method("get_irc_config"):
 		set_config(_world.call("get_irc_config"))
+	_load_tavily_fields()
 
 func set_config(cfg: Dictionary) -> void:
 	_config = cfg if cfg != null else {}
@@ -124,6 +144,7 @@ func open() -> void:
 	_refresh_desks()
 	_load_media_fields()
 	_refresh_send_log()
+	_load_tavily_fields()
 	call_deferred("_grab_focus")
 
 func open_for_desk(desk_id: String) -> void:
@@ -180,6 +201,64 @@ func _load_media_fields() -> void:
 	if media_token_edit != null:
 		media_token_edit.text = String(cfg.get("bearer_token", "")).strip_edges()
 	_update_media_health("")
+
+func _effective_tavily_cfg() -> Dictionary:
+	var env: Dictionary = _TavilyConfig.from_environment()
+	var sid := _resolve_save_id()
+	if sid != "":
+		var rd: Dictionary = _TavilyConfigStore.load_config(sid)
+		if bool(rd.get("ok", false)) and typeof(rd.get("config", null)) == TYPE_DICTIONARY:
+			var cfg: Dictionary = rd.get("config", {})
+			var base := String(cfg.get("base_url", "")).strip_edges()
+			var key := String(cfg.get("api_key", "")).strip_edges()
+			var base2 := base if base != "" else String(env.get("base_url", "")).strip_edges()
+			var key2 := key if key != "" else String(env.get("api_key", "")).strip_edges()
+			return {"base_url": base2, "api_key": key2}
+	return env
+
+func _load_tavily_fields() -> void:
+	var cfg: Dictionary = _effective_tavily_cfg()
+	if tavily_base_url_edit != null:
+		tavily_base_url_edit.text = String(cfg.get("base_url", "")).strip_edges()
+	if tavily_api_key_edit != null:
+		tavily_api_key_edit.text = String(cfg.get("api_key", "")).strip_edges()
+	_update_tavily_status("")
+
+func _update_tavily_status(text: String) -> void:
+	if tavily_status_label != null:
+		tavily_status_label.text = text
+
+func _on_tavily_save_pressed() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		_update_tavily_status("Missing save_id")
+		return
+	var base := tavily_base_url_edit.text.strip_edges() if tavily_base_url_edit != null else ""
+	var key := tavily_api_key_edit.text.strip_edges() if tavily_api_key_edit != null else ""
+	var wr: Dictionary = _TavilyConfigStore.save_config(sid, {"base_url": base, "api_key": key})
+	if bool(wr.get("ok", false)):
+		_update_tavily_status("Saved")
+	else:
+		_update_tavily_status("Save failed: %s" % String(wr.get("error", "WriteFailed")))
+
+func _on_tavily_reload_pressed() -> void:
+	_load_tavily_fields()
+
+func _on_tavily_test_pressed() -> void:
+	var cfg: Dictionary = _effective_tavily_cfg()
+	var base := String(cfg.get("base_url", "")).strip_edges()
+	var key := String(cfg.get("api_key", "")).strip_edges()
+	if base == "" or key == "":
+		_update_tavily_status("Missing config")
+		return
+	_update_tavily_status("Checking…")
+	var rr: Dictionary = await _TavilyHealth.check_health(base, key, _tavily_transport_override)
+	if bool(rr.get("ok", false)):
+		_update_tavily_status("OK")
+	else:
+		var status := int(rr.get("status", 0))
+		var err := String(rr.get("error", "Error"))
+		_update_tavily_status("%s%s" % [err, (" (HTTP %d)" % status) if status > 0 else ""])
 
 func _on_media_save_pressed() -> void:
 	var sid := _resolve_save_id()
@@ -259,6 +338,9 @@ func _update_media_health(text: String) -> void:
 
 func _test_set_media_transport(transport: Callable) -> void:
 	_media_transport_override = transport
+
+func _test_set_tavily_transport(transport: Callable) -> void:
+	_tavily_transport_override = transport
 
 func _gui_input(event: InputEvent) -> void:
 	if not visible:

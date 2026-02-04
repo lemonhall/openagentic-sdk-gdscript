@@ -36,7 +36,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var workspace_overlay: Control = $UI/WorkspaceOverlay
 @onready var desk_overlay: Control = $UI/DeskOverlay
 @onready var action_hint_overlay: Control = $UI/ActionHintOverlay
-@onready var irc_overlay: Control = $UI/IrcOverlay
+@onready var settings_overlay: Control = $UI/SettingsOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _agent: RefCounted = null
@@ -69,7 +69,7 @@ func _ready() -> void:
 	ui.add_npc_pressed.connect(add_npc)
 	ui.remove_selected_pressed.connect(remove_selected)
 	if ui.has_signal("irc_pressed"):
-		ui.connect("irc_pressed", Callable(self, "open_irc_overlay"))
+		ui.connect("irc_pressed", Callable(self, "open_settings_overlay"))
 	if ui.has_signal("culture_changed"):
 		ui.connect("culture_changed", Callable(self, "set_culture"))
 
@@ -118,8 +118,8 @@ func _ready() -> void:
 		if dialogue.has_signal("closed"):
 			dialogue.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
 
-	if irc_overlay != null and irc_overlay.has_method("bind"):
-		irc_overlay.call("bind", self, _desk_manager)
+	if settings_overlay != null and settings_overlay.has_method("bind"):
+		settings_overlay.call("bind", self, _desk_manager)
 
 	if desk_overlay != null:
 		if desk_overlay.has_signal("device_code_submitted"):
@@ -216,23 +216,23 @@ func _apply_irc_settings_to_desks() -> void:
 		return
 	_desk_manager.call("set_irc_config", _irc_settings.call("get_config"))
 
-func open_irc_overlay() -> void:
-	if irc_overlay == null:
+func open_settings_overlay() -> void:
+	if settings_overlay == null:
 		return
-	if irc_overlay.has_method("set_config"):
-		irc_overlay.call("set_config", get_irc_config())
-	if irc_overlay.has_method("open"):
-		irc_overlay.call("open")
+	if settings_overlay.has_method("set_config"):
+		settings_overlay.call("set_config", get_irc_config())
+	if settings_overlay.has_method("open"):
+		settings_overlay.call("open")
 
-func open_irc_overlay_for_desk(desk_id: String) -> void:
-	if irc_overlay == null:
+func open_settings_overlay_for_desk(desk_id: String) -> void:
+	if settings_overlay == null:
 		return
-	if irc_overlay.has_method("set_config"):
-		irc_overlay.call("set_config", get_irc_config())
-	if irc_overlay.has_method("open_for_desk"):
-		irc_overlay.call("open_for_desk", desk_id)
+	if settings_overlay.has_method("set_config"):
+		settings_overlay.call("set_config", get_irc_config())
+	if settings_overlay.has_method("open_for_desk"):
+		settings_overlay.call("open_for_desk", desk_id)
 	else:
-		open_irc_overlay()
+		open_settings_overlay()
 
 func open_desk_context_menu(desk_id: String, screen_pos: Vector2) -> void:
 	if desk_overlay == null or _desk_manager == null:
@@ -246,14 +246,14 @@ func open_desk_context_menu(desk_id: String, screen_pos: Vector2) -> void:
 	if desk_overlay.has_method("show_desk_menu"):
 		desk_overlay.call("show_desk_menu", screen_pos, did, current)
 
-func toggle_irc_overlay() -> void:
-	if irc_overlay == null:
+func toggle_settings_overlay() -> void:
+	if settings_overlay == null:
 		return
-	if irc_overlay.visible:
-		if irc_overlay.has_method("close"):
-			irc_overlay.call("close")
+	if settings_overlay.visible:
+		if settings_overlay.has_method("close"):
+			settings_overlay.call("close")
 	else:
-		open_irc_overlay()
+		open_settings_overlay()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:

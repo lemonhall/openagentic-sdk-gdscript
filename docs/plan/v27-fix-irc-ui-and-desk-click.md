@@ -19,8 +19,8 @@ Address two UX bugs:
 
 ## Files
 
-- `vr_offices/ui/IrcOverlay.tscn`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.tscn`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `vr_offices/core/VrOfficesWorkspaceController.gd`
 
 ## Steps (塔山开发循环)
@@ -40,4 +40,3 @@ Address two UX bugs:
 - Run focused tests:
   - `tests/projects/vr_offices/test_vr_offices_irc_overlay_smoke.gd`
   - `tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd`
-

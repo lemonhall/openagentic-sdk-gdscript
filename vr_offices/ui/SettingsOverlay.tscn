@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://vr_offices/ui/IrcOverlay.gd" id="1"]
+[ext_resource type="Script" path="res://vr_offices/ui/SettingsOverlay.gd" id="1"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
 bg_color = Color(0.06, 0.07, 0.08, 0.92)
@@ -34,7 +34,7 @@ content_margin_top = 10
 content_margin_right = 10
 content_margin_bottom = 10
 
-[node name="IrcOverlay" type="Control"]
+[node name="SettingsOverlay" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -411,3 +411,62 @@ size_flags_vertical = 3
 bbcode_enabled = false
 scroll_active = true
 selection_enabled = true
+
+[node name="Tavily" type="VBoxContainer" parent="Panel/VBox/Tabs"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TavilyFormPanel" type="PanelContainer" parent="Panel/VBox/Tabs/Tavily"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="TavilyForm" type="GridContainer" parent="Panel/VBox/Tabs/Tavily/TavilyFormPanel"]
+layout_mode = 2
+columns = 2
+
+[node name="TavilyBaseUrlLabel" type="Label" parent="Panel/VBox/Tabs/Tavily/TavilyFormPanel/TavilyForm"]
+layout_mode = 2
+text = "Tavily base URL"
+
+[node name="TavilyBaseUrlEdit" type="LineEdit" parent="Panel/VBox/Tabs/Tavily/TavilyFormPanel/TavilyForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(520, 0)
+placeholder_text = "https://api.tavily.com"
+
+[node name="TavilyApiKeyLabel" type="Label" parent="Panel/VBox/Tabs/Tavily/TavilyFormPanel/TavilyForm"]
+layout_mode = 2
+text = "Tavily API key"
+
+[node name="TavilyApiKeyEdit" type="LineEdit" parent="Panel/VBox/Tabs/Tavily/TavilyFormPanel/TavilyForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(520, 0)
+secret = true
+placeholder_text = "tvly-..."
+
+[node name="TavilyControls" type="HBoxContainer" parent="Panel/VBox/Tabs/Tavily"]
+layout_mode = 2
+
+[node name="TavilySaveButton" type="Button" parent="Panel/VBox/Tabs/Tavily/TavilyControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+
+[node name="TavilyReloadButton" type="Button" parent="Panel/VBox/Tabs/Tavily/TavilyControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reload"
+
+[node name="TavilyTestButton" type="Button" parent="Panel/VBox/Tabs/Tavily/TavilyControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Test"
+
+[node name="TavilyStatusLabel" type="Label" parent="Panel/VBox/Tabs/Tavily/TavilyControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""

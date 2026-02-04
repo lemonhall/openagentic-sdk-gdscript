@@ -25,7 +25,7 @@ Out of scope:
 
 ## Acceptance
 
-1) In `IrcOverlay` → `Desks` tab, selecting a desk shows diagnostics containing lines:
+1) In `SettingsOverlay` → `Desks` tab, selecting a desk shows diagnostics containing lines:
    - `device_code=<...>`
    - `bound_npc_id=<...>`
    - `bound_npc_name=<...>`
@@ -38,7 +38,7 @@ Modify:
 
 - `vr_offices/core/desks/VrOfficesDeskIrcSnapshots.gd`
 - `vr_offices/furniture/DeskNpcBindIndicator.gd`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd`
 
 Add:
@@ -54,4 +54,3 @@ Add:
 ```bash
 scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd
 ```
-

@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" path="res://vr_offices/ui/WorkspaceOverlay.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/DeskOverlay.tscn" id="12"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/ActionHintOverlay.tscn" id="10"]
-[ext_resource type="PackedScene" path="res://vr_offices/ui/IrcOverlay.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://vr_offices/ui/SettingsOverlay.tscn" id="11"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20, 20)
@@ -76,7 +76,7 @@ position = Vector3(0, 0, 0)
 
 [node name="ActionHintOverlay" parent="UI" instance=ExtResource("10")]
 
-[node name="IrcOverlay" parent="UI" instance=ExtResource("11")]
+[node name="SettingsOverlay" parent="UI" instance=ExtResource("11")]
 
 [node name="Bgm" type="AudioStreamPlayer" parent="."]
 autoplay = false

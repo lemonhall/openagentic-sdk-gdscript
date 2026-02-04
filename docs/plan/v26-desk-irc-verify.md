@@ -10,7 +10,7 @@ In scope:
 
 - Add a dedicated pick collider layer for desks (no physical collision).
 - Extend input handling to detect double-clicks on desks and open IRC overlay focused on that desk.
-- Add `IrcOverlay.open_for_desk(desk_id)` behavior.
+- Add `SettingsOverlay.open_for_desk(desk_id)` behavior.
 
 Out of scope:
 
@@ -20,7 +20,7 @@ Out of scope:
 ## Acceptance
 
 - Desk scene has a `StaticBody3D` pick collider on layer `8` (mask `0`).
-- Double-clicking a desk opens `IrcOverlay` and selects that desk in the list.
+- Double-clicking a desk opens `SettingsOverlay` and selects that desk in the list.
 
 ## Files
 
@@ -30,7 +30,7 @@ Modify / add:
 - `vr_offices/furniture/StandingDesk.gd`
 - `vr_offices/core/VrOfficesInputController.gd`
 - `vr_offices/VrOffices.gd`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `tests/projects/vr_offices/test_vr_offices_desk_pick_collider.gd`
 
 ## Steps (塔山开发循环)
@@ -53,4 +53,3 @@ timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pw
 ```
 
 Then run full test suite.
-

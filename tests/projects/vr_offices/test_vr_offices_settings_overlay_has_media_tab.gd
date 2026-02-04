@@ -3,9 +3,9 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var OverlayScene := load("res://vr_offices/ui/IrcOverlay.tscn")
+	var OverlayScene := load("res://vr_offices/ui/SettingsOverlay.tscn")
 	if OverlayScene == null:
-		T.fail_and_quit(self, "Missing IrcOverlay.tscn")
+		T.fail_and_quit(self, "Missing SettingsOverlay.tscn")
 		return
 	var ov: Control = (OverlayScene as PackedScene).instantiate()
 	get_root().add_child(ov)
@@ -25,4 +25,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

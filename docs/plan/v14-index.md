@@ -17,7 +17,7 @@ Double-clicking a desk should open the “Settings” overlay focused on the **D
 
 ## Definition of Done (DoD)
 
-- `vr_offices/ui/IrcOverlay.gd` does **not** hardcode tab indices for desk-focused open.
+- `vr_offices/ui/SettingsOverlay.gd` does **not** hardcode tab indices for desk-focused open.
 - Calling `open_for_desk(<desk_id>)` results in the TabContainer showing the **Desks** tab, even if tab ordering changes (e.g., Media tab inserted).
 - Regression test added that fails on the old behavior and passes after the fix.
 

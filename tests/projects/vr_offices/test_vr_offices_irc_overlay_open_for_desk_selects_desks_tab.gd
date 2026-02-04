@@ -3,15 +3,15 @@ extends SceneTree
 const T := preload("res://tests/_test_util.gd")
 
 func _init() -> void:
-	var OverlayScene := load("res://vr_offices/ui/IrcOverlay.tscn")
+	var OverlayScene := load("res://vr_offices/ui/SettingsOverlay.tscn")
 	if OverlayScene == null:
-		T.fail_and_quit(self, "Missing IrcOverlay.tscn")
+		T.fail_and_quit(self, "Missing SettingsOverlay.tscn")
 		return
 	var ov: Control = (OverlayScene as PackedScene).instantiate()
 	get_root().add_child(ov)
 	await process_frame
 
-	if not T.require_true(self, ov.has_method("open_for_desk"), "Expected IrcOverlay.open_for_desk()"):
+	if not T.require_true(self, ov.has_method("open_for_desk"), "Expected SettingsOverlay.open_for_desk()"):
 		return
 	ov.call("open_for_desk", "desk_test")
 	await process_frame
@@ -30,4 +30,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

@@ -39,8 +39,8 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 	if event is InputEventKey:
 		var k0 := event as InputEventKey
 		if k0.pressed and not k0.echo and k0.ctrl_pressed and k0.physical_keycode == KEY_I:
-			if owner.has_method("toggle_irc_overlay"):
-				owner.call("toggle_irc_overlay")
+			if owner.has_method("toggle_settings_overlay"):
+				owner.call("toggle_settings_overlay")
 				owner.get_viewport().set_input_as_handled()
 				return
 
@@ -125,7 +125,7 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				return
 			if mb.double_click:
 				var desk := _try_find_desk_from_click(mb.position)
-				if desk != null and owner.has_method("open_irc_overlay_for_desk"):
+				if desk != null and owner.has_method("open_settings_overlay_for_desk"):
 					var did: String = ""
 					if desk.has_method("get"):
 						var v: Variant = desk.get("desk_id")
@@ -134,7 +134,7 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 					if did.strip_edges() == "":
 						did = desk.name
 					if did.strip_edges() != "":
-						owner.call("open_irc_overlay_for_desk", did)
+						owner.call("open_settings_overlay_for_desk", did)
 			return
 
 	if selected_npc != null and event is InputEventKey:

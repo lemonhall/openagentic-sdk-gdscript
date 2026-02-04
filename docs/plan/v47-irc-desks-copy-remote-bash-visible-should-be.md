@@ -30,7 +30,7 @@ Out of scope:
 
 ## Acceptance
 
-1) In `IrcOverlay` → `Desks` tab, selecting a desk shows diagnostics containing the line:
+1) In `SettingsOverlay` → `Desks` tab, selecting a desk shows diagnostics containing the line:
    - `remote_bash_visible_should_be=<true/false>`
 2) Clicking “Copy” copies the same diagnostics block (including that line).
 3) The existing UI smoke test covers the new line.
@@ -39,13 +39,13 @@ Out of scope:
 
 Modify:
 
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd`
 
 ## Steps (塔山开发循环)
 
 1) **Red**: update `test_vr_offices_irc_overlay_desks_copy_smoke.gd` to assert the copied diagnostics includes `remote_bash_visible_should_be=true`.
-2) **Green**: compute the should-be flag in `IrcOverlay._on_desk_selected` using `VrOfficesIrcNames` device code canonicalization + validation.
+2) **Green**: compute the should-be flag in `SettingsOverlay._on_desk_selected` using `VrOfficesIrcNames` device code canonicalization + validation.
 3) **Verify**:
 
 ```bash

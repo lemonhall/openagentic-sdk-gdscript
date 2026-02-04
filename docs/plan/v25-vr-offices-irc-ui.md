@@ -9,7 +9,7 @@ Give VR Offices a friendly, in-world-consistent UI to configure IRC and verify d
 In scope:
 
 - Persist IRC config in the existing `vr_offices` save file.
-- Add `IrcOverlay` UI (style aligned with `DialogueOverlay`).
+- Add `SettingsOverlay` UI (style aligned with `DialogueOverlay`).
 - Support “Test connect/join/send” inside the overlay.
 - Show per-desk IRC status/logs.
 
@@ -30,8 +30,8 @@ Create / modify:
 
 - `vr_offices/ui/VrOfficesUi.tscn`
 - `vr_offices/ui/VrOfficesUi.gd`
-- `vr_offices/ui/IrcOverlay.tscn` (new)
-- `vr_offices/ui/IrcOverlay.gd` (new)
+- `vr_offices/ui/SettingsOverlay.tscn` (new)
+- `vr_offices/ui/SettingsOverlay.gd` (new)
 - `vr_offices/core/VrOfficesIrcSettings.gd` (new)
 - `vr_offices/core/VrOfficesWorldState.gd`
 - `vr_offices/core/VrOfficesSaveController.gd`
@@ -58,7 +58,7 @@ Tests:
 ### 2) TDD Green — minimal implementation
 
 - Add `VrOfficesIrcSettings` and wire into `SaveController` and `WorldState`.
-- Add `IrcOverlay` scene and script.
+- Add `SettingsOverlay` scene and script.
 - Add an “IRC…” button to `VrOfficesUi`.
 - Update desk IRC naming and pass workspace_id to desk link.
 - Add per-desk status/log surface for UI.
@@ -94,4 +94,3 @@ git push
 
 - UI complexity: keep overlay minimal and reuse existing patterns.
 - Avoid unexpected sockets: desk IRC remains opt-in, gated by saved config `enabled`.
-

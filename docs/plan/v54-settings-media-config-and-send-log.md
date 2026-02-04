@@ -38,8 +38,8 @@ PRD: `docs/prd/2026-02-04-vr-offices-multimedia-messages.md`
 Modify:
 
 - `vr_offices/ui/VrOfficesUi.tscn`
-- `vr_offices/ui/IrcOverlay.tscn`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.tscn`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `vr_offices/ui/DialogueOverlay.gd`
 
 Add:
@@ -70,7 +70,7 @@ scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_ui_se
 ### Slice B — Media tab exists
 
 1) **Red**: add `test_vr_offices_settings_overlay_has_media_tab.gd`
-2) **Green**: add `Media` tab nodes in `IrcOverlay.tscn`
+2) **Green**: add `Media` tab nodes in `SettingsOverlay.tscn`
 3) **Verify**:
 
 ```bash
@@ -89,4 +89,3 @@ scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vr_offices_setti
 2) **Green**: implement `VrOfficesMediaSendLog.gd`
 3) **Green**: wire into `DialogueOverlay.gd` after successful attachment send
 4) **Green**: add Settings overlay UI to view list + refresh
-

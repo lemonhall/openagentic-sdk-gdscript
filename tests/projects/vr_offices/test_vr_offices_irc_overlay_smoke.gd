@@ -31,7 +31,7 @@ func _init() -> void:
 
 	if not T.require_true(self, world.get_node_or_null("UI/VrOfficesUi") != null, "Missing VrOffices/UI/VrOfficesUi"):
 		return
-	if not T.require_true(self, world.get_node_or_null("UI/IrcOverlay") != null, "Missing VrOffices/UI/IrcOverlay"):
+	if not T.require_true(self, world.get_node_or_null("UI/SettingsOverlay") != null, "Missing VrOffices/UI/SettingsOverlay"):
 		return
 
 	# Reduce shutdown noise in headless runs by releasing audio/resources explicitly.

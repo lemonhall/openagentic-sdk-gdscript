@@ -11,8 +11,8 @@ Improve debugging ergonomics in `IRC → Desks`:
 
 In scope:
 
-- `IrcOverlay.tscn` layout tweaks in Desks tab.
-- `IrcOverlay.gd` copy-to-clipboard wiring.
+- `SettingsOverlay.tscn` layout tweaks in Desks tab.
+- `SettingsOverlay.gd` copy-to-clipboard wiring.
 - A smoke test ensuring nodes exist and selection enables Copy.
 
 Out of scope:
@@ -26,8 +26,8 @@ Out of scope:
 
 ## Files
 
-- `vr_offices/ui/IrcOverlay.tscn`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.tscn`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd`
 
 ## Steps (塔山开发循环)
@@ -47,4 +47,3 @@ Run:
 ```bash
 timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_copy_smoke.gd
 ```
-

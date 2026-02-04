@@ -22,13 +22,13 @@ Out of scope:
 
 ## Acceptance
 
-- `IrcOverlay` Desks tab has a reconnect button and it calls into the desk manager.
+- `SettingsOverlay` Desks tab has a reconnect button and it calls into the desk manager.
 - `VrOfficesDeskIrcLink` exposes `reconnect_now()` and it is safe to call in tests when disabled.
 
 ## Files
 
-- `vr_offices/ui/IrcOverlay.tscn`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.tscn`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `vr_offices/core/VrOfficesDeskManager.gd`
 - `vr_offices/core/VrOfficesDeskIrcLink.gd`
 - `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_reconnect.gd` (new)
@@ -39,7 +39,7 @@ Out of scope:
 ### 1) Red
 
 - Add `tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_reconnect.gd`:
-  - Instantiate `IrcOverlay`.
+  - Instantiate `SettingsOverlay`.
   - Bind it to a fake world + fake desk manager.
   - Press “Reconnect all” and assert the desk manager hook is called.
 
@@ -58,4 +58,3 @@ Run:
 timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_desks_reconnect.gd
 timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_desk_irc_link_smoke.gd
 ```
-

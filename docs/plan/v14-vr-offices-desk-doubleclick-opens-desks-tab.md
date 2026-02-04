@@ -11,7 +11,7 @@ Prevent regressions where adding a new tab (e.g., **Media**) changes tab indices
 ## Scope
 
 **In scope**
-- Fix `IrcOverlay.open_for_desk()` to select the **Desks** tab reliably.
+- Fix `SettingsOverlay.open_for_desk()` to select the **Desks** tab reliably.
 - Add a regression test for tab selection behavior.
 
 **Out of scope**
@@ -20,14 +20,14 @@ Prevent regressions where adding a new tab (e.g., **Media**) changes tab indices
 
 ## Acceptance
 
-- Given an instantiated `IrcOverlay`, when `open_for_desk("any")` is called:
+- Given an instantiated `SettingsOverlay`, when `open_for_desk("any")` is called:
   - The `TabContainer` current tab is the child Control named `Desks`.
 - The test must fail if `open_for_desk()` uses a hardcoded tab index that no longer points to `Desks`.
 
 ## Files
 
 - Modify:
-  - `vr_offices/ui/IrcOverlay.gd`
+  - `vr_offices/ui/SettingsOverlay.gd`
 - Add:
   - `tests/projects/vr_offices/test_vr_offices_irc_overlay_open_for_desk_selects_desks_tab.gd`
 
@@ -48,4 +48,3 @@ Prevent regressions where adding a new tab (e.g., **Media**) changes tab indices
 ## Risks
 
 - The overlay may be used without the expected TabContainer structure; mitigate by falling back safely (no crash) if the tab isn’t found.
-

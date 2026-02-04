@@ -24,14 +24,14 @@ class FakeDeskManager:
 		return []
 
 func _init() -> void:
-	var scene := load("res://vr_offices/ui/IrcOverlay.tscn")
+	var scene := load("res://vr_offices/ui/SettingsOverlay.tscn")
 	if scene == null or not (scene is PackedScene):
-		T.fail_and_quit(self, "Missing res://vr_offices/ui/IrcOverlay.tscn")
+		T.fail_and_quit(self, "Missing res://vr_offices/ui/SettingsOverlay.tscn")
 		return
 
 	var overlay := (scene as PackedScene).instantiate() as Control
 	if overlay == null:
-		T.fail_and_quit(self, "Failed to instantiate IrcOverlay")
+		T.fail_and_quit(self, "Failed to instantiate SettingsOverlay")
 		return
 	get_root().add_child(overlay)
 	await process_frame
@@ -45,7 +45,7 @@ func _init() -> void:
 	await process_frame
 
 	var btn := overlay.get_node_or_null("%ReconnectAllButton") as Button
-	if not T.require_true(self, btn != null, "Missing ReconnectAllButton in IrcOverlay Desks tab"):
+	if not T.require_true(self, btn != null, "Missing ReconnectAllButton in SettingsOverlay Desks tab"):
 		return
 
 	btn.emit_signal("pressed")

@@ -29,8 +29,8 @@ Out of scope:
 
 ## Files
 
-- `vr_offices/ui/IrcOverlay.tscn`
-- `vr_offices/ui/IrcOverlay.gd`
+- `vr_offices/ui/SettingsOverlay.tscn`
+- `vr_offices/ui/SettingsOverlay.gd`
 - `vr_offices/core/VrOfficesIrcSettings.gd`
 - `vr_offices/core/VrOfficesIrcConfig.gd`
 - `vr_offices/core/VrOfficesDeskManager.gd`
@@ -60,4 +60,3 @@ timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pw
 timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_overlay_autosave.gd
 timeout 120s "$GODOT_LINUX_EXE" --headless --rendering-driver dummy --path "$(pwd)" --script res://tests/projects/vr_offices/test_vr_offices_irc_settings_persistence.gd
 ```
-

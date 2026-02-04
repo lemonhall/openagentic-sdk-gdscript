@@ -7,6 +7,8 @@ const _ToolRunnerScript := preload("res://addons/openagentic/core/OAToolRunner.g
 const _AgentRuntimeScript := preload("res://addons/openagentic/runtime/OAAgentRuntime.gd")
 const _OpenAIProviderScript := preload("res://addons/openagentic/providers/OAOpenAIResponsesProvider.gd")
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+const _OATavilyConfig := preload("res://addons/openagentic/core/OATavilyConfig.gd")
+const _OATavilyConfigStore := preload("res://addons/openagentic/core/OATavilyConfigStore.gd")
 const _HookEngineScript := preload("res://addons/openagentic/hooks/OAHookEngine.gd")
 
 var save_id: String = ""
@@ -83,7 +85,19 @@ func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void
 			enable_default_tools()
 
 	var store = _SessionStoreScript.new(save_id)
-	var tavily_key := OS.get_environment("TAVILY_API_KEY").strip_edges()
+	var env_tavily: Dictionary = _OATavilyConfig.from_environment()
+	var tavily_base_url := String(env_tavily.get("base_url", "")).strip_edges()
+	var tavily_key := String(env_tavily.get("api_key", "")).strip_edges()
+	if save_id.strip_edges() != "":
+		var rd: Dictionary = _OATavilyConfigStore.load_config(save_id)
+		if bool(rd.get("ok", false)) and typeof(rd.get("config", null)) == TYPE_DICTIONARY:
+			var cfg: Dictionary = rd.get("config", {})
+			var base2 := String(cfg.get("base_url", "")).strip_edges()
+			var key2 := String(cfg.get("api_key", "")).strip_edges()
+			if base2 != "":
+				tavily_base_url = base2
+			if key2 != "":
+				tavily_key = key2
 	var runner = _ToolRunnerScript.new(tools, permission_gate, store, func(session_id: String, _tool_call: Dictionary) -> Dictionary:
 		var sid := save_id
 		var nid := session_id
@@ -92,6 +106,7 @@ func run_npc_turn(npc_id: String, user_text: String, on_event: Callable) -> void
 			"npc_id": nid,
 			"workspace_root": _OAPaths.npc_workspace_dir(sid, nid),
 			"tavily_api_key": tavily_key,
+			"tavily_base_url": tavily_base_url,
 			"allow_private_networks": false,
 		}
 	, hooks)

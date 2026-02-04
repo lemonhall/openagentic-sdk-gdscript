@@ -14,14 +14,14 @@ class FakeWorld:
 		saved = c.duplicate(true)
 
 func _init() -> void:
-	var scene := load("res://vr_offices/ui/IrcOverlay.tscn")
+	var scene := load("res://vr_offices/ui/SettingsOverlay.tscn")
 	if scene == null or not (scene is PackedScene):
-		T.fail_and_quit(self, "Missing res://vr_offices/ui/IrcOverlay.tscn")
+		T.fail_and_quit(self, "Missing res://vr_offices/ui/SettingsOverlay.tscn")
 		return
 
 	var overlay := (scene as PackedScene).instantiate() as Control
 	if overlay == null:
-		T.fail_and_quit(self, "Failed to instantiate IrcOverlay")
+		T.fail_and_quit(self, "Failed to instantiate SettingsOverlay")
 		return
 	get_root().add_child(overlay)
 	await process_frame
@@ -33,7 +33,7 @@ func _init() -> void:
 	await process_frame
 
 	# UX: no redundant Enabled checkbox (saving a host is enough).
-	if not T.require_true(self, overlay.get_node_or_null("%EnabledCheck") == null, "EnabledCheck should be removed from IrcOverlay"):
+	if not T.require_true(self, overlay.get_node_or_null("%EnabledCheck") == null, "EnabledCheck should be removed from SettingsOverlay"):
 		return
 
 	# Set host, then use Test connect without explicitly clicking Save.
