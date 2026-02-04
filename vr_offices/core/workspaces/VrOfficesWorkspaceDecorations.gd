@@ -1,5 +1,6 @@
 extends RefCounted
 const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
+const _PickBodies := preload("res://vr_offices/core/props/VrOfficesPickBodyUtils.gd")
 const ANALOG_CLOCK_SCENE := "res://assets/office_pack_glb/Analog clock.glb"
 const DARTBOARD_SCENE := "res://assets/office_pack_glb/Dartboard.glb"
 const FIRE_EXIT_SIGN_SCENE := "res://assets/office_pack_glb/Fire Exit Sign-0ywPpb36cyK.glb"
@@ -46,6 +47,7 @@ static func decorate_workspace(workspace_node: Node3D, workspace_id: String, rec
 	var wall_x := maxf(0.0, hx - _VENDING_WALL_INSET)
 	_place_on_floor(vending, Vector3(wall_x, 0.0, along), decor_seed ^ 0xC0FFEE)
 	_Props.spawn_floor_model(vending, VENDING_MACHINE_SCENE)
+	_PickBodies.ensure_box_pick_body(vending, "vr_offices_vending_machine", 16, Vector3(1.0, 1.85, 1.1), Vector3(0.0, 0.925, 0.0))
 	var trash := _ensure_prop_wrapper(decor, "TrashcanSmall")
 	_place_on_floor(trash, _trashcan_pos(hx, hz, decor_seed), decor_seed ^ 0xD00D)
 	_Props.spawn_floor_model(trash, TRASHCAN_SMALL_SCENE)

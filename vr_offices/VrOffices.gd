@@ -37,6 +37,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var desk_overlay: Control = $UI/DeskOverlay
 @onready var action_hint_overlay: Control = $UI/ActionHintOverlay
 @onready var settings_overlay: Control = $UI/SettingsOverlay
+@onready var vending_overlay: Control = $UI/VendingMachineOverlay
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _agent: RefCounted = null
@@ -254,6 +255,12 @@ func toggle_settings_overlay() -> void:
 			settings_overlay.call("close")
 	else:
 		open_settings_overlay()
+
+func open_vending_machine_overlay() -> void:
+	if vending_overlay == null:
+		return
+	if vending_overlay.has_method("open"):
+		vending_overlay.call("open")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:

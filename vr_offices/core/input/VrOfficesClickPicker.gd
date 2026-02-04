@@ -12,6 +12,12 @@ static func try_pick_desk(owner: Node, camera_rig: Node, screen_pos: Vector2) ->
 		return null
 	return _find_owner_in_group(hit.get("collider") as Object, "vr_offices_desk")
 
+static func try_pick_vending_machine(owner: Node, camera_rig: Node, screen_pos: Vector2) -> Node:
+	var hit := _raycast(owner, camera_rig, screen_pos, 16)
+	if hit.is_empty():
+		return null
+	return _find_owner_in_group(hit.get("collider") as Object, "vr_offices_vending_machine")
+
 static func _raycast(owner: Node, camera_rig: Node, screen_pos: Vector2, collision_mask: int) -> Dictionary:
 	if owner == null:
 		return {}
@@ -44,4 +50,3 @@ static func _find_owner_in_group(node: Object, group_name: String) -> Node:
 			return n
 		cur = n.get_parent()
 	return null
-

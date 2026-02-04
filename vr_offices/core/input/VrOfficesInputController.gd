@@ -58,6 +58,16 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 		owner.get_viewport().set_input_as_handled()
 		return
 
+	# Double-click on pickable props should take precedence over workspace interactions.
+	if event is InputEventMouseButton:
+		var mb0 := event as InputEventMouseButton
+		if mb0.button_index == MOUSE_BUTTON_LEFT and mb0.pressed and mb0.double_click:
+			var vending0 := _try_find_vending_machine_from_click(mb0.position)
+			if vending0 != null and owner.has_method("open_vending_machine_overlay"):
+				owner.call("open_vending_machine_overlay")
+				owner.get_viewport().set_input_as_handled()
+				return
+
 	if workspace_ctrl != null and workspace_ctrl.has_method("handle_lmb_event"):
 		var consumed := bool(workspace_ctrl.call("handle_lmb_event", event, select_npc))
 		if consumed:
@@ -124,6 +134,10 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				dialogue_ctrl.call("enter_talk", clicked)
 				return
 			if mb.double_click:
+				var vending := _try_find_vending_machine_from_click(mb.position)
+				if vending != null and owner.has_method("open_vending_machine_overlay"):
+					owner.call("open_vending_machine_overlay")
+					return
 				var desk := _try_find_desk_from_click(mb.position)
 				if desk != null and owner.has_method("open_settings_overlay_for_desk"):
 					var did: String = ""
@@ -150,3 +164,6 @@ func _try_select_from_click(screen_pos: Vector2) -> Node:
 
 func _try_find_desk_from_click(screen_pos: Vector2) -> Node:
 	return _ClickPicker.try_pick_desk(owner, camera_rig, screen_pos)
+
+func _try_find_vending_machine_from_click(screen_pos: Vector2) -> Node:
+	return _ClickPicker.try_pick_vending_machine(owner, camera_rig, screen_pos)
