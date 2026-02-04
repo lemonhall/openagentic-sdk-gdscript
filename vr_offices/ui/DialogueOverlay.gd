@@ -4,6 +4,8 @@ signal message_submitted(text: String)
 signal closed
 
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
+const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
+const _MediaCache := preload("res://vr_offices/ui/VrOfficesMediaCache.gd")
 
 @onready var title_label: Label = %TitleLabel
 @onready var session_log_size_label: Label = %SessionLogSizeLabel
@@ -153,6 +155,13 @@ func _submit() -> void:
 	message_submitted.emit(t)
 
 func _add_message(is_user: bool, text: String) -> RichTextLabel:
+	var t := text.strip_edges()
+	var media := _try_parse_media_ref(t)
+	if typeof(media) == TYPE_DICTIONARY and bool((media as Dictionary).get("ok", false)):
+		_add_media_message(is_user, (media as Dictionary).get("ref", {}))
+		# Not a text message; return null.
+		return null
+
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 10)
@@ -207,6 +216,115 @@ func _add_message(is_user: bool, text: String) -> RichTextLabel:
 	messages.add_child(row)
 	_scroll_to_bottom_deferred()
 	return rtl
+
+func _try_parse_media_ref(text: String) -> Dictionary:
+	if text == "" or text.length() > 512:
+		return {}
+	if not text.begins_with("OAMEDIA1 "):
+		return {}
+	var out: Dictionary = _OAMediaRef.decode_v1(text)
+	return out if bool(out.get("ok", false)) else {}
+
+func _add_media_message(is_user: bool, ref: Dictionary) -> void:
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 10)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var bubble := PanelContainer.new()
+	bubble.size_flags_horizontal = Control.SIZE_SHRINK_END if is_user else Control.SIZE_SHRINK_BEGIN
+	bubble.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var bubble_width := _get_bubble_width()
+	bubble.custom_minimum_size = Vector2(bubble_width, 0.0)
+
+	var sb := StyleBoxFlat.new()
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	sb.bg_color = Color(0.20, 0.45, 1.0, 0.22) if is_user else Color(1, 1, 1, 0.12)
+	sb.border_color = Color(1, 1, 1, 0.14)
+	sb.border_width_left = 1
+	sb.border_width_right = 1
+	sb.border_width_top = 1
+	sb.border_width_bottom = 1
+	bubble.add_theme_stylebox_override("panel", sb)
+
+	var kind := String(ref.get("kind", "")).strip_edges()
+	var mime := String(ref.get("mime", "")).strip_edges()
+	if kind == "image" and (mime == "image/png" or mime == "image/jpeg"):
+		var tr := TextureRect.new()
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.custom_minimum_size = Vector2(maxf(0.0, bubble_width - 24.0), 180.0)
+		tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var sid := _resolve_save_id()
+		var tex := _MediaCache.load_cached_image_texture(sid, ref)
+		if tex != null:
+			tr.texture = tex
+		else:
+			# Fallback placeholder (download will be added in later slices/e2e harness).
+			var lbl := Label.new()
+			lbl.text = "Image unavailable"
+			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			bubble.add_child(lbl)
+			_finish_media_row(is_user, row, spacer, bubble)
+			return
+		bubble.add_child(tr)
+	else:
+		var lbl2 := Label.new()
+		lbl2.text = "Unsupported media"
+		lbl2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bubble.add_child(lbl2)
+
+	_finish_media_row(is_user, row, spacer, bubble)
+
+func _finish_media_row(is_user: bool, row: HBoxContainer, spacer: Control, bubble: PanelContainer) -> void:
+	if is_user:
+		row.add_child(spacer)
+		row.add_child(bubble)
+	else:
+		row.add_child(bubble)
+		row.add_child(spacer)
+	messages.add_child(row)
+	_scroll_to_bottom_deferred()
+
+# ---- test helpers ----
+
+func _test_get_media_cache_path(ref: Dictionary) -> String:
+	var sid := _resolve_save_id()
+	return _MediaCache.media_cache_path(sid, ref)
+
+func _test_has_any_image_message() -> bool:
+	if messages == null:
+		return false
+	for row0 in messages.get_children():
+		var row := row0 as Node
+		if row == null:
+			continue
+		var tr := _find_texture_rect(row)
+		if tr != null:
+			return true
+	return false
+
+func _find_texture_rect(n: Node) -> TextureRect:
+	if n is TextureRect:
+		return n as TextureRect
+	for c0 in n.get_children():
+		var c := c0 as Node
+		if c == null:
+			continue
+		var found := _find_texture_rect(c)
+		if found != null:
+			return found
+	return null
 
 func _get_bubble_width() -> float:
 	var base_width := 0.0
