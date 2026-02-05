@@ -44,17 +44,21 @@ func install_zip_for_save(save_id: String, zip_path: String, source: Dictionary)
 	_Fs.rm_tree(unpack_root)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(unpack_root))
 
-	var unzip_res := _ZipUnpack.unzip_to_dir(zp, unpack_root, MAX_FILES, MAX_UNZIPPED_BYTES)
+	var subdir := ""
+	if source != null:
+		subdir = String(source.get("subdir", source.get("path", ""))).strip_edges().rstrip("/")
+	if subdir != "" and _is_unsafe_relative_dir(subdir):
+		return {"ok": false, "error": "UnsafeSubdir", "subdir": subdir}
+
+	var unzip_res := _ZipUnpack.unzip_to_dir(zp, unpack_root, MAX_FILES, MAX_UNZIPPED_BYTES, subdir)
 	if not bool(unzip_res.get("ok", false)):
 		return unzip_res
 
 	var scan_root := String(unzip_res.get("root", stage_root))
-	var subdir := ""
-	if source != null:
-		subdir = String(source.get("subdir", source.get("path", ""))).strip_edges().rstrip("/")
 	if subdir != "":
-		if _is_unsafe_relative_dir(subdir):
-			return {"ok": false, "error": "UnsafeSubdir", "subdir": subdir}
+		var inc := int(unzip_res.get("included_files", 0))
+		if inc <= 0:
+			return {"ok": false, "error": "SubdirNotFound", "subdir": subdir}
 		var scoped := scan_root.rstrip("/") + "/" + subdir
 		var abs_scoped := ProjectSettings.globalize_path(scoped)
 		if not DirAccess.dir_exists_absolute(abs_scoped):
