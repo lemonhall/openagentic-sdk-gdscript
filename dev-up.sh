@@ -65,6 +65,7 @@ MEDIA_PORT="${OPENAGENTIC_MEDIA_PORT:-8788}"
 
 export OPENAGENTIC_PROXY_BASE_URL="${OPENAGENTIC_PROXY_BASE_URL:-http://${PROXY_HOST}:${PROXY_PORT}/v1}"
 export OPENAGENTIC_MEDIA_BASE_URL="${OPENAGENTIC_MEDIA_BASE_URL:-http://${MEDIA_HOST}:${MEDIA_PORT}}"
+export OPENAGENTIC_GEMINI_BASE_URL="${OPENAGENTIC_GEMINI_BASE_URL:-http://${PROXY_HOST}:${PROXY_PORT}/gemini}"
 
 missing=0
 need_cmd() {
@@ -119,6 +120,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "[dev-up] proxy: ${OPENAGENTIC_PROXY_BASE_URL}"
+echo "[dev-up] gemini: ${OPENAGENTIC_GEMINI_BASE_URL}"
 echo "[dev-up] media: ${OPENAGENTIC_MEDIA_BASE_URL}"
 
 if [[ "$NO_PROXY" -eq 0 ]]; then

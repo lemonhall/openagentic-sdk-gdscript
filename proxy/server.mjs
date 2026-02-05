@@ -10,6 +10,8 @@ function parseArgs(argv) {
     else if (a === "--port") out.port = argv[++i];
     else if (a === "--base-url") out.baseUrl = argv[++i];
     else if (a === "--api-key") out.apiKey = argv[++i];
+    else if (a === "--gemini-base-url") out.geminiBaseUrl = argv[++i];
+    else if (a === "--gemini-api-key") out.geminiApiKey = argv[++i];
     else throw new Error(`Unknown arg: ${a}`);
   }
   return out;
@@ -20,9 +22,11 @@ if (args.help) {
   // eslint-disable-next-line no-console
   console.log(`Usage:
   node proxy/server.mjs [--host 127.0.0.1] [--port 8787] [--base-url https://.../v1] [--api-key sk-...]
+  node proxy/server.mjs [--gemini-base-url https://www.right.codes/gemini] [--gemini-api-key ...]
 
 Environment variables:
   HOST, PORT, OPENAI_BASE_URL, OPENAI_API_KEY
+  GEMINI_BASE_URL, GEMINI_API_KEY
 `);
   process.exit(0);
 }
@@ -32,6 +36,10 @@ const PORT = Number.parseInt(args.port || process.env.PORT || "8787", 10);
 
 const OPENAI_BASE_URL = ((args.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1") + "").replace(/\/+$/, "");
 const OPENAI_API_KEY = (args.apiKey || process.env.OPENAI_API_KEY || "") + "";
+
+const GEMINI_BASE_URL = ((args.geminiBaseUrl || process.env.GEMINI_BASE_URL || "https://www.right.codes/gemini") + "").replace(/\/+$/, "");
+// By default, reuse OPENAI_API_KEY for Gemini as requested (single-key dev setup).
+const GEMINI_API_KEY = (args.geminiApiKey || process.env.GEMINI_API_KEY || OPENAI_API_KEY || "") + "";
 
 function json(res, status, obj) {
   const body = JSON.stringify(obj, null, 2) + "\n";
@@ -50,6 +58,20 @@ async function readBody(req) {
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
   const buf = Buffer.concat(chunks);
   return buf.toString("utf8");
+}
+
+function copyJsonHeaders(upstreamHeaders, contentLength) {
+  const headers = {
+    "content-type": upstreamHeaders.get("content-type") || "application/json; charset=utf-8",
+    "cache-control": upstreamHeaders.get("cache-control") || "no-cache",
+    "content-length": String(contentLength),
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "*",
+    "access-control-allow-methods": "POST, OPTIONS, GET",
+  };
+  const maybe = upstreamHeaders.get("x-request-id");
+  if (maybe) headers["x-request-id"] = maybe;
+  return headers;
 }
 
 function copySseHeaders(upstreamHeaders) {
@@ -76,6 +98,39 @@ const server = http.createServer(async (req, res) => {
         "access-control-allow-methods": "POST, OPTIONS, GET",
       });
       res.end();
+      return;
+    }
+
+    // Gemini proxy:
+    // - GET  /gemini/healthz
+    // - POST /gemini/v1beta/models/...:generateContent
+    // Forwards to GEMINI_BASE_URL and injects x-goog-api-key.
+    if (url.pathname === "/gemini/healthz" && req.method === "GET") {
+      json(res, 200, { ok: true, gemini_base_url: GEMINI_BASE_URL, gemini_key_set: Boolean(GEMINI_API_KEY) });
+      return;
+    }
+    if (url.pathname.startsWith("/gemini/")) {
+      if (!GEMINI_API_KEY) {
+        json(res, 500, { error: "missing_env", env: "GEMINI_API_KEY (or OPENAI_API_KEY)" });
+        return;
+      }
+
+      const raw = await readBody(req);
+      const upstreamUrl = `${GEMINI_BASE_URL}${url.pathname.substring("/gemini".length)}${url.search}`;
+      const upstream = await fetch(upstreamUrl, {
+        method: req.method || "POST",
+        headers: {
+          "content-type": req.headers["content-type"] || "application/json",
+          accept: req.headers.accept || "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: raw && (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") ? raw : undefined,
+      });
+
+      const ab = await upstream.arrayBuffer().catch(() => new ArrayBuffer(0));
+      const buf = Buffer.from(ab);
+      res.writeHead(upstream.status, copyJsonHeaders(upstream.headers, buf.length));
+      res.end(buf);
       return;
     }
 
