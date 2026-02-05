@@ -291,7 +291,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 
 [node name="SettingsPanel" type="PanelContainer" parent="SkillsMpSettingsPopup"]
 	layout_mode = 2
-	custom_minimum_size = Vector2(620, 280)
+	custom_minimum_size = Vector2(620, 360)
 	theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
 [node name="SettingsVBox" type="VBoxContainer" parent="SkillsMpSettingsPopup/SettingsPanel"]
@@ -305,7 +305,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 	unique_name_in_owner = true
 	layout_mode = 2
 	autowrap_mode = 3
-	text = "Register with the vendor and generate an API key (skillsmp.com). This key is saved per save slot."
+	text = "Register with the vendor and generate an API key (skillsmp.com). This key is saved per save slot. Proxy settings apply only to GitHub skill downloads."
 
 [node name="SettingsFormPanel" type="PanelContainer" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox"]
 	layout_mode = 2
@@ -337,6 +337,28 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 	custom_minimum_size = Vector2(520, 0)
 	secret = true
 	placeholder_text = "sk_live_..."
+
+[node name="SettingsHttpProxyLabel" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	layout_mode = 2
+	text = "HTTP Proxy"
+
+[node name="SettingsHttpProxyEdit" type="LineEdit" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	custom_minimum_size = Vector2(520, 0)
+	placeholder_text = "http://127.0.0.1:7897"
+
+[node name="SettingsHttpsProxyLabel" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	layout_mode = 2
+	text = "HTTPS Proxy"
+
+[node name="SettingsHttpsProxyEdit" type="LineEdit" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	custom_minimum_size = Vector2(520, 0)
+	placeholder_text = "https://127.0.0.1:7897"
 
 [node name="SettingsControls" type="HBoxContainer" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox"]
 	layout_mode = 2

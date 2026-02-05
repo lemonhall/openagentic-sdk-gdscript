@@ -27,17 +27,22 @@ static func codeload_zip_url(owner: String, repo: String, ref: String) -> String
 	var rf := ref.strip_edges()
 	return "https://codeload.github.com/%s/%s/zip/refs/heads/%s" % [o, r, rf]
 
-static func download_repo_zip(repo_url: String, transport: Callable = Callable()) -> Dictionary:
+static func download_repo_zip(repo_url: String, transport: Callable = Callable(), proxy_http: String = "", proxy_https: String = "") -> Dictionary:
 	var parsed: Dictionary = parse_owner_repo(repo_url)
 	if not bool(parsed.get("ok", false)):
 		return parsed
 	var owner := String(parsed.get("owner", "")).strip_edges()
 	var repo := String(parsed.get("repo", "")).strip_edges()
 	var tried := ["main", "master"]
+	var opts := {"proxy_http": proxy_http, "proxy_https": proxy_https}
+	var last_err: Dictionary = {}
 	for ref in tried:
 		var url := codeload_zip_url(owner, repo, ref)
-		var resp: Dictionary = await _OAMediaHttp.request(HTTPClient.METHOD_GET, url, {"accept": "application/zip"}, PackedByteArray(), 30.0, transport)
+		var resp: Dictionary = await _OAMediaHttp.request(HTTPClient.METHOD_GET, url, {"accept": "application/zip"}, PackedByteArray(), 30.0, transport, opts)
 		if not bool(resp.get("ok", false)):
+			if str(resp.get("error", "")).strip_edges() == "BadProxy":
+				return resp
+			last_err = resp
 			continue
 		var status := int(resp.get("status", 0))
 		if status == 200:
@@ -47,5 +52,6 @@ static func download_repo_zip(repo_url: String, transport: Callable = Callable()
 			continue
 		# Non-404 error: stop and surface.
 		return {"ok": false, "error": "HttpError", "status": status, "url": url}
+	if not last_err.is_empty():
+		return last_err
 	return {"ok": false, "error": "NotFound", "status": 404}
-

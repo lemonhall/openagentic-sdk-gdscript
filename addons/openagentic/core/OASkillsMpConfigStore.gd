@@ -26,9 +26,11 @@ static func load_config(save_id: String) -> Dictionary:
 	var obj: Dictionary = obj0 as Dictionary
 	var base_url := String(obj.get("base_url", obj.get("baseUrl", ""))).strip_edges()
 	var api_key := String(obj.get("api_key", obj.get("apiKey", ""))).strip_edges()
+	var proxy_http := String(obj.get("proxy_http", obj.get("proxyHttp", ""))).strip_edges()
+	var proxy_https := String(obj.get("proxy_https", obj.get("proxyHttps", ""))).strip_edges()
 	if base_url.ends_with("/"):
 		base_url = base_url.rstrip("/")
-	return {"ok": true, "config": {"base_url": base_url, "api_key": api_key}}
+	return {"ok": true, "config": {"base_url": base_url, "api_key": api_key, "proxy_http": proxy_http, "proxy_https": proxy_https}}
 
 static func save_config(save_id: String, config: Dictionary) -> Dictionary:
 	var p := config_path(save_id)
@@ -36,13 +38,14 @@ static func save_config(save_id: String, config: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "MissingSaveId"}
 	var base_url := String(config.get("base_url", config.get("baseUrl", ""))).strip_edges()
 	var api_key := String(config.get("api_key", config.get("apiKey", ""))).strip_edges()
+	var proxy_http := String(config.get("proxy_http", config.get("proxyHttp", ""))).strip_edges()
+	var proxy_https := String(config.get("proxy_https", config.get("proxyHttps", ""))).strip_edges()
 	if base_url.ends_with("/"):
 		base_url = base_url.rstrip("/")
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(p.get_base_dir()))
 	var f := FileAccess.open(p, FileAccess.WRITE)
 	if f == null:
 		return {"ok": false, "error": "WriteFailed"}
-	f.store_string(JSON.stringify({"base_url": base_url, "api_key": api_key}, "  ") + "\n")
+	f.store_string(JSON.stringify({"base_url": base_url, "api_key": api_key, "proxy_http": proxy_http, "proxy_https": proxy_https}, "  ") + "\n")
 	f.close()
 	return {"ok": true, "path": p}
-

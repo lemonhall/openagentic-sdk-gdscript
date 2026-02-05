@@ -28,6 +28,8 @@ const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSha
 @onready var settings_popup: PopupPanel = %SkillsMpSettingsPopup
 @onready var settings_base_url_edit: LineEdit = %SettingsBaseUrlEdit
 @onready var settings_api_key_edit: LineEdit = %SettingsApiKeyEdit
+@onready var settings_proxy_http_edit: LineEdit = %SettingsHttpProxyEdit
+@onready var settings_proxy_https_edit: LineEdit = %SettingsHttpsProxyEdit
 @onready var settings_save_button: Button = %SettingsSaveButton
 @onready var settings_test_button: Button = %SettingsTestButton
 @onready var settings_close_button: Button = %SettingsCloseButton
@@ -56,8 +58,10 @@ var _selected_repo_url := ""
 var _library_all: Array[Dictionary] = []
 var _library_filtered: Array[Dictionary] = []
 
-const SETTINGS_POPUP_SIZE := Vector2i(620, 280)
+const SETTINGS_POPUP_SIZE := Vector2i(620, 360)
 const _DEBUG_LAST_SEARCH_PATH := "user://openagentic/saves/%s/vr_offices/skillsmp_last_search.json"
+const DEFAULT_PROXY_HTTP := "http://127.0.0.1:7897"
+const DEFAULT_PROXY_HTTPS := "https://127.0.0.1:7897"
 
 func _ready() -> void:
 	visible = false
@@ -446,10 +450,15 @@ func _on_install_pressed() -> void:
 
 	_set_loading(true)
 	_update_status("Downloading…")
-	var dr: Dictionary = await _GitHubZipSource.download_repo_zip(repo, _github_zip_transport_override)
+	var cfg: Dictionary = _effective_skillsmp_cfg()
+	var proxy_http := str(cfg.get("proxy_http", "")).strip_edges()
+	var proxy_https := str(cfg.get("proxy_https", "")).strip_edges()
+	var dr: Dictionary = await _GitHubZipSource.download_repo_zip(repo, _github_zip_transport_override, proxy_http, proxy_https)
 	if not bool(dr.get("ok", false)):
 		_set_loading(false)
-		_update_status("Download failed: %s" % str(dr.get("error", "Error")))
+		var err := str(dr.get("error", "Error")).strip_edges()
+		var msg := str(dr.get("message", "")).strip_edges()
+		_update_status("Download failed: %s%s" % [err, (": " + msg) if msg != "" else ""])
 		return
 
 	var zip: PackedByteArray = dr.get("zip", PackedByteArray())
@@ -595,10 +604,12 @@ func _effective_skillsmp_cfg() -> Dictionary:
 			var cfg: Dictionary = rd.get("config", {})
 			var base := str(cfg.get("base_url", "")).strip_edges()
 			var key := str(cfg.get("api_key", "")).strip_edges()
+			var proxy_http := str(cfg.get("proxy_http", "")).strip_edges()
+			var proxy_https := str(cfg.get("proxy_https", "")).strip_edges()
 			var base2 := base if base != "" else str(env.get("base_url", "")).strip_edges()
 			var key2 := key if key != "" else str(env.get("api_key", "")).strip_edges()
-			return {"base_url": base2, "api_key": key2}
-	return env
+			return {"base_url": base2, "api_key": key2, "proxy_http": proxy_http, "proxy_https": proxy_https}
+	return {"base_url": str(env.get("base_url", "")).strip_edges(), "api_key": str(env.get("api_key", "")).strip_edges(), "proxy_http": "", "proxy_https": ""}
 
 func _open_settings_popup() -> void:
 	_load_settings_fields()
@@ -614,6 +625,12 @@ func _load_settings_fields() -> void:
 		settings_base_url_edit.text = str(cfg.get("base_url", "")).strip_edges()
 	if settings_api_key_edit != null:
 		settings_api_key_edit.text = str(cfg.get("api_key", "")).strip_edges()
+	if settings_proxy_http_edit != null:
+		var v := str(cfg.get("proxy_http", "")).strip_edges()
+		settings_proxy_http_edit.text = v if v != "" else DEFAULT_PROXY_HTTP
+	if settings_proxy_https_edit != null:
+		var v2 := str(cfg.get("proxy_https", "")).strip_edges()
+		settings_proxy_https_edit.text = v2 if v2 != "" else DEFAULT_PROXY_HTTPS
 
 func _update_settings_status(text: String) -> void:
 	if settings_status_label != null:
@@ -626,7 +643,9 @@ func _on_settings_save_pressed() -> void:
 		return
 	var base := settings_base_url_edit.text.strip_edges() if settings_base_url_edit != null else ""
 	var key := settings_api_key_edit.text.strip_edges() if settings_api_key_edit != null else ""
-	var wr: Dictionary = _SkillsMpConfigStore.save_config(sid, {"base_url": base, "api_key": key})
+	var proxy_http := settings_proxy_http_edit.text.strip_edges() if settings_proxy_http_edit != null else ""
+	var proxy_https := settings_proxy_https_edit.text.strip_edges() if settings_proxy_https_edit != null else ""
+	var wr: Dictionary = _SkillsMpConfigStore.save_config(sid, {"base_url": base, "api_key": key, "proxy_http": proxy_http, "proxy_https": proxy_https})
 	if bool(wr.get("ok", false)):
 		_update_settings_status("Saved")
 	else:

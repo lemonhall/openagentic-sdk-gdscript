@@ -13,7 +13,12 @@ func _init() -> void:
 	if not T.require_true(self, p.find("/shared/skillsmp_config.json") != -1, "Expected shared/skillsmp_config.json path"):
 		return
 
-	var cfg := {"base_url": "https://skillsmp.com/", "api_key": "k_test"}
+	var cfg := {
+		"base_url": "https://skillsmp.com/",
+		"api_key": "k_test",
+		"proxy_http": "http://127.0.0.1:7897 ",
+		"proxy_https": "https://127.0.0.1:7897 ",
+	}
 	var wr: Dictionary = (StoreScript as Script).call("save_config", save_id, cfg)
 	if not T.require_true(self, bool(wr.get("ok", false)), "Expected save ok"):
 		return
@@ -26,10 +31,13 @@ func _init() -> void:
 		return
 	if not T.require_eq(self, String(got.get("api_key", "")), "k_test", "api_key mismatch"):
 		return
+	if not T.require_eq(self, String(got.get("proxy_http", "")), "http://127.0.0.1:7897", "proxy_http mismatch"):
+		return
+	if not T.require_eq(self, String(got.get("proxy_https", "")), "https://127.0.0.1:7897", "proxy_https mismatch"):
+		return
 
 	# Cleanup best-effort.
 	if FileAccess.file_exists(p):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
 
 	T.pass_and_quit(self)
-
