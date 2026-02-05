@@ -56,4 +56,3 @@ static func rm_tree(dir_path: String) -> void:
 		else:
 			DirAccess.remove_absolute(p)
 	d.list_dir_end()
-

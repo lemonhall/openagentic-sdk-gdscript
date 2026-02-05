@@ -18,12 +18,15 @@ static func request(method: int, url: String, headers: Dictionary, body: PackedB
 		}
 
 	var tree := Engine.get_main_loop() as SceneTree
-	if tree == null or tree.root == null:
+	if tree == null:
 		return {"ok": false, "error": "NoSceneTree"}
+	var root := tree.get_root()
+	if root == null:
+		return {"ok": false, "error": "NoSceneRoot"}
 
 	var req_node := HTTPRequest.new()
 	req_node.timeout = timeout_sec
-	tree.root.add_child(req_node)
+	root.add_child(req_node)
 
 	var proxy_http := str(options.get("proxy_http", "")).strip_edges()
 	if proxy_http != "":
@@ -51,13 +54,14 @@ static func request(method: int, url: String, headers: Dictionary, body: PackedB
 	var err := req_node.request_raw(url, header_lines, method, body)
 	if err != OK:
 		req_node.queue_free()
-		return {"ok": false, "error": "RequestError", "code": err}
+		return {"ok": false, "error": "RequestError", "code": err, "url": url}
 
 	var result0: Array = await req_node.request_completed
 	req_node.queue_free()
 	if result0.size() < 4:
-		return {"ok": false, "error": "RequestError"}
+		return {"ok": false, "error": "RequestError", "url": url}
 
+	var req_result := int(result0[0])
 	var response_code := int(result0[1])
 	var resp_headers := result0[2] as PackedStringArray
 	var resp_body := result0[3] as PackedByteArray
@@ -70,6 +74,19 @@ static func request(method: int, url: String, headers: Dictionary, body: PackedB
 		var hk := s.substr(0, idx).strip_edges().to_lower()
 		var hv := s.substr(idx + 1).strip_edges()
 		hdrs[hk] = hv
+
+	if req_result != HTTPRequest.RESULT_SUCCESS:
+		return {
+			"ok": false,
+			"error": "HttpRequestFailed",
+			"result": req_result,
+			"result_name": _http_request_result_name(req_result),
+			"status": response_code,
+			"headers": hdrs,
+			"body_size": int(resp_body.size()),
+			"url": url,
+			"message": _http_request_result_name(req_result),
+		}
 
 	return {"ok": true, "status": response_code, "headers": hdrs, "body": resp_body}
 
@@ -118,6 +135,37 @@ static func _parse_proxy_host_port(proxy_url: String) -> Dictionary:
 	if port <= 0 or port > 65535:
 		return {"ok": false, "error": "BadPort"}
 	return {"ok": true, "host": host, "port": port}
+
+static func _http_request_result_name(result: int) -> String:
+	if result == HTTPRequest.RESULT_SUCCESS:
+		return "RESULT_SUCCESS"
+	if result == HTTPRequest.RESULT_CHUNKED_BODY_SIZE_MISMATCH:
+		return "RESULT_CHUNKED_BODY_SIZE_MISMATCH"
+	if result == HTTPRequest.RESULT_CANT_CONNECT:
+		return "RESULT_CANT_CONNECT"
+	if result == HTTPRequest.RESULT_CANT_RESOLVE:
+		return "RESULT_CANT_RESOLVE"
+	if result == HTTPRequest.RESULT_CONNECTION_ERROR:
+		return "RESULT_CONNECTION_ERROR"
+	if result == HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR:
+		return "RESULT_TLS_HANDSHAKE_ERROR"
+	if result == HTTPRequest.RESULT_NO_RESPONSE:
+		return "RESULT_NO_RESPONSE"
+	if result == HTTPRequest.RESULT_BODY_SIZE_LIMIT_EXCEEDED:
+		return "RESULT_BODY_SIZE_LIMIT_EXCEEDED"
+	if result == HTTPRequest.RESULT_BODY_DECOMPRESS_FAILED:
+		return "RESULT_BODY_DECOMPRESS_FAILED"
+	if result == HTTPRequest.RESULT_REQUEST_FAILED:
+		return "RESULT_REQUEST_FAILED"
+	if result == HTTPRequest.RESULT_DOWNLOAD_FILE_CANT_OPEN:
+		return "RESULT_DOWNLOAD_FILE_CANT_OPEN"
+	if result == HTTPRequest.RESULT_DOWNLOAD_FILE_WRITE_ERROR:
+		return "RESULT_DOWNLOAD_FILE_WRITE_ERROR"
+	if result == HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED:
+		return "RESULT_REDIRECT_LIMIT_REACHED"
+	if result == HTTPRequest.RESULT_TIMEOUT:
+		return "RESULT_TIMEOUT"
+	return "RESULT_%d" % result
 
 static func _method_name(method: int) -> String:
 	if method == HTTPClient.METHOD_GET:

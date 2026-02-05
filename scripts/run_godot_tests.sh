@@ -11,7 +11,7 @@ usage() {
 Run Godot headless test scripts from WSL2 using a Windows Godot executable.
 
 Usage:
-  scripts/run_godot_tests.sh [--exe <linux-path-to-godot-exe>] [--suite <name>] [--one <test_script.gd>] [--timeout <seconds>]
+  scripts/run_godot_tests.sh [--exe <linux-path-to-godot-exe>] [--suite <name>] [--one <test_script.gd>] [--timeout <seconds>] [--extra-args <...>]
 
 Examples:
   scripts/run_godot_tests.sh
@@ -20,6 +20,7 @@ Examples:
   scripts/run_godot_tests.sh --suite vr_offices
   scripts/run_godot_tests.sh --one tests/addons/openagentic/test_sse_parser.gd
   scripts/run_godot_tests.sh --timeout 120
+  scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_github_zip_download_online.gd --extra-args --oa-online-tests --oa-github-proxy-http=http://127.0.0.1:7897 --oa-github-proxy-https=http://127.0.0.1:7897
 
 Suites:
   all (default), openagentic, irc_client, vr_offices, demo, demo_irc, demo_rpg, addons, projects
@@ -34,6 +35,7 @@ GODOT_EXE="${GODOT_WIN_EXE:-$DEFAULT_GODOT_EXE_LINUX}"
 SUITE="all"
 ONE=""
 TIMEOUT_SEC="${GODOT_TEST_TIMEOUT_SEC:-120}"
+EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -52,6 +54,13 @@ while [[ $# -gt 0 ]]; do
     --timeout)
       TIMEOUT_SEC="$2"
       shift 2
+      ;;
+    --extra-args)
+      shift
+      while [[ $# -gt 0 ]]; do
+        EXTRA_ARGS+=("$1")
+        shift
+      done
       ;;
     -h|--help)
       usage
@@ -144,7 +153,7 @@ for t in "${tests[@]}"; do
   fi
   script_win="$(wslpath -w "$script_linux")"
   echo "--- RUN $t"
-  if ! run_with_timeout "$TIMEOUT_SEC" "$GODOT_EXE" --headless --path "$proj_win" --script "$script_win"; then
+  if ! run_with_timeout "$TIMEOUT_SEC" "$GODOT_EXE" --headless --path "$proj_win" --script "$script_win" "${EXTRA_ARGS[@]}"; then
     status=1
   fi
 done
