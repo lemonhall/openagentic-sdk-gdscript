@@ -15,6 +15,10 @@ Runtime-first **Godot 4** addon that ports the core loop of `openagentic-sdk-ts`
 
 ![VR Offices](screenshots/screenshot.png)
 
+## Video
+
+- YouTube demo: https://www.youtube.com/watch?v=TEJn4F2ivYg
+
 ## Status
 
 Early v1 slice: minimal end-to-end core is implemented; API is expected to change.

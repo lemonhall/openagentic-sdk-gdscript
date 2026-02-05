@@ -15,6 +15,10 @@
 
 ![VR Offices](screenshots/screenshot.png)
 
+## 视频
+
+- YouTube 演示：https://www.youtube.com/watch?v=TEJn4F2ivYg
+
 ## 状态
 
 v1 早期最小闭环已实现，API 可能会频繁调整。
