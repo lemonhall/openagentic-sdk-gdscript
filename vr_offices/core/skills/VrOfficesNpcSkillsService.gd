@@ -9,7 +9,7 @@ const _ClientScript := preload("res://vr_offices/core/skills/VrOfficesNpcSkillsS
 
 const _GROUP := "vr_offices_npc_skills_service"
 const _MAX_RETRIES := 3
-const _MAX_SUMMARY_CHARS := 150
+const _MAX_SUMMARY_CHARS := 240
 
 var _oa_override: Node = null
 var _queue: Array[Dictionary] = []
@@ -143,4 +143,3 @@ func _clamp_summary(s: String) -> String:
 	if t.length() > _MAX_SUMMARY_CHARS:
 		t = t.substr(0, _MAX_SUMMARY_CHARS)
 	return t.strip_edges()
-

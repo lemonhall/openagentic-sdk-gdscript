@@ -56,25 +56,118 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Refresh Summary"
 
+[node name="OpenSkillsFolderButton" type="Button" parent="Panel/RootHBox/Left/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open Folder"
+
 [node name="CloseButton" type="Button" parent="Panel/RootHBox/Left/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Close"
 
-[node name="SummaryLabel" type="Label" parent="Panel/RootHBox/Left"]
+[node name="SummaryMargin" type="MarginContainer" parent="Panel/RootHBox/Left"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="SummaryLabel" type="Label" parent="Panel/RootHBox/Left/SummaryMargin"]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 autowrap_mode = 3
 text = ""
 
-[node name="SkillsScroll" type="ScrollContainer" parent="Panel/RootHBox/Left"]
+[node name="CardNav" type="HBoxContainer" parent="Panel/RootHBox/Left"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="SkillsVBox" type="VBoxContainer" parent="Panel/RootHBox/Left/SkillsScroll"]
+[node name="CardPrevButton" type="Button" parent="Panel/RootHBox/Left/CardNav"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(44, 0)
+text = "<"
+
+[node name="CardSlot" type="Control" parent="Panel/RootHBox/Left/CardNav"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+clip_contents = true
+
+[node name="CardPanel" type="PanelContainer" parent="Panel/RootHBox/Left/CardNav/CardSlot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="CardVBox" type="VBoxContainer" parent="Panel/RootHBox/Left/CardNav/CardSlot/CardPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardThumb" type="TextureRect" parent="Panel/RootHBox/Left/CardNav/CardSlot/CardPanel/CardVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 260)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 6
+
+[node name="CardTitle" type="Label" parent="Panel/RootHBox/Left/CardNav/CardSlot/CardPanel/CardVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="CardDesc" type="Label" parent="Panel/RootHBox/Left/CardNav/CardSlot/CardPanel/CardVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = ""
+
+[node name="CardActions" type="HBoxContainer" parent="Panel/RootHBox/Left/CardNav/CardSlot/CardPanel/CardVBox"]
+layout_mode = 2
+
+[node name="CardUninstallButton" type="Button" parent="Panel/RootHBox/Left/CardNav/CardSlot/CardPanel/CardVBox/CardActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Uninstall"
+
+[node name="CardEmptyLabel" type="Label" parent="Panel/RootHBox/Left/CardNav/CardSlot"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+autowrap_mode = 3
+text = "No skills installed."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CardNextButton" type="Button" parent="Panel/RootHBox/Left/CardNav"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(44, 0)
+text = ">"
+
+[node name="CardPageLabel" type="Label" parent="Panel/RootHBox/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
 
 [node name="Right" type="VBoxContainer" parent="Panel/RootHBox"]
 layout_mode = 2
@@ -105,4 +198,3 @@ rotation = Vector3(-0.85, -0.9, 0.0)
 unique_name_in_owner = true
 position = Vector3(0, 1.1, 2.2)
 fov = 35.0
-

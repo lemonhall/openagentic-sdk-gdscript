@@ -78,6 +78,24 @@ func _init() -> void:
 	if not T.require_eq(self, String(names[1]), "skill_beta", "Expected sorted names"):
 		return
 
+	# Card navigation selects skills in order.
+	if not T.require_true(self, overlay.has_method("_test_selected_skill_name"), "Overlay missing _test_selected_skill_name()"):
+		return
+	if not T.require_true(self, overlay.has_method("_test_next_skill"), "Overlay missing _test_next_skill()"):
+		return
+	if not T.require_true(self, overlay.has_method("_test_prev_skill"), "Overlay missing _test_prev_skill()"):
+		return
+	if not T.require_eq(self, String(overlay.call("_test_selected_skill_name")), "skill_alpha", "Expected selected skill_alpha"):
+		return
+	overlay.call("_test_next_skill")
+	await process_frame
+	if not T.require_eq(self, String(overlay.call("_test_selected_skill_name")), "skill_beta", "Expected selected skill_beta after next"):
+		return
+	overlay.call("_test_prev_skill")
+	await process_frame
+	if not T.require_eq(self, String(overlay.call("_test_selected_skill_name")), "skill_alpha", "Expected selected skill_alpha after prev"):
+		return
+
 	# Uninstall removes directory and refreshes cards.
 	if not T.require_true(self, overlay.has_method("_test_uninstall_skill"), "Overlay missing _test_uninstall_skill()"):
 		return

@@ -7,7 +7,8 @@ const MODEL := "gemini-3-pro-image-preview"
 const DEFAULT_ASPECT := "1:1"
 const DEFAULT_IMAGE_SIZE := "1K"
 const DEFAULT_TIMEOUT_SEC := 30.0
-const DEFAULT_THUMB_SIZE := 256
+const DEFAULT_THUMB_W := 640
+const DEFAULT_THUMB_H := 360
 
 func generate_thumbnail_png(
 	prompt: String,
@@ -29,9 +30,17 @@ func generate_thumbnail_png(
 	var img_size := String(options.get("image_size", DEFAULT_IMAGE_SIZE)).strip_edges()
 	if img_size == "":
 		img_size = DEFAULT_IMAGE_SIZE
-	var thumb_size := int(options.get("thumb_size", DEFAULT_THUMB_SIZE))
-	if thumb_size <= 0:
-		thumb_size = DEFAULT_THUMB_SIZE
+	var w := int(options.get("thumb_width", 0))
+	var h := int(options.get("thumb_height", 0))
+	if w <= 0 or h <= 0:
+		var sz := int(options.get("thumb_size", 0))
+		if sz > 0:
+			w = sz
+			h = sz
+	if w <= 0:
+		w = DEFAULT_THUMB_W
+	if h <= 0:
+		h = DEFAULT_THUMB_H
 	var timeout := float(options.get("timeout_sec", DEFAULT_TIMEOUT_SEC))
 
 	var payload := {
@@ -79,7 +88,7 @@ func generate_thumbnail_png(
 	if raw.size() <= 0:
 		return {"ok": false, "error": "BadBase64"}
 
-	var conv := to_png_bytes(raw, mime, thumb_size)
+	var conv := to_png_bytes(raw, mime, w, h)
 	if not bool(conv.get("ok", false)):
 		return conv
 	return {"ok": true, "png_bytes": conv.get("png_bytes", PackedByteArray()), "source_mime": mime}
@@ -113,7 +122,7 @@ static func find_first_inline_data(v: Variant) -> Dictionary:
 
 	return {"ok": false}
 
-static func to_png_bytes(raw: PackedByteArray, mime: String, thumb_size: int) -> Dictionary:
+static func to_png_bytes(raw: PackedByteArray, mime: String, width: int, height: int) -> Dictionary:
 	var img := Image.new()
 	var err := ERR_UNAVAILABLE
 	var m := mime.strip_edges().to_lower()
@@ -130,8 +139,14 @@ static func to_png_bytes(raw: PackedByteArray, mime: String, thumb_size: int) ->
 	if err != OK:
 		return {"ok": false, "error": "ImageDecodeFailed", "code": err, "mime": m}
 
-	if thumb_size > 0 and (img.get_width() != thumb_size or img.get_height() != thumb_size):
-		img.resize(thumb_size, thumb_size, Image.INTERPOLATE_LANCZOS)
+	var w := width
+	var h := height
+	if w <= 0:
+		w = img.get_width()
+	if h <= 0:
+		h = img.get_height()
+	if img.get_width() != w or img.get_height() != h:
+		img.resize(w, h, Image.INTERPOLATE_LANCZOS)
 	var out := img.save_png_to_buffer()
 	if out.size() <= 0:
 		return {"ok": false, "error": "PngEncodeFailed"}

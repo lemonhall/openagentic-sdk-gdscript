@@ -62,6 +62,20 @@ func _handle_data(data: String, on_event: Callable) -> bool:
 		return false
 	var typ := String(obj.get("type", ""))
 
+	# OpenAI Responses API terminal events (may be used instead of [DONE]).
+	if typ == "response.completed":
+		on_event.call({"type": "done"})
+		return true
+	if typ == "response.failed" or typ == "response.incomplete":
+		var err0: Variant = obj.get("error", null)
+		var msg := ""
+		if typeof(err0) == TYPE_DICTIONARY:
+			msg = String((err0 as Dictionary).get("message", "")).strip_edges()
+		elif err0 != null:
+			msg = String(err0).strip_edges()
+		on_event.call({"type": "done", "error": msg if msg != "" else typ})
+		return true
+
 	if typ == "response.output_text.delta":
 		var delta: String = String(obj.get("delta", ""))
 		if delta != "":

@@ -42,7 +42,7 @@ In local dev, the proxy should inject the key so Godot does not need to send `x-
 
 - The on-disk thumbnail file must always be `thumbnail.png` under the installed skill dir.
 - If Gemini returns a JPEG (or any non-PNG image), convert it to PNG before writing.
-- The stored PNG should be resized down for thumbnail usage (target: 256×256, 1:1).
+- The stored PNG should be resized down for thumbnail usage (target: **640×360**, 16:9).
 
 ### REQ-003 — Online E2E connectivity test (manual review gate)
 

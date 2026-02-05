@@ -54,9 +54,9 @@ func _test_client_converts_jpeg_inline_data_to_png() -> bool:
 	var err := img2.load_png_from_buffer(png_bytes)
 	if not T.require_eq(self, err, OK, "PNG must be loadable"):
 		return false
-	if not T.require_eq(self, img2.get_width(), 256, "PNG must be resized to 256x256"):
+	if not T.require_eq(self, img2.get_width(), 640, "PNG must be resized to 640x360"):
 		return false
-	if not T.require_eq(self, img2.get_height(), 256, "PNG must be resized to 256x256"):
+	if not T.require_eq(self, img2.get_height(), 360, "PNG must be resized to 640x360"):
 		return false
 	return true
 
@@ -115,6 +115,14 @@ func _test_generator_writes_and_skips() -> bool:
 	var buf := f2.get_buffer(f2.get_length())
 	f2.close()
 	if not T.require_true(self, _looks_like_png(buf), "thumbnail.png must be PNG"):
+		return false
+	var img3 := Image.new()
+	var err2 := img3.load_png_from_buffer(buf)
+	if not T.require_eq(self, err2, OK, "thumbnail.png must be loadable"):
+		return false
+	if not T.require_eq(self, img3.get_width(), 640, "thumbnail.png must be 640x360"):
+		return false
+	if not T.require_eq(self, img3.get_height(), 360, "thumbnail.png must be 640x360"):
 		return false
 
 	# Second call must skip when thumbnail exists (no transport call).

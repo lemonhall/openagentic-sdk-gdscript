@@ -7,6 +7,9 @@ const _ClientScript := preload("res://vr_offices/core/skill_library/thumbnails/V
 
 const _DEFAULT_BASE_URL := "http://127.0.0.1:8787/gemini"
 const _MAX_RETRIES := 3
+const _TARGET_W := 640
+const _TARGET_H := 360
+const _ASPECT_RATIO := "16:9"
 
 var _client: RefCounted = _ClientScript.new()
 
@@ -31,7 +34,7 @@ func generate_for_skill(
 		return {"ok": false, "error": "SkillNotFound", "skill": name}
 
 	var thumb_path := skill_dir + "/thumbnail.png"
-	if not force and _file_exists_any(thumb_path):
+	if not force and _thumbnail_ok(thumb_path, _TARGET_W, _TARGET_H):
 		return {"ok": true, "cached": true, "path": thumb_path}
 
 	var md_path := skill_dir + "/SKILL.md"
@@ -52,6 +55,12 @@ func generate_for_skill(
 	var client_opts := options.duplicate()
 	client_opts.erase("base_url")
 	client_opts.erase("api_key")
+	if not client_opts.has("aspect_ratio"):
+		client_opts["aspect_ratio"] = _ASPECT_RATIO
+	if not client_opts.has("thumb_width"):
+		client_opts["thumb_width"] = _TARGET_W
+	if not client_opts.has("thumb_height"):
+		client_opts["thumb_height"] = _TARGET_H
 
 	var last_err := ""
 	for attempt in range(_MAX_RETRIES):
@@ -88,12 +97,22 @@ static func _thumbnail_prompt(name: String, description: String) -> String:
 		+ "技能名：“%s”。\n" % n
 		+ "技能描述：“%s”。\n" % d
 		+ "要求：幼儿卡通风、玩具感、色彩明快，和低多边形/卡通角色游戏风格协调。\n"
-		+ "构图：1:1 图标，主体居中，背景干净（纯色或简单渐变）。\n"
-		+ "禁止：不要文字、不要 logo、不要水印、不要写实、不要血腥暴力。"
+		+ "构图：16:9 卡牌封面，主体居中，背景干净（纯色或简单渐变）。\n"
+		+ "禁止：不要任何文字/字母/符号、不要 logo、不要水印、不要写实、不要血腥暴力。"
 	)
 
 static func _file_exists_any(p: String) -> bool:
 	return FileAccess.file_exists(p) or FileAccess.file_exists(ProjectSettings.globalize_path(p))
+
+static func _thumbnail_ok(png_path: String, w: int, h: int) -> bool:
+	if not _file_exists_any(png_path):
+		return false
+	var abs := ProjectSettings.globalize_path(png_path)
+	var img := Image.new()
+	var err := img.load(abs)
+	if err != OK:
+		return false
+	return img.get_width() == w and img.get_height() == h
 
 static func _is_function_state(v: Variant) -> bool:
 	return typeof(v) == TYPE_OBJECT and v != null and (v as Object).get_class() == "GDScriptFunctionState"

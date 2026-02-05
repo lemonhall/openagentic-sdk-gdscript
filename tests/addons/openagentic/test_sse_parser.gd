@@ -10,6 +10,7 @@ func _init() -> void:
 
 	var parser = ParserScript.new()
 
+	# Case 1: legacy sentinel.
 	var sse := ""
 	sse += "data: {\"type\":\"response.output_text.delta\",\"delta\":\"He\"}\n\n"
 	sse += "data: {\"type\":\"response.output_text.delta\",\"delta\":\"llo\"}\n\n"
@@ -44,6 +45,22 @@ func _init() -> void:
 	var got_done := bool(state.get("done", false))
 	if got_text != "Hello" or not got_tool or not got_done:
 		T.fail_and_quit(self, "parse failed: got_text=%s got_tool=%s got_done=%s" % [got_text, str(got_tool), str(got_done)])
+		return
+
+	# Case 2: Responses API streams can end with a terminal JSON event (no [DONE]).
+	var sse2 := ""
+	sse2 += "data: {\"type\":\"response.output_text.delta\",\"delta\":\"OK\"}\n\n"
+	sse2 += "data: {\"type\":\"response.completed\"}\n\n"
+	var state2 := {"text": "", "done": false}
+	parser.parse_from_string(sse2, func(ev2: Dictionary) -> void:
+		var t2 := String(ev2.get("type", ""))
+		if t2 == "text_delta":
+			state2["text"] = String(state2.get("text", "")) + String(ev2.get("delta", ""))
+		elif t2 == "done":
+			state2["done"] = true
+	)
+	if String(state2.get("text", "")) != "OK" or not bool(state2.get("done", false)):
+		T.fail_and_quit(self, "parse failed for response.completed: " + JSON.stringify(state2))
 		return
 
 	T.pass_and_quit(self)

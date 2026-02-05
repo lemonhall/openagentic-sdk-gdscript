@@ -112,7 +112,7 @@ func _init() -> void:
 		T.fail_and_quit(self, "Decoded image bytes were empty (mime=%s)" % mime)
 		return
 
-	var conv: Dictionary = _Client.to_png_bytes(img_bytes, mime, 256)
+	var conv: Dictionary = _Client.to_png_bytes(img_bytes, mime, 640, 360)
 	if not bool(conv.get("ok", false)):
 		T.fail_and_quit(self, "Failed to convert image to PNG: %s" % JSON.stringify(conv, "  "))
 		return
