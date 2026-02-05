@@ -36,6 +36,7 @@ var _limit := 20
 var _total_pages := 0
 
 const SETTINGS_POPUP_SIZE := Vector2i(620, 280)
+const _DEBUG_LAST_SEARCH_PATH := "user://openagentic/saves/%s/vr_offices/skillsmp_last_search.json"
 
 func _ready() -> void:
 	visible = false
@@ -142,9 +143,11 @@ func _run_search() -> Dictionary:
 	var key := str(cfg.get("api_key", "")).strip_edges()
 	if base == "" or key == "":
 		_update_status("Missing API key. Open Settings to configure.")
+		_write_last_search_debug({"q": _current_query, "page": _current_page, "limit": _limit, "sort_by": _current_sort_by(), "base_url": base}, {"ok": false, "error": "MissingConfig", "status": 0})
 		return {"ok": false, "error": "MissingConfig"}
 	if _current_query == "":
 		_update_status("Enter a query.")
+		_write_last_search_debug({"q": _current_query, "page": _current_page, "limit": _limit, "sort_by": _current_sort_by(), "base_url": base}, {"ok": false, "error": "MissingQuery", "status": 0})
 		return {"ok": false, "error": "MissingQuery"}
 
 	_set_loading(true)
@@ -153,6 +156,7 @@ func _run_search() -> Dictionary:
 	var sort_by := _current_sort_by()
 	var rr: Dictionary = await _client.call("search", base, key, _current_query, _current_page, _limit, sort_by, _skillsmp_transport_override)
 	_set_loading(false)
+	_write_last_search_debug({"q": _current_query, "page": _current_page, "limit": _limit, "sort_by": sort_by, "base_url": base}, rr)
 
 	if not bool(rr.get("ok", false)):
 		var code := str(rr.get("error_code", "")).strip_edges()
@@ -180,6 +184,41 @@ func _run_search() -> Dictionary:
 	_update_status("Loaded %d result(s)." % int(_items.size()))
 	_update_page_label()
 	return rr
+
+func _write_last_search_debug(req: Dictionary, rr: Dictionary) -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		return
+	var p := _DEBUG_LAST_SEARCH_PATH % sid
+	var out := {
+		"ts_unix": int(Time.get_unix_time_from_system()),
+		"ts_ms": int(Time.get_ticks_msec()),
+		"request": req,
+		"ui": {
+			"current_page": _current_page,
+			"total_pages": _total_pages,
+			"prev_disabled": prev_page_button.disabled if prev_page_button != null else null,
+			"next_disabled": next_page_button.disabled if next_page_button != null else null,
+			"page_label": page_label.text if page_label != null else "",
+		},
+		"response": {
+			"ok": bool(rr.get("ok", false)),
+			"status": int(rr.get("status", 0)),
+			"error": str(rr.get("error", "")).strip_edges(),
+			"error_code": str(rr.get("error_code", "")).strip_edges(),
+			"message": str(rr.get("message", "")).strip_edges(),
+			"url": str(rr.get("url", "")).strip_edges(),
+			"pagination": rr.get("pagination", {}),
+			"raw": rr.get("raw", null),
+		},
+	}
+
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(p.get_base_dir()))
+	var f := FileAccess.open(p, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(out, "  ") + "\n")
+	f.close()
 
 func _render_items(items: Array) -> void:
 	if results_list == null:
