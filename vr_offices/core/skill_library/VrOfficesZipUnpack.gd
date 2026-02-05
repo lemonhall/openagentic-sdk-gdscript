@@ -90,10 +90,10 @@ static func _effective_root_dir(dst_dir: String, include_subdir: String) -> Stri
 	return root
 
 static func _single_child_dir(dir_path: String) -> String:
-	var abs := ProjectSettings.globalize_path(dir_path)
+	var abs_dir := ProjectSettings.globalize_path(dir_path)
 	var d := DirAccess.open(dir_path)
 	if d == null:
-		d = DirAccess.open(abs)
+		d = DirAccess.open(abs_dir)
 	if d == null:
 		return dir_path
 	var children := []
