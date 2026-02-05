@@ -49,6 +49,17 @@ func install_zip_for_save(save_id: String, zip_path: String, source: Dictionary)
 		return unzip_res
 
 	var scan_root := String(unzip_res.get("root", stage_root))
+	var subdir := ""
+	if source != null:
+		subdir = String(source.get("subdir", source.get("path", ""))).strip_edges().rstrip("/")
+	if subdir != "":
+		if _is_unsafe_relative_dir(subdir):
+			return {"ok": false, "error": "UnsafeSubdir", "subdir": subdir}
+		var scoped := scan_root.rstrip("/") + "/" + subdir
+		var abs_scoped := ProjectSettings.globalize_path(scoped)
+		if not DirAccess.dir_exists_absolute(abs_scoped):
+			return {"ok": false, "error": "SubdirNotFound", "subdir": subdir}
+		scan_root = scoped
 	var candidates := _Discover.discover_skill_dirs(scan_root, DISCOVER_DEPTH)
 
 	var installed: Array[Dictionary] = []
@@ -89,3 +100,13 @@ func install_zip_for_save(save_id: String, zip_path: String, source: Dictionary)
 		installed.append(entry)
 
 	return {"ok": installed.size() > 0, "installed": installed, "rejected": rejected}
+
+static func _is_unsafe_relative_dir(p: String) -> bool:
+	var s := p.strip_edges()
+	if s == "" or s.begins_with("/") or s.begins_with("\\"):
+		return true
+	if s.find("..") != -1:
+		return true
+	if s.find(":") != -1:
+		return true
+	return false

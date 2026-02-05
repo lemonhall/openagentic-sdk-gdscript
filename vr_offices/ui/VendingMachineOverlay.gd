@@ -479,7 +479,14 @@ func _on_install_pressed() -> void:
 	f.close()
 
 	_update_status("Validating & installing…")
-	var source := {"type": "github", "repo_url": String(dr.get("repo_url", repo)), "ref": String(dr.get("ref", "")), "url": String(dr.get("url", ""))}
+	var source := {
+		"type": "github",
+		"requested_url": repo,
+		"repo_url": String(dr.get("repo_url", repo)),
+		"ref": String(dr.get("ref", "")),
+		"subdir": String(dr.get("subdir", "")),
+		"url": String(dr.get("url", "")),
+	}
 	var rr: Dictionary = await _installer.call("install_zip_for_save", sid, zip_path, source)
 	_set_loading(false)
 	if not bool(rr.get("ok", false)):
