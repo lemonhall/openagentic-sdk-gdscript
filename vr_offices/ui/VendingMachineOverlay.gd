@@ -103,12 +103,12 @@ func _on_backdrop_gui_input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if not mb.pressed:
 			return
-			if mb.button_index == MOUSE_BUTTON_RIGHT:
-				close()
-				return
-			if mb.button_index == MOUSE_BUTTON_LEFT and mb.double_click:
-				close()
-				return
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			close()
+			return
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.double_click:
+			close()
+			return
 
 func set_skillsmp_transport_override(transport: Callable) -> void:
 	_skillsmp_transport_override = transport
@@ -197,8 +197,8 @@ func _write_last_search_debug(req: Dictionary, rr: Dictionary) -> void:
 		"ui": {
 			"current_page": _current_page,
 			"total_pages": _total_pages,
-			"prev_disabled": prev_page_button.disabled if prev_page_button != null else null,
-			"next_disabled": next_page_button.disabled if next_page_button != null else null,
+			"prev_disabled": prev_page_button != null and prev_page_button.disabled,
+			"next_disabled": next_page_button != null and next_page_button.disabled,
 			"page_label": page_label.text if page_label != null else "",
 		},
 		"response": {
@@ -226,15 +226,15 @@ func _render_items(items: Array) -> void:
 	results_list.clear()
 	if details_text != null:
 		details_text.text = ""
-		for i in range(items.size()):
-			var item0: Variant = items[i]
-			var d: Dictionary = item0 as Dictionary if typeof(item0) == TYPE_DICTIONARY else {}
-			var title := str(d.get("name", d.get("title", "Untitled"))).strip_edges()
-			var stars = d.get("stars", null)
-			var label := title
-			if stars != null and str(stars) != "":
-				label = "%s  ★%s" % [title, str(stars)]
-			results_list.add_item(label)
+	for i in range(items.size()):
+		var item0: Variant = items[i]
+		var d: Dictionary = item0 as Dictionary if typeof(item0) == TYPE_DICTIONARY else {}
+		var title := str(d.get("name", d.get("title", "Untitled"))).strip_edges()
+		var stars = d.get("stars", null)
+		var label := title
+		if stars != null and str(stars) != "":
+			label = "%s  ★%s" % [title, str(stars)]
+		results_list.add_item(label)
 	if items.size() > 0:
 		results_list.select(0)
 		_on_result_selected(0)
