@@ -21,6 +21,8 @@ var _skill_name: String = ""
 var _npcs: Array[Dictionary] = []
 var _idx: int = 0
 var _switch_tween: Tween = null
+var _debug_headless_override: int = -1 # -1 = default, 0 = false, 1 = true
+var _debug_instant_switch: bool = false
 
 func _ready() -> void:
 	if prev_button != null:
@@ -79,6 +81,12 @@ func _shift(delta: int) -> void:
 	if next_idx < 0:
 		next_idx += _npcs.size()
 
+	if _debug_instant_switch:
+		_idx = next_idx
+		_update_ui()
+		_finish_switch_transition()
+		return
+
 	_switch_tween = create_tween()
 	_switch_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_switch_tween.tween_property(preview_container, "modulate:a", 0.0, 0.12)
@@ -89,12 +97,13 @@ func _shift(delta: int) -> void:
 	)
 	_switch_tween.tween_property(preview_container, "modulate:a", 1.0, 0.12)
 	_switch_tween.parallel().tween_property(npc_name_label, "modulate:a", 1.0, 0.12)
-	_switch_tween.finished.connect(func() -> void:
-		_switch_tween = null
-		if preview_viewport != null:
-			preview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-		_set_nav_enabled(true)
-	)
+	_switch_tween.finished.connect(_finish_switch_transition)
+
+func _finish_switch_transition() -> void:
+	_switch_tween = null
+	if preview_viewport != null:
+		preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible else SubViewport.UPDATE_DISABLED
+	_set_nav_enabled(true)
 
 func _on_learn_pressed() -> void:
 	if _save_id == "" or _skill_name == "":
@@ -131,11 +140,21 @@ func _display_name(npc: Dictionary) -> String:
 	return nid if nid != "" else "(unknown)"
 
 func _is_headless() -> bool:
+	if _debug_headless_override == 0:
+		return false
+	if _debug_headless_override == 1:
+		return true
 	return DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless")
 
 func _update_preview_visibility() -> void:
 	if preview_container != null:
 		preview_container.visible = not _is_headless()
+
+func debug_set_headless_override(is_headless: bool) -> void:
+	_debug_headless_override = 1 if is_headless else 0
+
+func debug_set_instant_switch(enabled: bool) -> void:
+	_debug_instant_switch = enabled
 
 func _update_preview_model() -> void:
 	_update_preview_visibility()
