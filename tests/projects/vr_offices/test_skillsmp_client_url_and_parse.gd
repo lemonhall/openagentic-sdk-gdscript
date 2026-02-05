@@ -29,6 +29,33 @@ func _transport_ok(req: Dictionary) -> Dictionary:
 	})
 	return {"ok": true, "status": 200, "headers": {"content-type": "application/json"}, "body": body.to_utf8_buffer()}
 
+func _transport_ok_meta(req: Dictionary) -> Dictionary:
+	if not String(req.get("method", "")).begins_with("GET"):
+		return {"ok": false, "error": "ExpectedGET"}
+	var hdrs: Dictionary = req.get("headers", {})
+	var auth := String(hdrs.get("Authorization", ""))
+	if auth != "Bearer k_test":
+		return {"ok": false, "error": "BadAuth"}
+	var body := JSON.stringify({
+		"success": true,
+		"data": [
+			{
+				"id": "s2",
+				"name": "Alt Format Skill",
+				"description": "Response shape uses meta + data array.",
+				"stars": 5,
+				"url": "https://skillsmp.com/skills/s2"
+			}
+		],
+		"meta": {
+			"currentPage": 3,
+			"perPage": 20,
+			"total": 180,
+			"pageCount": 9
+		}
+	})
+	return {"ok": true, "status": 200, "headers": {"content-type": "application/json"}, "body": body.to_utf8_buffer()}
+
 func _init() -> void:
 	var ClientScript := load("res://vr_offices/core/skillsmp/VrOfficesSkillsMpClient.gd")
 	if ClientScript == null:
@@ -63,5 +90,14 @@ func _init() -> void:
 	if not T.require_eq(self, int(pg.get("total_pages", 0)), 2, "Expected total_pages=2"):
 		return
 
-	T.pass_and_quit(self)
+	var rr2_0: Variant = client.call("search", "https://skillsmp.com", "k_test", "SEO", 3, 20, "recent", Callable(self, "_transport_ok_meta"))
+	var rr2: Dictionary = await rr2_0
+	if not T.require_true(self, bool(rr2.get("ok", false)), "Expected alt-shape search ok"):
+		return
+	var pg2: Dictionary = rr2.get("pagination", {})
+	if not T.require_eq(self, int(pg2.get("page", 0)), 3, "Expected meta currentPage -> page=3"):
+		return
+	if not T.require_eq(self, int(pg2.get("total_pages", 0)), 9, "Expected meta pageCount -> total_pages=9"):
+		return
 
+	T.pass_and_quit(self)

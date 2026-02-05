@@ -107,10 +107,10 @@ func _extract_items_and_pagination(obj: Dictionary) -> Dictionary:
 		var items0: Variant = data.get("items", data.get("skills", data.get("results", null)))
 		if typeof(items0) == TYPE_ARRAY:
 			items = items0 as Array
-		page = int(data.get("page", page))
-		limit = int(data.get("limit", limit))
+		page = int(data.get("page", data.get("currentPage", data.get("current_page", page))))
+		limit = int(data.get("limit", data.get("perPage", data.get("per_page", data.get("pageSize", limit)))))
 		total = int(data.get("total", total))
-		total_pages = int(data.get("totalPages", data.get("total_pages", total_pages)))
+		total_pages = int(data.get("totalPages", data.get("total_pages", data.get("pageCount", data.get("pages", total_pages)))))
 	elif typeof(data0) == TYPE_ARRAY:
 		items = data0 as Array
 
@@ -119,13 +119,21 @@ func _extract_items_and_pagination(obj: Dictionary) -> Dictionary:
 		if typeof(items2) == TYPE_ARRAY:
 			items = items2 as Array
 
+	var meta0: Variant = obj.get("meta", null)
+	if typeof(meta0) == TYPE_DICTIONARY:
+		var meta: Dictionary = meta0 as Dictionary
+		page = int(meta.get("page", meta.get("currentPage", meta.get("current_page", page))))
+		limit = int(meta.get("limit", meta.get("perPage", meta.get("per_page", meta.get("pageSize", limit)))))
+		total = int(meta.get("total", total))
+		total_pages = int(meta.get("totalPages", meta.get("total_pages", meta.get("pageCount", meta.get("pages", total_pages)))))
+
 	var pg0: Variant = obj.get("pagination", null)
 	if typeof(pg0) == TYPE_DICTIONARY:
 		var pgd: Dictionary = pg0 as Dictionary
-		page = int(pgd.get("page", page))
-		limit = int(pgd.get("limit", limit))
+		page = int(pgd.get("page", pgd.get("currentPage", pgd.get("current_page", page))))
+		limit = int(pgd.get("limit", pgd.get("perPage", pgd.get("per_page", pgd.get("pageSize", limit)))))
 		total = int(pgd.get("total", total))
-		total_pages = int(pgd.get("totalPages", pgd.get("total_pages", total_pages)))
+		total_pages = int(pgd.get("totalPages", pgd.get("total_pages", pgd.get("pageCount", pgd.get("pages", total_pages)))))
 
 	return {
 		"items": items,
@@ -136,4 +144,3 @@ func _extract_items_and_pagination(obj: Dictionary) -> Dictionary:
 			"total_pages": total_pages,
 		},
 	}
-
