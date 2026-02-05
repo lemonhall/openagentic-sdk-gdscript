@@ -18,6 +18,10 @@ signal move_target_reached(npc_id: String, target: Vector3)
 @export_range(0.0, 20.0, 0.1) var turn_speed := 8.0
 @export_range(-PI, PI, 0.01) var model_yaw_offset := PI
 
+# Stationary pose (used by workspace default “manager” NPCs).
+@export var stationary := false
+@export var stationary_animation: String = ""
+
 # X = world X, Y = world Z.
 @export var wander_bounds := Rect2(Vector2(-6.0, -4.0), Vector2(12.0, 8.0))
 
@@ -45,6 +49,8 @@ var _wander_enabled_before_dialogue := true
 var _dialogue_face_node: Node3D = null
 var _dialogue_face_pos: Vector3 = Vector3.ZERO
 
+var _stationary_anim: StringName = &""
+
 # Desk binding / work state.
 var _desk_bound_id: String = ""
 var _skip_wait_after_goto := false
@@ -61,11 +67,17 @@ func _ready() -> void:
 	else:
 		_load_placeholder()
 	_pick_new_wander_target()
+	if stationary:
+		_apply_stationary_pose()
 	if selection_plumbob != null:
 		_plumbob_base_y = selection_plumbob.position.y
 		_plumbob_base_rot_y = selection_plumbob.rotation.y
 
 func _physics_process(delta: float) -> void:
+	if stationary:
+		# Stationary NPCs are allowed to float slightly (e.g. seated).
+		velocity = Vector3.ZERO
+		return
 	_update_wander(delta)
 
 	if not is_on_floor():
@@ -112,6 +124,9 @@ func _load_model() -> void:
 				model_root.add_child(inst)
 				_autoplay_animation(inst)
 				return
+		else:
+			var tname := "null" if res == null else String(res.get_class())
+			push_warning("Npc: failed to load model_path=%s (got %s); using placeholder." % [model_path, tname])
 
 	# Fallback: a simple capsule mesh so the scene still works without imported assets.
 	var mi := MeshInstance3D.new()
@@ -222,6 +237,41 @@ func play_turn_start_animation() -> void:
 func play_turn_end_animation() -> void:
 	stop_override_animation()
 
+func set_stationary_pose(clip: String) -> void:
+	stationary = true
+	stationary_animation = clip
+	_apply_stationary_pose()
+
+func _apply_stationary_pose() -> void:
+	wander_enabled = false
+	_goto_active = false
+	_waiting_for_work_left = 0.0
+	_wander_pause_left = 0.0
+	stop_override_animation()
+
+	if stationary_animation.strip_edges() == "":
+		_stationary_anim = &""
+		return
+	if _anim_player == null:
+		# Model may not be loaded yet (e.g. headless placeholder). We'll retry lazily from _update_wander.
+		_stationary_anim = &""
+		return
+	var anims := _anim_player.get_animation_list()
+	var anim_name := _pick_named_animation(anims, stationary_animation.to_lower())
+	if anim_name == &"":
+		anim_name = StringName(stationary_animation)
+	_stationary_anim = anim_name
+	_play_anim(_stationary_anim)
+
+func _stationary_fallback_anim() -> StringName:
+	if _anim_idle != &"":
+		return _anim_idle
+	if _anim_player != null:
+		var anims := _anim_player.get_animation_list()
+		if not anims.is_empty():
+			return _pick_animation(anims)
+	return &""
+
 func _start_override_animation(anim: StringName, duration: float, lock_wander: bool) -> void:
 	if _anim_player == null:
 		return
@@ -268,6 +318,8 @@ func exit_dialogue() -> void:
 func command_move_to(target_world_pos: Vector3) -> void:
 	# Move to a specific point on the floor, then wait in idle. If no other actions
 	# occur, resume wandering after `waiting_for_work_seconds`.
+	if stationary:
+		return
 	if _in_dialogue:
 		return
 	if _desk_bound_id != "":
@@ -329,6 +381,13 @@ func _ensure_loop(anim_name: StringName) -> void:
 		anim.loop_mode = Animation.LOOP_LINEAR
 
 func _update_wander(delta: float) -> void:
+	if stationary:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		if _stationary_anim == &"" and stationary_animation.strip_edges() != "" and _anim_player != null:
+			_apply_stationary_pose()
+		_play_anim(_stationary_anim if _stationary_anim != &"" else _stationary_fallback_anim())
+		return
 	# Override animation: keep the NPC still and play the requested clip.
 	if _override_left > 0.0:
 		_override_left = maxf(0.0, _override_left - delta)

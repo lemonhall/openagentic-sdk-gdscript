@@ -1,6 +1,7 @@
 extends RefCounted
 const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
 const _PickBodies := preload("res://vr_offices/core/props/VrOfficesPickBodyUtils.gd")
+const _ManagerDefaults := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceManagerDeskDefaults.gd")
 const ANALOG_CLOCK_SCENE := "res://assets/office_pack_glb/Analog clock.glb"
 const DARTBOARD_SCENE := "res://assets/office_pack_glb/Dartboard.glb"
 const FIRE_EXIT_SIGN_SCENE := "res://assets/office_pack_glb/Fire Exit Sign-0ywPpb36cyK.glb"
@@ -51,6 +52,7 @@ static func decorate_workspace(workspace_node: Node3D, workspace_id: String, rec
 	var trash := _ensure_prop_wrapper(decor, "TrashcanSmall")
 	_place_on_floor(trash, _trashcan_pos(hx, hz, decor_seed), decor_seed ^ 0xD00D)
 	_Props.spawn_floor_model(trash, TRASHCAN_SMALL_SCENE)
+	_ManagerDefaults.ensure_manager_defaults(decor, workspace_id, hz)
 	# Wall props (may be attached to wall mesh nodes for visibility).
 	var walls := workspace_node.get_node_or_null("Walls") as Node3D
 	if walls == null:

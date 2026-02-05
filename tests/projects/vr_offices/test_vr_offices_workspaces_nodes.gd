@@ -91,6 +91,31 @@ func _init() -> void:
 	if not T.require_true(self, forward.dot(to_center.normalized()) > 0.6, "Expected VendingMachine facing workspace center"):
 		return
 
+	# Workspace defaults: manager desk + seated manager NPC.
+	var mgr_desk := decor.get_node_or_null("ManagerDesk") as Node3D
+	if not T.require_true(self, mgr_desk != null, "Expected Decor/ManagerDesk"):
+		return
+	var dpos := mgr_desk.position
+	if not T.require_true(self, absf(absf(dpos.z) - hz) <= 1.8, "Expected ManagerDesk near a Z wall"):
+		return
+	var d_to_center := Vector3(-dpos.x, 0.0, -dpos.z)
+	if not T.require_true(self, d_to_center.length() > 0.01, "Expected ManagerDesk not at workspace center"):
+		return
+	var d_forward := -mgr_desk.global_transform.basis.z
+	if not T.require_true(self, d_forward.dot(d_to_center.normalized()) > 0.6, "Expected ManagerDesk facing workspace center"):
+		return
+
+	var mgr_npc := decor.get_node_or_null("ManagerNpc") as Node
+	if not T.require_true(self, mgr_npc != null, "Expected Decor/ManagerNpc"):
+		return
+	if not T.require_true(self, mgr_npc.is_in_group("vr_offices_npc"), "Expected ManagerNpc in vr_offices_npc group"):
+		return
+	var st0: Variant = null
+	if mgr_npc.has_method("get"):
+		st0 = mgr_npc.get("stationary")
+	if not T.require_true(self, st0 != null and bool(st0), "Expected ManagerNpc.stationary = true"):
+		return
+
 	# Wall props may be attached under wall mesh nodes for visibility.
 	if not T.require_true(self, _find_descendant_named(child, "AnalogClock") != null, "Expected AnalogClock node"):
 		return

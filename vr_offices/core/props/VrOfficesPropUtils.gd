@@ -66,6 +66,8 @@ static func _office_pack_cfg(scene_path: String) -> Dictionary:
 		return {"fit_y": 1.6}
 	if scene_path == "res://assets/office_pack_glb/File Cabinet.glb":
 		return {"rot_y": PI * 0.5}
+	if scene_path == "res://assets/office_pack_glb/Desk-ISpMh81QGq.glb":
+		return {"rot_y": PI * 0.5, "fit_y": 2.25}
 	return {}
 
 static func _clear_children(n: Node) -> void:
