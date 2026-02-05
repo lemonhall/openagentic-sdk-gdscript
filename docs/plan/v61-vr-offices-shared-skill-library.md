@@ -17,8 +17,10 @@ Implement the “shared library” milestone:
 - REQ-003 Discover skill dirs
 - REQ-004 Validate SKILL.md
 - REQ-005 Install + manifest
-- REQ-006 Library tab CRUD
-- REQ-007 (Deferred) NPC assign UI only
+- REQ-006 Search tab install-from-selected
+- REQ-007 Library tab CRUD (“manage”)
+- REQ-008 Library local search/filter
+- REQ-009 (Deferred) NPC assign UI only
 
 ## Scope
 
@@ -37,7 +39,8 @@ Implement the “shared library” milestone:
 
 - `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_shared_skill_library_installs_zip.gd` passes.
 - `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_skill_md_validator.gd` passes.
-- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_library_tab_crud.gd` passes.
+- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_search_tab_install_and_repo_link.gd` passes.
+- `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_library_tab_manage_and_filter.gd` passes.
 - `scripts/run_godot_tests.sh --suite vr_offices` passes.
 
 Anti-cheat clause:
@@ -53,7 +56,8 @@ Anti-cheat clause:
   - `vr_offices/core/skill_library/VrOfficesGitHubZipSource.gd`
   - `tests/addons/openagentic/test_skill_md_validator.gd`
   - `tests/projects/vr_offices/test_shared_skill_library_installs_zip.gd`
-  - `tests/projects/vr_offices/test_vending_machine_overlay_library_tab_crud.gd`
+  - `tests/projects/vr_offices/test_vending_machine_overlay_search_tab_install_and_repo_link.gd`
+  - `tests/projects/vr_offices/test_vending_machine_overlay_library_tab_manage_and_filter.gd`
 - Modify:
   - `vr_offices/ui/VendingMachineOverlay.tscn`
   - `vr_offices/ui/VendingMachineOverlay.gd`
@@ -100,24 +104,31 @@ Anti-cheat clause:
 
 ### 6) TDD Red — VendingMachineOverlay Library tab CRUD
 
-1. Add failing test `tests/projects/vr_offices/test_vending_machine_overlay_library_tab_crud.gd` that:
+1. Add failing test `tests/projects/vr_offices/test_vending_machine_overlay_search_tab_install_and_repo_link.gd` that:
    - instantiates `VendingMachineOverlay`
-   - calls library APIs to install a local zip
-   - asserts UI list updates and uninstall removes it
+   - injects a stub “selected skill” that includes a GitHub repo URL
+   - presses `Install` and asserts installer is called and success status is shown
+   - asserts the repo URL is visible in the detail UI (and is wired for click-open in non-headless mode)
 2. Run:
-   - `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_library_tab_crud.gd`
+   - `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_search_tab_install_and_repo_link.gd`
    - Expect FAIL: missing UI nodes/methods
 
 ### 7) TDD Green — UI wiring
 
 1. Update `VendingMachineOverlay.tscn` to add `Library` tab with:
-   - repo url input + install button
+   - local filter/search input
    - installed list
    - uninstall button
    - status label
    - (disabled/placeholder) NPC assign UI
+2. Update Search tab details area to show:
+   - repo URL
+   - `Install` button (uses selected skill repo URL)
 2. Update `VendingMachineOverlay.gd` to call installer/store and refresh list.
-3. Rerun UI CRUD test and confirm PASS.
+3. Add and pass test `tests/projects/vr_offices/test_vending_machine_overlay_library_tab_manage_and_filter.gd`:
+   - install a couple skills via store APIs
+   - filter by query and assert list count changes
+4. Rerun both UI tests and confirm PASS.
 
 ### 8) Verify — suite
 
@@ -127,4 +138,3 @@ Anti-cheat clause:
 
 - Paste PASS evidence into `docs/plan/v61-index.md`.
 - Record deferred items (REQ-007) explicitly.
-

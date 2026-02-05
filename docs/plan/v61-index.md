@@ -1,6 +1,9 @@
 # v61 index
 
-Goal: build a per-save shared Skill Library (“图书馆”) for VR Offices: download GitHub repo ZIP (main→master), unzip+validate discovered `SKILL.md` skills, install into shared library, and manage via a new `Library` tab in `VendingMachineOverlay`.
+Goal: build a per-save shared Skill Library (“图书馆”) for VR Offices, with clear tab responsibilities:
+
+- Tab 1 (Search): “找 / 装 / 验” — find remote skills, show details (including GitHub repo URL), install+validate from the selected skill.
+- Tab 2 (Library): “管” — manage local shared library (search/filter, list, uninstall, view details).
 
 ## Artifacts
 

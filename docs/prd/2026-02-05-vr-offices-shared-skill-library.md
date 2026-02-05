@@ -4,6 +4,17 @@
 
 Build a “shared library” of Skills for a save slot: the user can download a GitHub repo ZIP, unpack it, validate discovered `SKILL.md` skill directories, and manage the installed skills inside `VendingMachineOverlay` (Library tab). This is a “library construction” milestone; “teaching” an NPC is a later milestone.
 
+## Tab Responsibilities (must be explicit)
+
+- **Tab 1: Search** = “找 / 装 / 验”
+  - Find remote skills (market/search).
+  - Show details (including GitHub repo URL when available).
+  - Install from the selected skill’s repo URL.
+  - Show validation/install result.
+- **Tab 2: Library** = “管”
+  - Manage the local shared library (search/filter, list, uninstall, view details).
+  - (Optional UI placeholder only) show an affordance to assign/teach an NPC, but do not implement teaching in this milestone.
+
 ## Terminology
 
 - **Skill directory**: a folder that contains `SKILL.md` at its root.
@@ -70,18 +81,37 @@ For each validated skill directory:
 - If the skill already exists:
   - MVP behavior: reject and require uninstall first (no in-place update).
 
-### REQ-006 — UI: add a “Library” tab to VendingMachineOverlay
+### REQ-006 — UI: Search tab supports “install from selected skill”
 
 In `vr_offices/ui/VendingMachineOverlay.tscn`:
 
-- Keep existing Search tab unchanged.
-- Add a `Library` tab that supports (MVP):
-  - list installed skills (name + description)
-  - add/install skill pack from a GitHub repo URL input + Install button
-  - delete/uninstall selected skill
-  - view validation/installation status text
+- The Search tab shows the selected skill’s GitHub repo URL (when available in the remote result payload).
+- The Search tab includes an `Install` button in the selected skill detail area:
+  - Install uses the selected skill’s repo URL (no separate “library tab install input”).
+  - While installing/validating, UI shows a loading state and a status message.
+- The Search tab detail area also shows the repo URL as a clickable link when feasible:
+  - Prefer `OS.shell_open(url)` for opening in the system browser.
+  - In headless/server builds, clicking should be a no-op and must not error/crash.
 
-### REQ-007 — (Deferred) Assign a shared skill to an NPC
+### REQ-007 — UI: add a “Library” tab for local management (“管”)
+
+In `vr_offices/ui/VendingMachineOverlay.tscn`:
+
+- Add a `Library` tab that supports (MVP):
+  - local search/filter input (for many installed skills)
+  - list installed skills (name + description)
+  - view selected skill details (including installed source URL)
+  - delete/uninstall selected skill
+  - status text for operations
+
+### REQ-008 — Library: local search/filter behavior
+
+- The Library tab provides a query input that filters installed skills by:
+  - skill name
+  - description
+- Filtering is in-memory (manifest-backed), no indexing required.
+
+### REQ-009 — (Deferred) Assign/teach a shared skill to an NPC
 
 Place the UI affordance on the Library tab (selection + “Assign” button), but **do not implement the copy into the NPC private workspace in the library milestone**.
 
@@ -113,4 +143,3 @@ Rationale: teaching/ownership and per-NPC skill lifecycle needs its own acceptan
   - invalid `name`
   - non-UTF8 / decode failure cases (as feasible)
 - UI renders installed list and updates status text after install/uninstall calls.
-
