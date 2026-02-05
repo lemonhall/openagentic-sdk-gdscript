@@ -94,16 +94,161 @@ size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 
 [node name="SkillsVBox" type="VBoxContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel"]
-layout_mode = 2
-size_flags_vertical = 3
+	layout_mode = 2
+	size_flags_vertical = 3
 
-[node name="HintLabel" type="Label" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox"]
-layout_mode = 2
-text = "Skills (UI scaffold)"
+[node name="SearchBar" type="HBoxContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox"]
+	layout_mode = 2
 
-[node name="BodyLabel" type="Label" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox"]
-layout_mode = 2
-size_flags_vertical = 3
-autowrap_mode = 3
-text = "This panel will become the skill learning page. For now it is a placeholder UI."
+[node name="QueryEdit" type="LineEdit" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/SearchBar"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	placeholder_text = "Search skills…"
 
+[node name="SearchButton" type="Button" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/SearchBar"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Search"
+
+[node name="SortOption" type="OptionButton" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/SearchBar"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	tooltip_text = "Sort"
+	custom_minimum_size = Vector2(120, 0)
+
+[node name="SettingsButton" type="Button" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/SearchBar"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Settings"
+
+[node name="ResultsSplit" type="HSplitContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox"]
+	layout_mode = 2
+	size_flags_vertical = 3
+	split_offset = 260
+
+[node name="ResultsPanel" type="PanelContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/ResultsSplit"]
+	layout_mode = 2
+	size_flags_horizontal = 3
+	theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="ResultsList" type="ItemList" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/ResultsSplit/ResultsPanel"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_vertical = 3
+	allow_reselect = true
+
+[node name="DetailsPanel" type="PanelContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/ResultsSplit"]
+	layout_mode = 2
+	size_flags_horizontal = 3
+	theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="DetailsText" type="RichTextLabel" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/ResultsSplit/DetailsPanel"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_vertical = 3
+	bbcode_enabled = true
+	fit_content = true
+	scroll_active = true
+	scroll_following = true
+
+[node name="Footer" type="HBoxContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox"]
+	layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/Footer"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	text = ""
+
+[node name="PrevPageButton" type="Button" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/Footer"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Prev"
+
+[node name="PageLabel" type="Label" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/Footer"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Page 1"
+
+[node name="NextPageButton" type="Button" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox/Footer"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Next"
+
+[node name="SkillsMpSettingsPopup" type="PopupPanel" parent="."]
+	unique_name_in_owner = true
+	visible = false
+
+[node name="SettingsPanel" type="PanelContainer" parent="SkillsMpSettingsPopup"]
+	layout_mode = 2
+	custom_minimum_size = Vector2(620, 280)
+	theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="SettingsVBox" type="VBoxContainer" parent="SkillsMpSettingsPopup/SettingsPanel"]
+	layout_mode = 2
+
+[node name="SettingsTitle" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox"]
+	layout_mode = 2
+	text = "SkillsMP Settings"
+
+[node name="SettingsHint" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	autowrap_mode = 3
+	text = "Register with the vendor and generate an API key (skillsmp.com). This key is saved per save slot."
+
+[node name="SettingsFormPanel" type="PanelContainer" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox"]
+	layout_mode = 2
+	theme_override_styles/panel = SubResource("StyleBoxFlat_2")
+
+[node name="SettingsForm" type="GridContainer" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel"]
+	layout_mode = 2
+	columns = 2
+
+[node name="SettingsBaseUrlLabel" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	layout_mode = 2
+	text = "Base URL"
+
+[node name="SettingsBaseUrlEdit" type="LineEdit" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	custom_minimum_size = Vector2(520, 0)
+	placeholder_text = "https://skillsmp.com"
+
+[node name="SettingsApiKeyLabel" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	layout_mode = 2
+	text = "API key"
+
+[node name="SettingsApiKeyEdit" type="LineEdit" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	custom_minimum_size = Vector2(520, 0)
+	secret = true
+	placeholder_text = "sk_live_..."
+
+[node name="SettingsControls" type="HBoxContainer" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox"]
+	layout_mode = 2
+
+[node name="SettingsSaveButton" type="Button" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsControls"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Save"
+
+[node name="SettingsTestButton" type="Button" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsControls"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Test"
+
+[node name="SettingsCloseButton" type="Button" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsControls"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Close"
+
+[node name="SettingsStatusLabel" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsControls"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	text = ""
