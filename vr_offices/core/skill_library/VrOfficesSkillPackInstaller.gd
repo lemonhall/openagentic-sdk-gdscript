@@ -20,12 +20,12 @@ func install_zip_for_save(save_id: String, zip_path: String, source: Dictionary)
 	var zp := zip_path.strip_edges()
 	if zp == "":
 		return {"ok": false, "error": "MissingZipPath"}
-	var abs := ProjectSettings.globalize_path(zp)
-	if not FileAccess.file_exists(zp) and not FileAccess.file_exists(abs):
+	var abs_zip_path := ProjectSettings.globalize_path(zp)
+	if not FileAccess.file_exists(zp) and not FileAccess.file_exists(abs_zip_path):
 		return {"ok": false, "error": "ZipNotFound"}
 	var f := FileAccess.open(zp, FileAccess.READ)
 	if f == null:
-		f = FileAccess.open(abs, FileAccess.READ)
+		f = FileAccess.open(abs_zip_path, FileAccess.READ)
 	if f == null:
 		return {"ok": false, "error": "ZipReadFailed"}
 	var zip_bytes := int(f.get_length())
@@ -60,8 +60,8 @@ func install_zip_for_save(save_id: String, zip_path: String, source: Dictionary)
 		if inc <= 0:
 			return {"ok": false, "error": "SubdirNotFound", "subdir": subdir}
 		var scoped := scan_root.rstrip("/") + "/" + subdir
-		var abs_scoped := ProjectSettings.globalize_path(scoped)
-		if not DirAccess.dir_exists_absolute(abs_scoped):
+		var abs_scoped_dir := ProjectSettings.globalize_path(scoped)
+		if not DirAccess.dir_exists_absolute(abs_scoped_dir):
 			return {"ok": false, "error": "SubdirNotFound", "subdir": subdir}
 		scan_root = scoped
 	var candidates := _Discover.discover_skill_dirs(scan_root, DISCOVER_DEPTH)

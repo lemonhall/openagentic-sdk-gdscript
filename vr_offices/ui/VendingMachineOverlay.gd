@@ -559,9 +559,9 @@ func _apply_library_filter_and_render() -> void:
 	var q := library_filter_edit.text.strip_edges().to_lower() if library_filter_edit != null else ""
 	_library_filtered = []
 	for it in _library_all:
-		var name := str(it.get("name", "")).to_lower()
+		var skill_name := str(it.get("name", "")).to_lower()
 		var desc := str(it.get("description", "")).to_lower()
-		if q == "" or name.find(q) != -1 or desc.find(q) != -1:
+		if q == "" or skill_name.find(q) != -1 or desc.find(q) != -1:
 			_library_filtered.append(it)
 	_render_library_list()
 
@@ -570,11 +570,11 @@ func _render_library_list() -> void:
 		return
 	library_list.clear()
 	for it in _library_filtered:
-		var name := str(it.get("name", "")).strip_edges()
+		var skill_name := str(it.get("name", "")).strip_edges()
 		var desc := str(it.get("description", "")).strip_edges()
-		var label := name
+		var label := skill_name
 		if desc != "":
-			label = "%s — %s" % [name, desc]
+			label = "%s — %s" % [skill_name, desc]
 		library_list.add_item(label)
 	if _library_filtered.size() > 0:
 		library_list.select(0)
@@ -614,22 +614,22 @@ func _on_library_uninstall_pressed() -> void:
 	if idx < 0 or idx >= _library_filtered.size():
 		return
 	var it := _library_filtered[idx]
-	var name := str(it.get("name", "")).strip_edges()
-	if name == "":
+	var skill_name := str(it.get("name", "")).strip_edges()
+	if skill_name == "":
 		return
 	var root := _LibraryPaths.library_root(sid)
-	var dir := root.rstrip("/") + "/" + name
+	var dir := root.rstrip("/") + "/" + skill_name
 	_rm_tree(dir)
-	_LibraryStore.remove_skill(sid, name)
+	_LibraryStore.remove_skill(sid, skill_name)
 	if library_status_label != null:
-		library_status_label.text = "Uninstalled %s" % name
+		library_status_label.text = "Uninstalled %s" % skill_name
 	library_refresh()
 
 func _rm_tree(dir_path: String) -> void:
-	var abs := ProjectSettings.globalize_path(dir_path)
-	if not DirAccess.dir_exists_absolute(abs):
+	var abs_dir := ProjectSettings.globalize_path(dir_path)
+	if not DirAccess.dir_exists_absolute(abs_dir):
 		return
-	var d := DirAccess.open(abs)
+	var d := DirAccess.open(abs_dir)
 	if d == null:
 		return
 	d.list_dir_begin()
@@ -639,7 +639,7 @@ func _rm_tree(dir_path: String) -> void:
 			break
 		if n == "." or n == "..":
 			continue
-		var p := abs.rstrip("/") + "/" + n
+		var p := abs_dir.rstrip("/") + "/" + n
 		if d.current_is_dir():
 			_rm_tree(p)
 			DirAccess.remove_absolute(p)
