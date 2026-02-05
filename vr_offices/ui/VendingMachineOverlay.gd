@@ -8,6 +8,7 @@ const _GitHubZipSource := preload("res://vr_offices/core/skill_library/VrOffices
 const _SkillPackInstaller := preload("res://vr_offices/core/skill_library/VrOfficesSkillPackInstaller.gd")
 const _LibraryStore := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryStore.gd")
 const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryPaths.gd")
+const _WorldState := preload("res://vr_offices/core/state/VrOfficesWorldState.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
 @onready var close_button: Button = %CloseButton
@@ -42,6 +43,9 @@ const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSha
 @onready var library_details_text: RichTextLabel = %LibraryDetailsText
 @onready var library_status_label: Label = %LibraryStatusLabel
 @onready var library_uninstall_button: Button = %LibraryUninstallButton
+@onready var library_teach_button: Button = %LibraryTeachButton
+
+@onready var teach_popup: PopupPanel = %TeachSkillPopup
 
 var _client: RefCounted = _SkillsMpClient.new()
 var _skillsmp_transport_override: Callable = Callable()
@@ -116,6 +120,8 @@ func _ready() -> void:
 		library_list.item_selected.connect(_on_library_selected)
 	if library_uninstall_button != null:
 		library_uninstall_button.pressed.connect(_on_library_uninstall_pressed)
+	if library_teach_button != null:
+		library_teach_button.pressed.connect(_on_library_teach_pressed)
 
 func _on_library_open_folder_pressed() -> void:
 	if _is_headless():
@@ -638,6 +644,89 @@ func _on_library_uninstall_pressed() -> void:
 	if library_status_label != null:
 		library_status_label.text = "Uninstalled %s" % skill_name
 	library_refresh()
+
+func _on_library_teach_pressed() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		if library_status_label != null:
+			library_status_label.text = "Missing save_id"
+		return
+	var skill_name := _selected_library_skill_name()
+	if skill_name == "":
+		if library_status_label != null:
+			library_status_label.text = "Select a skill to teach."
+		return
+	if teach_popup == null or not teach_popup.has_method("open_for_skill"):
+		if library_status_label != null:
+			library_status_label.text = "Teach UI missing."
+		return
+	var npcs := _active_npcs_for_teach(sid)
+	if npcs.is_empty():
+		if library_status_label != null:
+			library_status_label.text = "No active NPCs."
+		return
+	teach_popup.call("open_for_skill", sid, skill_name, npcs)
+
+func _selected_library_skill_name() -> String:
+	if library_list == null:
+		return ""
+	var sel := library_list.get_selected_items()
+	if sel.is_empty():
+		return ""
+	var idx := int(sel[0])
+	if idx < 0 or idx >= _library_filtered.size():
+		return ""
+	return str(_library_filtered[idx].get("name", "")).strip_edges()
+
+func _active_npcs_for_teach(save_id: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if get_tree() != null:
+		for n0 in get_tree().get_nodes_in_group("vr_offices_npc"):
+			var n := n0 as Node
+			if n == null or not n.has_method("get"):
+				continue
+			var nid := ""
+			var v_nid: Variant = n.get("npc_id")
+			if v_nid != null:
+				nid = str(v_nid).strip_edges()
+			if nid == "" and n.has_meta("npc_id"):
+				nid = str(n.get_meta("npc_id")).strip_edges()
+			if nid == "" or nid == "<null>":
+				nid = n.name
+			var dn := ""
+			if n.has_method("get_display_name"):
+				dn = str(n.call("get_display_name")).strip_edges()
+			var v_dn: Variant = n.get("display_name")
+			if dn == "" and v_dn != null:
+				dn = str(v_dn).strip_edges()
+			if dn == "" and n.has_meta("display_name"):
+				dn = str(n.get_meta("display_name")).strip_edges()
+			var mp := ""
+			var v_mp: Variant = n.get("model_path")
+			if v_mp != null:
+				mp = str(v_mp).strip_edges()
+			if mp == "" and n.has_meta("model_path"):
+				mp = str(n.get_meta("model_path")).strip_edges()
+			out.append({"npc_id": nid, "display_name": dn, "model_path": mp})
+	if not out.is_empty():
+		return out
+
+	# Fallback: use saved world state list (npc_id + model_path).
+	var ws := _WorldState.new()
+	var st: Dictionary = ws.read_state(save_id)
+	var list0: Variant = st.get("npcs", [])
+	if typeof(list0) != TYPE_ARRAY:
+		return []
+	for it0 in list0 as Array:
+		if typeof(it0) != TYPE_DICTIONARY:
+			continue
+		var it := it0 as Dictionary
+		var nid2 := str(it.get("npc_id", "")).strip_edges()
+		if nid2 == "":
+			continue
+		var mp2 := str(it.get("model_path", "")).strip_edges()
+		out.append({"npc_id": nid2, "display_name": nid2, "model_path": mp2})
+	return out
 
 func _rm_tree(dir_path: String) -> void:
 	var abs_dir := ProjectSettings.globalize_path(dir_path)

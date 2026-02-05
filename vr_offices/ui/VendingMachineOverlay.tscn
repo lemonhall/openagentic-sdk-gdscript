@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/ui/VendingMachineOverlay.gd" id="1"]
+[ext_resource type="Script" path="res://vr_offices/ui/VrOfficesTeachSkillPopup.gd" id="2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
 bg_color = Color(0.06, 0.07, 0.08, 0.92)
@@ -260,11 +261,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 	layout_mode = 2
 	text = "Uninstall"
 
-[node name="LibraryAssignButton" type="Button" parent="Panel/VBox/Tabs/Library/LibraryPanel/LibraryVBox/LibrarySplit/LibraryDetailsPanel/LibraryDetailsVBox/LibraryActions"]
+[node name="LibraryTeachButton" type="Button" parent="Panel/VBox/Tabs/Library/LibraryPanel/LibraryVBox/LibrarySplit/LibraryDetailsPanel/LibraryDetailsVBox/LibraryActions"]
 	unique_name_in_owner = true
 	layout_mode = 2
-	disabled = true
-	text = "Assign (Later)"
+	text = "Teach"
 
 [node name="Footer" type="HBoxContainer" parent="Panel/VBox/Tabs/Skills/SkillsPanel/SkillsVBox"]
 	layout_mode = 2
@@ -318,6 +318,83 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 
 [node name="SettingsForm" type="GridContainer" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel"]
 	layout_mode = 2
+
+[node name="TeachSkillPopup" type="PopupPanel" parent="."]
+	unique_name_in_owner = true
+	visible = false
+	script = ExtResource("2")
+
+[node name="TeachPanel" type="PanelContainer" parent="TeachSkillPopup"]
+	layout_mode = 2
+	custom_minimum_size = Vector2(720, 420)
+	theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="TeachVBox" type="VBoxContainer" parent="TeachSkillPopup/TeachPanel"]
+	layout_mode = 2
+
+[node name="TeachTitle" type="Label" parent="TeachSkillPopup/TeachPanel/TeachVBox"]
+	layout_mode = 2
+	text = "Teach Skill"
+
+[node name="TeachNpcRow" type="HBoxContainer" parent="TeachSkillPopup/TeachPanel/TeachVBox"]
+	layout_mode = 2
+	size_flags_vertical = 3
+
+[node name="TeachPrevNpcButton" type="Button" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "<"
+
+[node name="TeachPreviewContainer" type="SubViewportContainer" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	stretch = true
+
+[node name="TeachPreviewViewport" type="SubViewport" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer"]
+	unique_name_in_owner = true
+	size = Vector2i(360, 240)
+	render_target_update_mode = 2
+
+[node name="TeachPreviewRoot" type="Node3D" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer/TeachPreviewViewport"]
+	unique_name_in_owner = true
+
+[node name="TeachPreviewLight" type="DirectionalLight3D" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer/TeachPreviewViewport"]
+	light_energy = 1.4
+	rotation = Vector3(-0.85, -0.9, 0.0)
+
+[node name="TeachPreviewCamera" type="Camera3D" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer/TeachPreviewViewport"]
+	unique_name_in_owner = true
+	position = Vector3(0, 1.1, 2.2)
+
+[node name="TeachNextNpcButton" type="Button" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = ">"
+
+[node name="TeachNpcNameLabel" type="Label" parent="TeachSkillPopup/TeachPanel/TeachVBox"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = ""
+
+[node name="TeachStatusLabel" type="Label" parent="TeachSkillPopup/TeachPanel/TeachVBox"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = ""
+
+[node name="TeachActions" type="HBoxContainer" parent="TeachSkillPopup/TeachPanel/TeachVBox"]
+	layout_mode = 2
+
+[node name="TeachCancelButton" type="Button" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachActions"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	text = "Cancel"
+
+[node name="TeachLearnButton" type="Button" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachActions"]
+	unique_name_in_owner = true
+	layout_mode = 2
+	size_flags_horizontal = 3
+	text = "Teach"
 	columns = 2
 
 [node name="SettingsBaseUrlLabel" type="Label" parent="SkillsMpSettingsPopup/SettingsPanel/SettingsVBox/SettingsFormPanel/SettingsForm"]
