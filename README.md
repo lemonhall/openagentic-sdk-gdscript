@@ -2,7 +2,7 @@
 
 [中文](README.zh-CN.md)
 
-![Screenshot](screenshot2.png)
+![Screenshot](screenshots/screenshot2.png)
 
 Runtime-first **Godot 4** addon that ports the core loop of `openagentic-sdk-ts` into GDScript — plus an IRC demo + multiple in-engine prototypes that exercise real orchestration patterns.
 
@@ -13,7 +13,7 @@ Runtime-first **Godot 4** addon that ports the core loop of `openagentic-sdk-ts`
 
 ## Screenshots
 
-![VR Offices](screenshot.png)
+![VR Offices](screenshots/screenshot.png)
 
 ## Status
 

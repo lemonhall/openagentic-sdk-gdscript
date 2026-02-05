@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-![截图](screenshot2.png)
+![截图](screenshots/screenshot2.png)
 
 面向 **Godot 4 运行时** 的 Agent 插件：把 `openagentic-sdk-ts` 的核心 tool-loop 移植到 GDScript，方便在游戏里用 Agent 驱动 Actor/NPC 行为；同时仓库还包含 IRC demo + 多个可运行的 in-engine 原型工程（演示编排/持久化/工具链路）。
 
@@ -13,7 +13,7 @@
 
 ## 截图
 
-![VR Offices](screenshot.png)
+![VR Offices](screenshots/screenshot.png)
 
 ## 状态
 

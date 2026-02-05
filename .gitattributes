@@ -1,0 +1,6 @@
+# Normalize line endings for all files that Git considers text files.
+* text=auto eol=lf
+
+# Dev-only local zips (keep out of Asset Library ZIP downloads if tracked).
+Office\\ Pack-glb.zip export-ignore
+kenney_*.zip export-ignore
