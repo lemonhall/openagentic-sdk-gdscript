@@ -456,9 +456,7 @@ func _on_install_pressed() -> void:
 	var dr: Dictionary = await _GitHubZipSource.download_repo_zip(repo, _github_zip_transport_override, proxy_http, proxy_https)
 	if not bool(dr.get("ok", false)):
 		_set_loading(false)
-		var err := str(dr.get("error", "Error")).strip_edges()
-		var msg := str(dr.get("message", "")).strip_edges()
-		_update_status("Download failed: %s%s" % [err, (": " + msg) if msg != "" else ""])
+		_update_status(_format_download_failed(dr))
 		return
 
 	var zip: PackedByteArray = dr.get("zip", PackedByteArray())
@@ -490,11 +488,65 @@ func _on_install_pressed() -> void:
 	var rr: Dictionary = await _installer.call("install_zip_for_save", sid, zip_path, source)
 	_set_loading(false)
 	if not bool(rr.get("ok", false)):
-		_update_status("Install failed")
+		_update_status(_format_install_failed(rr))
 		return
 	var installed: Array = rr.get("installed", [])
 	_update_status("Installed %d skill(s)." % installed.size())
 	library_refresh()
+
+func _format_download_failed(dr: Dictionary) -> String:
+	var err := str(dr.get("error", "Error")).strip_edges()
+	var msg := str(dr.get("message", "")).strip_edges()
+	var result_name := str(dr.get("result_name", "")).strip_edges()
+	if err == "HttpRequestFailed" and result_name != "":
+		return "Download failed: %s. Check proxy settings." % result_name
+	if msg != "":
+		return "Download failed: %s: %s" % [err, msg]
+	return "Download failed: %s" % err
+
+func _format_install_failed(rr: Dictionary) -> String:
+	var err := str(rr.get("error", "")).strip_edges()
+	if err == "ZipTooLarge":
+		var bytes := int(rr.get("bytes", 0))
+		var mb := int(round(float(bytes) / (1024.0 * 1024.0)))
+		return "Install failed: ZIP too large (%d MB). Try a smaller source." % mb
+	if err == "TooManyFiles":
+		var count := int(rr.get("count", 0))
+		return "Install failed: too many files in package (%d). Limit is 2000." % count
+	if err == "TooLargeUnpacked":
+		var bytes2 := int(rr.get("bytes", 0))
+		var mb2 := int(round(float(bytes2) / (1024.0 * 1024.0)))
+		return "Install failed: extracted data too large (%d MB). Limit is 512 MB." % mb2
+	if err == "SubdirNotFound":
+		var sd := str(rr.get("subdir", "")).strip_edges()
+		return "Install failed: folder not found in repo: %s" % (sd if sd != "" else "(missing)")
+	if err == "UnsafeSubdir":
+		var sd2 := str(rr.get("subdir", "")).strip_edges()
+		return "Install failed: invalid folder path: %s" % (sd2 if sd2 != "" else "(missing)")
+	if err == "UnsafePath":
+		var p := str(rr.get("path", "")).strip_edges()
+		return "Install failed: unsafe zip path: %s" % (p if p != "" else "(unknown)")
+	if err == "ZipOpenFailed":
+		var code := int(rr.get("code", 0))
+		return "Install failed: cannot open zip (code %d)." % code
+	if err == "ZipReadFailed":
+		return "Install failed: cannot read zip file."
+	if err == "ZipNotFound":
+		return "Install failed: zip file not found."
+	if err != "":
+		return "Install failed: %s" % err
+
+	# Fallback: show first rejection reason if available.
+	var rejected0: Variant = rr.get("rejected", null)
+	if typeof(rejected0) == TYPE_ARRAY:
+		var rejected: Array = rejected0 as Array
+		if not rejected.is_empty() and typeof(rejected[0]) == TYPE_DICTIONARY:
+			var r0: Dictionary = rejected[0] as Dictionary
+			var rerr := str(r0.get("error", "")).strip_edges()
+			if rerr != "":
+				return "Install failed: %s" % rerr
+
+	return "Install failed: no valid SKILL.md found."
 
 func library_refresh() -> void:
 	var sid := _resolve_save_id()

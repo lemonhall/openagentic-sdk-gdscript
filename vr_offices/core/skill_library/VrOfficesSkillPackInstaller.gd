@@ -10,7 +10,7 @@ const _ZipUnpack := preload("res://vr_offices/core/skill_library/VrOfficesZipUnp
 
 const MAX_ZIP_BYTES := 256 * 1024 * 1024
 const MAX_FILES := 2000
-const MAX_UNZIPPED_BYTES := 64 * 1024 * 1024
+const MAX_UNZIPPED_BYTES := 512 * 1024 * 1024
 const DISCOVER_DEPTH := 4
 
 func install_zip_for_save(save_id: String, zip_path: String, source: Dictionary) -> Dictionary:
