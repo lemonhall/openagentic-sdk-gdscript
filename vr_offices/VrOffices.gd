@@ -38,6 +38,8 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var action_hint_overlay: Control = $UI/ActionHintOverlay
 @onready var settings_overlay: Control = $UI/SettingsOverlay
 @onready var vending_overlay: Control = $UI/VendingMachineOverlay
+@onready var npc_skills_overlay: Control = $UI/VrOfficesNpcSkillsOverlay
+@onready var npc_skills_service: Node = $NpcSkillsService
 @onready var bgm: AudioStreamPlayer = $Bgm
 
 var _agent: RefCounted = null
@@ -118,6 +120,8 @@ func _ready() -> void:
 			dialogue.connect("message_submitted", Callable(_dialogue_ctrl, "on_message_submitted"))
 		if dialogue.has_signal("closed"):
 			dialogue.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
+		if dialogue.has_signal("skills_pressed"):
+			dialogue.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
 
 	if settings_overlay != null and settings_overlay.has_method("bind"):
 		settings_overlay.call("bind", self, _desk_manager)
@@ -282,6 +286,17 @@ func _find_npc_by_id(npc_id: String) -> Node:
 	if _npc_manager == null:
 		return null
 	return _npc_manager.call("find_npc_by_id", npc_id) as Node
+
+func _on_dialogue_skills_pressed(save_id: String, npc_id: String, npc_name: String) -> void:
+	if npc_skills_overlay == null or not npc_skills_overlay.has_method("open_for_npc"):
+		return
+	var model_path := ""
+	var npc := _find_npc_by_id(npc_id)
+	if npc != null and npc.has_method("get"):
+		var v: Variant = npc.get("model_path")
+		if v != null:
+			model_path = String(v).strip_edges()
+	npc_skills_overlay.call("open_for_npc", save_id, npc_id, npc_name, model_path)
 
 func _on_desk_device_code_submitted(desk_id: String, device_code: String) -> void:
 	if _desk_manager == null or not _desk_manager.has_method("set_desk_device_code"):

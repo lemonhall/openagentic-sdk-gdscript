@@ -1,0 +1,108 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://vr_offices/ui/VrOfficesNpcSkillsOverlay.gd" id="1"]
+
+[node name="VrOfficesNpcSkillsOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+visible = false
+script = ExtResource("1")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+color = Color(0, 0, 0, 0.45)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+anchors_preset = 15
+anchor_left = 0.04
+anchor_top = 0.06
+anchor_right = 0.96
+anchor_bottom = 0.96
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+mouse_filter = 0
+
+[node name="RootHBox" type="HBoxContainer" parent="Panel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Left" type="VBoxContainer" parent="Panel/RootHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Header" type="HBoxContainer" parent="Panel/RootHBox/Left"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/RootHBox/Left/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Skills"
+
+[node name="RefreshSummaryButton" type="Button" parent="Panel/RootHBox/Left/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refresh Summary"
+
+[node name="CloseButton" type="Button" parent="Panel/RootHBox/Left/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Close"
+
+[node name="SummaryLabel" type="Label" parent="Panel/RootHBox/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = ""
+
+[node name="SkillsScroll" type="ScrollContainer" parent="Panel/RootHBox/Left"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SkillsVBox" type="VBoxContainer" parent="Panel/RootHBox/Left/SkillsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Right" type="VBoxContainer" parent="Panel/RootHBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(420, 0)
+size_flags_vertical = 3
+
+[node name="PreviewContainer" type="SubViewportContainer" parent="Panel/RootHBox/Right"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+stretch = true
+
+[node name="PreviewViewport" type="SubViewport" parent="Panel/RootHBox/Right/PreviewContainer"]
+unique_name_in_owner = true
+size = Vector2i(540, 540)
+render_target_update_mode = 2
+own_world_3d = true
+
+[node name="PreviewRoot" type="Node3D" parent="Panel/RootHBox/Right/PreviewContainer/PreviewViewport"]
+unique_name_in_owner = true
+
+[node name="PreviewLight" type="DirectionalLight3D" parent="Panel/RootHBox/Right/PreviewContainer/PreviewViewport"]
+light_energy = 1.4
+rotation = Vector3(-0.85, -0.9, 0.0)
+
+[node name="PreviewCamera" type="Camera3D" parent="Panel/RootHBox/Right/PreviewContainer/PreviewViewport"]
+unique_name_in_owner = true
+position = Vector3(0, 1.1, 2.2)
+fov = 35.0
+

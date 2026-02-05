@@ -2,6 +2,7 @@ extends Control
 
 signal message_submitted(text: String)
 signal closed
+signal skills_pressed(save_id: String, npc_id: String, npc_name: String)
 
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
@@ -16,6 +17,7 @@ const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLo
 @onready var title_label: Label = %TitleLabel
 @onready var session_log_size_label: Label = %SessionLogSizeLabel
 @onready var clear_session_log_button: Button = %ClearSessionLogButton
+@onready var skills_button: Button = %SkillsButton
 @onready var messages: VBoxContainer = %Messages
 @onready var scroll: ScrollContainer = %Scroll
 @onready var attachments_panel: Control = %AttachmentsPanel
@@ -52,6 +54,9 @@ func _ready() -> void:
 	if attach_button != null:
 		attach_button.pressed.connect(_on_attach_pressed)
 	close_button.pressed.connect(_on_close_pressed)
+	if skills_button != null:
+		skills_button.pressed.connect(_on_skills_pressed)
+		skills_button.disabled = true
 	input.text_submitted.connect(_on_input_submitted)
 	if backdrop != null:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
@@ -124,8 +129,18 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	if attach_button != null:
 		attach_button.disabled = false
 	send_button.disabled = false
+	if skills_button != null:
+		skills_button.disabled = _npc_id.strip_edges() == ""
 	_refresh_session_log_ui()
 	call_deferred("_grab_focus")
+
+func _on_skills_pressed() -> void:
+	if _npc_id.strip_edges() == "":
+		return
+	var sid := _resolve_save_id()
+	if sid == "":
+		sid = _save_id.strip_edges()
+	skills_pressed.emit(sid, _npc_id.strip_edges(), _npc_name.strip_edges())
 
 func _grab_focus() -> void:
 	if input != null:

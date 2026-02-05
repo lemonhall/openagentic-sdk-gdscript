@@ -76,6 +76,13 @@ func _init() -> void:
 	if not T.require_true(self, clear_btn != null, "Missing ClearSessionLogButton"):
 		return
 
+	# Entry: Skills button (NPC personal skill management).
+	var skills_btn := overlay.get_node_or_null("Panel/VBox/Header/SkillsButton") as Button
+	if not T.require_true(self, skills_btn != null, "Missing SkillsButton"):
+		return
+	if not T.require_true(self, skills_btn.disabled == false, "SkillsButton should be enabled after open()"):
+		return
+
 	# Message append.
 	var messages := overlay.get_node("Panel/VBox/Scroll/Messages") as VBoxContainer
 	if not T.require_true(self, messages != null, "Missing Messages container"):

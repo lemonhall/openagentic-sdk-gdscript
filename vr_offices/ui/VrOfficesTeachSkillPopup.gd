@@ -121,8 +121,21 @@ func _on_learn_pressed() -> void:
 	var rr: Dictionary = _teacher.call("teach_shared_skill_to_npc", _save_id, nid, _skill_name)
 	if bool(rr.get("ok", false)):
 		_set_status("Taught to %s." % _display_name(npc))
+		_enqueue_profile_regen(nid)
 	else:
 		_set_status("Failed: %s" % String(rr.get("error", "Error")))
+
+func _enqueue_profile_regen(npc_id: String) -> void:
+	var nid := npc_id.strip_edges()
+	if nid == "" or _save_id.strip_edges() == "" or get_tree() == null:
+		return
+	var nodes := get_tree().get_nodes_in_group("vr_offices_npc_skills_service")
+	if nodes.is_empty():
+		return
+	var svc := nodes[0] as Node
+	if svc == null or not svc.has_method("queue_regenerate"):
+		return
+	svc.call("queue_regenerate", _save_id.strip_edges(), nid, false)
 
 func _update_ui() -> void:
 	if npc_name_label != null:
@@ -292,9 +305,9 @@ func _frame_camera_to_preview_root() -> void:
 	var center: Vector3 = Vector3(0.0, 1.0, 0.0)
 	var extent: float = 1.2
 	if not first:
-		var size: Vector3 = max_v - min_v
-		center = min_v + size * 0.5
-		extent = maxf(size.x, maxf(size.y, size.z))
+		var bounds_size: Vector3 = max_v - min_v
+		center = min_v + bounds_size * 0.5
+		extent = maxf(bounds_size.x, maxf(bounds_size.y, bounds_size.z))
 		if extent <= 0.01:
 			extent = 1.2
 

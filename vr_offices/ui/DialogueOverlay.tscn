@@ -76,6 +76,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Close"
 
+[node name="SkillsButton" type="Button" parent="Panel/VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Skills"
+
 [node name="Scroll" type="ScrollContainer" parent="Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
