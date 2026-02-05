@@ -8,6 +8,7 @@ const _GitHubZipSource := preload("res://vr_offices/core/skill_library/VrOffices
 const _SkillPackInstaller := preload("res://vr_offices/core/skill_library/VrOfficesSkillPackInstaller.gd")
 const _LibraryStore := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryStore.gd")
 const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryPaths.gd")
+const _ThumbService := preload("res://vr_offices/core/skill_library/thumbnails/VrOfficesSkillLibraryThumbnailService.gd")
 const _WorldState := preload("res://vr_offices/core/state/VrOfficesWorldState.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
@@ -513,6 +514,22 @@ func _on_install_pressed() -> void:
 	var installed: Array = rr.get("installed", [])
 	_update_status("Installed %d skill(s)." % installed.size())
 	library_refresh()
+	_enqueue_installed_thumbnails(sid, installed)
+
+func _enqueue_installed_thumbnails(save_id: String, installed: Array) -> void:
+	if installed.is_empty() or get_tree() == null:
+		return
+	var svc := _ThumbService.find_service(get_tree())
+	if svc == null:
+		return
+	for it0 in installed:
+		if typeof(it0) != TYPE_DICTIONARY:
+			continue
+		var it: Dictionary = it0 as Dictionary
+		var name := str(it.get("name", "")).strip_edges()
+		if name == "":
+			continue
+		svc.call("queue_generate", save_id, name, false)
 
 func _format_download_failed(dr: Dictionary) -> String:
 	var err := str(dr.get("error", "Error")).strip_edges()

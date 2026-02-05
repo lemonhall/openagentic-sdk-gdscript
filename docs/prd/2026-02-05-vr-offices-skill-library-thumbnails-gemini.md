@@ -38,6 +38,12 @@ Generate thumbnails by calling the Gemini API through the proxy endpoint:
 Auth and proxying must be configurable (no secrets in repo).
 In local dev, the proxy should inject the key so Godot does not need to send `x-goog-api-key`.
 
+### REQ-005 — Always produce a PNG thumbnail file (convert if needed)
+
+- The on-disk thumbnail file must always be `thumbnail.png` under the installed skill dir.
+- If Gemini returns a JPEG (or any non-PNG image), convert it to PNG before writing.
+- The stored PNG should be resized down for thumbnail usage (target: 256×256, 1:1).
+
 ### REQ-003 — Online E2E connectivity test (manual review gate)
 
 Add a headless online test that:
@@ -68,4 +74,3 @@ This reuse avoids copying thumbnails into NPC workspaces.
 ## Open Questions
 
 1) Proxy/auth: does the proxy inject an API key, or should the game provide `x-goog-api-key` from environment/config?
-2) Preferred aspect ratio: `1:1` (icon) vs `16:9` (card) for thumbnails.

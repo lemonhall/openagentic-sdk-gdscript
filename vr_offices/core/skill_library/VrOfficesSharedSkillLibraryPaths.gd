@@ -21,3 +21,9 @@ static func staging_root(save_id: String) -> String:
 		return ""
 	return "%s/shared/skill_library_staging" % _OAPaths.save_root(sid)
 
+static func thumbnail_path(save_id: String, skill_name: String) -> String:
+	var root := library_root(save_id)
+	var name := skill_name.strip_edges()
+	if root == "" or name == "":
+		return ""
+	return root.rstrip("/") + "/" + name + "/thumbnail.png"

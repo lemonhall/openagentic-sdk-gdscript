@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/VrOffices.gd" id="1"]
 [ext_resource type="PackedScene" path="res://vr_offices/camera/OrbitCameraRig.tscn" id="2"]
@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://vr_offices/ui/VendingMachineOverlay.tscn" id="13"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/VrOfficesNpcSkillsOverlay.tscn" id="14"]
 [ext_resource type="Script" path="res://vr_offices/core/skills/VrOfficesNpcSkillsService.gd" id="15"]
+[ext_resource type="Script" path="res://vr_offices/core/skill_library/thumbnails/VrOfficesSkillLibraryThumbnailService.gd" id="16"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20, 20)
@@ -87,6 +88,9 @@ position = Vector3(0, 0, 0)
 
 [node name="NpcSkillsService" type="Node" parent="."]
 script = ExtResource("15")
+
+[node name="SkillLibraryThumbnailService" type="Node" parent="."]
+script = ExtResource("16")
 
 [node name="Bgm" type="AudioStreamPlayer" parent="."]
 autoplay = false

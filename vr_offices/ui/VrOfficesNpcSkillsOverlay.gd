@@ -4,6 +4,7 @@ class_name VrOfficesNpcSkillsOverlay
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _Validator := preload("res://addons/openagentic/core/OASkillMdValidator.gd")
 const _SkillFs := preload("res://vr_offices/core/skill_library/VrOfficesSkillLibraryFs.gd")
+const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryPaths.gd")
 const _TeachPopup := preload("res://vr_offices/ui/VrOfficesTeachSkillPopup.gd")
 
 @onready var title_label: Label = %TitleLabel
@@ -21,6 +22,7 @@ var _save_id: String = ""
 var _npc_id: String = ""
 var _npc_name: String = ""
 var _model_path: String = ""
+var _thumb_cache: Dictionary = {}
 
 func _ready() -> void:
 	if close_button != null:
@@ -210,6 +212,7 @@ func _on_profile_updated(save_id: String, npc_id: String, ok: bool, summary: Str
 func _refresh_skills() -> void:
 	if skills_vbox == null:
 		return
+	_thumb_cache.clear()
 	for c0 in skills_vbox.get_children():
 		var n := c0 as Node
 		if n != null:
@@ -272,10 +275,19 @@ func _add_skill_card(skill: Dictionary) -> void:
 	row.add_theme_constant_override("separation", 12)
 	card.add_child(row)
 
-	var thumb := ColorRect.new()
-	thumb.custom_minimum_size = Vector2(72, 72)
-	thumb.color = Color(1, 1, 1, 0.08)
-	row.add_child(thumb)
+	var thumb_bg := ColorRect.new()
+	thumb_bg.custom_minimum_size = Vector2(72, 72)
+	thumb_bg.color = Color(1, 1, 1, 0.08)
+	row.add_child(thumb_bg)
+
+	var tex := _thumbnail_texture_for_skill(dir_name)
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		thumb_bg.add_child(tr)
 
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -298,6 +310,26 @@ func _add_skill_card(skill: Dictionary) -> void:
 	row.add_child(uninstall)
 
 	skills_vbox.add_child(card)
+
+func _thumbnail_texture_for_skill(skill_name: String) -> Texture2D:
+	var name := skill_name.strip_edges()
+	if name == "" or _save_id == "":
+		return null
+	if _thumb_cache.has(name):
+		return _thumb_cache.get(name) as Texture2D
+	var p := _LibraryPaths.thumbnail_path(_save_id, name)
+	if p == "" or not (FileAccess.file_exists(p) or FileAccess.file_exists(ProjectSettings.globalize_path(p))):
+		_thumb_cache[name] = null
+		return null
+	var abs := ProjectSettings.globalize_path(p)
+	var img := Image.new()
+	var err := img.load(abs)
+	if err != OK:
+		_thumb_cache[name] = null
+		return null
+	var tex := ImageTexture.create_from_image(img)
+	_thumb_cache[name] = tex
+	return tex
 
 func _uninstall_skill(dir_name: String) -> void:
 	var dn := dir_name.strip_edges()
@@ -330,4 +362,3 @@ func _test_skill_names() -> Array:
 
 func _test_uninstall_skill(dir_name: String) -> void:
 	_uninstall_skill(dir_name)
-

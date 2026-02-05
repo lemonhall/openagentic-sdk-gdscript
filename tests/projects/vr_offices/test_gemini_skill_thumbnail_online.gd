@@ -2,6 +2,7 @@ extends SceneTree
 
 const T := preload("res://tests/_test_util.gd")
 const _Http := preload("res://addons/openagentic/core/OAMediaHttp.gd")
+const _Client := preload("res://vr_offices/core/skill_library/thumbnails/VrOfficesGeminiImageClient.gd")
 
 const _DEFAULT_BASE_URL := "http://127.0.0.1:8787/gemini"
 const _MODEL := "gemini-3-pro-image-preview"
@@ -111,34 +112,36 @@ func _init() -> void:
 		T.fail_and_quit(self, "Decoded image bytes were empty (mime=%s)" % mime)
 		return
 
-	var expected_ext := ".png"
-	if mime.find("jpeg") != -1 or mime.find("jpg") != -1:
-		expected_ext = ".jpg"
+	var conv: Dictionary = _Client.to_png_bytes(img_bytes, mime, 256)
+	if not bool(conv.get("ok", false)):
+		T.fail_and_quit(self, "Failed to convert image to PNG: %s" % JSON.stringify(conv, "  "))
+		return
+	var png_bytes: PackedByteArray = conv.get("png_bytes", PackedByteArray())
+	if png_bytes.size() <= 0:
+		T.fail_and_quit(self, "Converted PNG bytes were empty (mime=%s)" % mime)
+		return
 
-	# Always write a file whose extension matches the content type (Godot loaders may rely on extension).
+	# Always write a PNG, regardless of source mime, since production stores thumbnail.png.
 	var final_out := out_path
 	if final_out.get_extension().strip_edges() != "":
-		final_out = final_out.get_basename() + expected_ext
+		final_out = final_out.get_basename() + ".png"
 	else:
-		final_out = final_out.rstrip("/") + expected_ext
+		final_out = final_out.rstrip("/") + ".png"
 
 	_ensure_dir(final_out.get_base_dir())
 	var f := FileAccess.open(final_out, FileAccess.WRITE)
 	if f == null:
 		T.fail_and_quit(self, "Failed to open output path for write: %s" % final_out)
 		return
-	f.store_buffer(img_bytes)
+	f.store_buffer(png_bytes)
 	f.close()
 
-	if expected_ext == ".png" and not _looks_like_png(img_bytes):
-		T.fail_and_quit(self, "Output does not look like PNG (bytes=%d, mime=%s)" % [img_bytes.size(), mime])
-		return
-	if expected_ext == ".jpg" and not _looks_like_jpeg(img_bytes):
-		T.fail_and_quit(self, "Output does not look like JPEG (bytes=%d, mime=%s)" % [img_bytes.size(), mime])
+	if not _looks_like_png(png_bytes):
+		T.fail_and_quit(self, "Output does not look like PNG (bytes=%d, mime=%s)" % [png_bytes.size(), mime])
 		return
 
 	var abs_out := ProjectSettings.globalize_path(final_out)
-	print("ONLINE TEST: wrote %d bytes to %s (abs=%s, mime=%s)" % [img_bytes.size(), final_out, abs_out, mime])
+	print("ONLINE TEST: wrote %d bytes to %s (abs=%s, source_mime=%s)" % [png_bytes.size(), final_out, abs_out, mime])
 	T.pass_and_quit(self)
 
 static func _thumbnail_prompt() -> String:
