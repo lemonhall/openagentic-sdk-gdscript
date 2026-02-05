@@ -4,6 +4,10 @@ const _SkillsMpConfig := preload("res://addons/openagentic/core/OASkillsMpConfig
 const _SkillsMpConfigStore := preload("res://addons/openagentic/core/OASkillsMpConfigStore.gd")
 const _SkillsMpClient := preload("res://vr_offices/core/skillsmp/VrOfficesSkillsMpClient.gd")
 const _SkillsMpHealth := preload("res://vr_offices/core/skillsmp/VrOfficesSkillsMpHealth.gd")
+const _GitHubZipSource := preload("res://vr_offices/core/skill_library/VrOfficesGitHubZipSource.gd")
+const _SkillPackInstaller := preload("res://vr_offices/core/skill_library/VrOfficesSkillPackInstaller.gd")
+const _LibraryStore := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryStore.gd")
+const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSharedSkillLibraryPaths.gd")
 
 @onready var backdrop: ColorRect = $Backdrop
 @onready var close_button: Button = %CloseButton
@@ -13,6 +17,9 @@ const _SkillsMpHealth := preload("res://vr_offices/core/skillsmp/VrOfficesSkills
 @onready var settings_button: Button = %SettingsButton
 @onready var results_list: ItemList = %ResultsList
 @onready var details_text: RichTextLabel = %DetailsText
+@onready var repo_url_label: Label = %RepoUrlLabel
+@onready var open_repo_button: Button = %OpenRepoButton
+@onready var install_button: Button = %InstallButton
 @onready var status_label: Label = %StatusLabel
 @onready var prev_page_button: Button = %PrevPageButton
 @onready var next_page_button: Button = %NextPageButton
@@ -26,14 +33,28 @@ const _SkillsMpHealth := preload("res://vr_offices/core/skillsmp/VrOfficesSkills
 @onready var settings_close_button: Button = %SettingsCloseButton
 @onready var settings_status_label: Label = %SettingsStatusLabel
 
+@onready var library_filter_edit: LineEdit = %LibraryFilterEdit
+@onready var library_refresh_button: Button = %LibraryRefreshButton
+@onready var library_list: ItemList = %LibraryList
+@onready var library_details_text: RichTextLabel = %LibraryDetailsText
+@onready var library_status_label: Label = %LibraryStatusLabel
+@onready var library_uninstall_button: Button = %LibraryUninstallButton
+
 var _client: RefCounted = _SkillsMpClient.new()
 var _skillsmp_transport_override: Callable = Callable()
+var _github_zip_transport_override: Callable = Callable()
+var _installer: RefCounted = _SkillPackInstaller.new()
 
 var _items: Array = []
+var _selected_remote_skill: Dictionary = {}
 var _current_query := ""
 var _current_page := 1
 var _limit := 20
 var _total_pages := 0
+var _selected_repo_url := ""
+
+var _library_all: Array[Dictionary] = []
+var _library_filtered: Array[Dictionary] = []
 
 const SETTINGS_POPUP_SIZE := Vector2i(620, 280)
 const _DEBUG_LAST_SEARCH_PATH := "user://openagentic/saves/%s/vr_offices/skillsmp_last_search.json"
@@ -56,6 +77,12 @@ func _ready() -> void:
 		next_page_button.pressed.connect(_on_next_page_pressed)
 	if results_list != null:
 		results_list.item_selected.connect(_on_result_selected)
+	if details_text != null and details_text.has_signal("meta_clicked"):
+		details_text.meta_clicked.connect(_on_details_meta_clicked)
+	if open_repo_button != null:
+		open_repo_button.pressed.connect(_on_open_repo_pressed)
+	if install_button != null:
+		install_button.pressed.connect(_on_install_pressed)
 	if settings_save_button != null:
 		settings_save_button.pressed.connect(_on_settings_save_pressed)
 	if settings_test_button != null:
@@ -70,6 +97,18 @@ func _ready() -> void:
 		backdrop.gui_input.connect(_on_backdrop_gui_input)
 	_update_status("")
 	_update_page_label()
+	_update_repo_ui("")
+
+	if library_refresh_button != null:
+		library_refresh_button.pressed.connect(library_refresh)
+	if library_filter_edit != null:
+		library_filter_edit.text_changed.connect(func(_t: String) -> void:
+			_apply_library_filter_and_render()
+		)
+	if library_list != null:
+		library_list.item_selected.connect(_on_library_selected)
+	if library_uninstall_button != null:
+		library_uninstall_button.pressed.connect(_on_library_uninstall_pressed)
 
 func open() -> void:
 	visible = true
@@ -82,6 +121,7 @@ func open() -> void:
 		_update_status("Missing API key. Open Settings to configure.")
 	else:
 		_update_status("")
+	library_refresh()
 
 func close() -> void:
 	visible = false
@@ -112,6 +152,14 @@ func _on_backdrop_gui_input(event: InputEvent) -> void:
 
 func set_skillsmp_transport_override(transport: Callable) -> void:
 	_skillsmp_transport_override = transport
+
+func set_github_zip_transport_override(transport: Callable) -> void:
+	_github_zip_transport_override = transport
+
+func debug_set_selected_skill_for_install(skill: Dictionary) -> void:
+	_selected_remote_skill = skill if skill != null else {}
+	_selected_repo_url = _extract_repo_url(_selected_remote_skill)
+	_update_selected_skill_details(_selected_remote_skill)
 
 func search_skills(query: String) -> Dictionary:
 	if query_edit != null:
@@ -172,6 +220,7 @@ func _run_search() -> Dictionary:
 			parts.append(msg)
 		_update_status(" ".join(parts))
 		_render_items([])
+		_update_repo_ui("")
 		_total_pages = 0
 		_update_page_label()
 		return rr
@@ -238,6 +287,8 @@ func _render_items(items: Array) -> void:
 	if items.size() > 0:
 		results_list.select(0)
 		_on_result_selected(0)
+	else:
+		_update_repo_ui("")
 
 func _on_result_selected(idx: int) -> void:
 	if details_text == null:
@@ -247,6 +298,8 @@ func _on_result_selected(idx: int) -> void:
 		return
 	var d0: Variant = _items[idx]
 	var d: Dictionary = d0 as Dictionary if typeof(d0) == TYPE_DICTIONARY else {}
+	_selected_remote_skill = d
+	_selected_repo_url = _extract_repo_url(d)
 	var title := str(d.get("name", d.get("title", ""))).strip_edges()
 	var desc := str(d.get("description", d.get("summary", ""))).strip_edges()
 	var url := str(d.get("url", d.get("link", ""))).strip_edges()
@@ -262,7 +315,28 @@ func _on_result_selected(idx: int) -> void:
 	if url != "":
 		lines.append("")
 		lines.append(url)
+	if _selected_repo_url != "":
+		lines.append("")
+		lines.append("[url=%s]%s[/url]" % [_selected_repo_url, _selected_repo_url])
 	details_text.text = "\n".join(lines)
+	_update_repo_ui(_selected_repo_url)
+
+func _update_selected_skill_details(skill: Dictionary) -> void:
+	if details_text == null:
+		return
+	var title := str(skill.get("name", skill.get("title", ""))).strip_edges()
+	var desc := str(skill.get("description", skill.get("summary", ""))).strip_edges()
+	var repo := _extract_repo_url(skill)
+	var lines := PackedStringArray()
+	if title != "":
+		lines.append("[b]%s[/b]" % title)
+	if desc != "":
+		lines.append(desc)
+	if repo != "":
+		lines.append("")
+		lines.append("[url=%s]%s[/url]" % [repo, repo])
+	details_text.text = "\n".join(lines)
+	_update_repo_ui(repo)
 
 func _setup_sort_option() -> void:
 	if sort_option == null:
@@ -307,6 +381,203 @@ func _set_loading(is_loading: bool) -> void:
 		query_edit.editable = not is_loading
 	if settings_button != null:
 		settings_button.disabled = is_loading
+	if install_button != null:
+		install_button.disabled = is_loading or _selected_repo_url.strip_edges() == ""
+	if open_repo_button != null:
+		open_repo_button.disabled = is_loading or _selected_repo_url.strip_edges() == ""
+
+func _update_repo_ui(repo_url: String) -> void:
+	_selected_repo_url = repo_url.strip_edges()
+	if repo_url_label != null:
+		repo_url_label.text = _selected_repo_url
+	if install_button != null:
+		install_button.disabled = _selected_repo_url == ""
+	if open_repo_button != null:
+		open_repo_button.disabled = _selected_repo_url == ""
+
+func _extract_repo_url(skill: Dictionary) -> String:
+	if skill == null:
+		return ""
+	var keys := [
+		"repo_url", "repoUrl",
+		"github_url", "githubUrl",
+		"repository", "repo",
+		"git_url", "gitUrl",
+		"source_url", "sourceUrl",
+	]
+	for k in keys:
+		var v: Variant = skill.get(k, null)
+		var s := str(v).strip_edges() if v != null else ""
+		if s != "":
+			return s
+	var u := str(skill.get("url", "")).strip_edges()
+	if u.find("github.com/") != -1:
+		return u
+	return ""
+
+func _on_open_repo_pressed() -> void:
+	var u := _selected_repo_url.strip_edges()
+	if u == "":
+		return
+	if _is_headless():
+		return
+	OS.shell_open(u)
+
+func _on_details_meta_clicked(meta: Variant) -> void:
+	if meta == null:
+		return
+	var u := str(meta).strip_edges()
+	if u == "" or _is_headless():
+		return
+	OS.shell_open(u)
+
+func _is_headless() -> bool:
+	return DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless")
+
+func _on_install_pressed() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		_update_status("Missing save_id")
+		return
+	var repo := _selected_repo_url.strip_edges()
+	if repo == "":
+		_update_status("Missing repo URL")
+		return
+
+	_set_loading(true)
+	_update_status("Downloading…")
+	var dr: Dictionary = await _GitHubZipSource.download_repo_zip(repo, _github_zip_transport_override)
+	if not bool(dr.get("ok", false)):
+		_set_loading(false)
+		_update_status("Download failed: %s" % str(dr.get("error", "Error")))
+		return
+
+	var zip: PackedByteArray = dr.get("zip", PackedByteArray())
+	if zip.size() <= 0:
+		_set_loading(false)
+		_update_status("Download failed: empty zip")
+		return
+
+	var stage := _LibraryPaths.staging_root(sid)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(stage))
+	var zip_path := stage.rstrip("/") + "/download.zip"
+	var f := FileAccess.open(zip_path, FileAccess.WRITE)
+	if f == null:
+		_set_loading(false)
+		_update_status("Install failed: write zip")
+		return
+	f.store_buffer(zip)
+	f.close()
+
+	_update_status("Validating & installing…")
+	var source := {"type": "github", "repo_url": String(dr.get("repo_url", repo)), "ref": String(dr.get("ref", "")), "url": String(dr.get("url", ""))}
+	var rr: Dictionary = await _installer.call("install_zip_for_save", sid, zip_path, source)
+	_set_loading(false)
+	if not bool(rr.get("ok", false)):
+		_update_status("Install failed")
+		return
+	var installed: Array = rr.get("installed", [])
+	_update_status("Installed %d skill(s)." % installed.size())
+	library_refresh()
+
+func library_refresh() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		return
+	_library_all = _LibraryStore.list_skills(sid)
+	_apply_library_filter_and_render()
+
+func _apply_library_filter_and_render() -> void:
+	var q := library_filter_edit.text.strip_edges().to_lower() if library_filter_edit != null else ""
+	_library_filtered = []
+	for it in _library_all:
+		var name := str(it.get("name", "")).to_lower()
+		var desc := str(it.get("description", "")).to_lower()
+		if q == "" or name.find(q) != -1 or desc.find(q) != -1:
+			_library_filtered.append(it)
+	_render_library_list()
+
+func _render_library_list() -> void:
+	if library_list == null:
+		return
+	library_list.clear()
+	for it in _library_filtered:
+		var name := str(it.get("name", "")).strip_edges()
+		var desc := str(it.get("description", "")).strip_edges()
+		var label := name
+		if desc != "":
+			label = "%s — %s" % [name, desc]
+		library_list.add_item(label)
+	if _library_filtered.size() > 0:
+		library_list.select(0)
+		_on_library_selected(0)
+	else:
+		if library_details_text != null:
+			library_details_text.text = ""
+		if library_status_label != null:
+			library_status_label.text = ""
+
+func _on_library_selected(idx: int) -> void:
+	if idx < 0 or idx >= _library_filtered.size():
+		return
+	var it := _library_filtered[idx]
+	if library_details_text != null:
+		var lines := PackedStringArray()
+		lines.append("[b]%s[/b]" % str(it.get("name", "")).strip_edges())
+		var d := str(it.get("description", "")).strip_edges()
+		if d != "":
+			lines.append(d)
+		var src0: Variant = it.get("source", null)
+		if typeof(src0) == TYPE_DICTIONARY:
+			var src: Dictionary = src0 as Dictionary
+			var repo := str(src.get("repo_url", "")).strip_edges()
+			if repo != "":
+				lines.append("")
+				lines.append("[url=%s]%s[/url]" % [repo, repo])
+		library_details_text.text = "\n".join(lines)
+
+func _on_library_uninstall_pressed() -> void:
+	var sid := _resolve_save_id()
+	if sid == "":
+		return
+	if library_list == null:
+		return
+	var idx := library_list.get_selected_items()[0] if library_list.get_selected_items().size() > 0 else -1
+	if idx < 0 or idx >= _library_filtered.size():
+		return
+	var it := _library_filtered[idx]
+	var name := str(it.get("name", "")).strip_edges()
+	if name == "":
+		return
+	var root := _LibraryPaths.library_root(sid)
+	var dir := root.rstrip("/") + "/" + name
+	_rm_tree(dir)
+	_LibraryStore.remove_skill(sid, name)
+	if library_status_label != null:
+		library_status_label.text = "Uninstalled %s" % name
+	library_refresh()
+
+func _rm_tree(dir_path: String) -> void:
+	var abs := ProjectSettings.globalize_path(dir_path)
+	if not DirAccess.dir_exists_absolute(abs):
+		return
+	var d := DirAccess.open(abs)
+	if d == null:
+		return
+	d.list_dir_begin()
+	while true:
+		var n := d.get_next()
+		if n == "":
+			break
+		if n == "." or n == "..":
+			continue
+		var p := abs.rstrip("/") + "/" + n
+		if d.current_is_dir():
+			_rm_tree(p)
+			DirAccess.remove_absolute(p)
+		else:
+			DirAccess.remove_absolute(p)
+	d.list_dir_end()
 
 func _resolve_save_id() -> String:
 	var oa := get_node_or_null("/root/OpenAgentic") as Node

@@ -12,7 +12,11 @@ Goal: build a per-save shared Skill Library (“图书馆”) for VR Offices, wi
 
 ## Evidence
 
-- Pending (run the commands in the plan and paste results here).
+- (2026-02-05) `scripts/run_godot_tests.sh --one tests/addons/openagentic/test_skill_md_validator.gd` (PASS)
+- (2026-02-05) `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_shared_skill_library_installs_zip.gd` (PASS)
+- (2026-02-05) `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_search_tab_install_and_repo_link.gd` (PASS)
+- (2026-02-05) `scripts/run_godot_tests.sh --one tests/projects/vr_offices/test_vending_machine_overlay_library_tab_manage_and_filter.gd` (PASS)
+- (2026-02-05) `scripts/run_godot_tests.sh --suite vr_offices` (PASS)
 
 ## Notes
 
