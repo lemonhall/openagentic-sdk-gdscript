@@ -13,13 +13,13 @@ func read_meta(save_id: String, npc_id: String) -> Dictionary:
 		return {}
 
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
-	var abs := ProjectSettings.globalize_path(path)
-	if not FileAccess.file_exists(path) and not FileAccess.file_exists(abs):
+	var abs_path := ProjectSettings.globalize_path(path)
+	if not FileAccess.file_exists(path) and not FileAccess.file_exists(abs_path):
 		return {"npc_id": nid, "created_at": int(Time.get_unix_time_from_system() * 1000.0)}
 
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
-		f = FileAccess.open(abs, FileAccess.READ)
+		f = FileAccess.open(abs_path, FileAccess.READ)
 	if f == null:
 		return {"npc_id": nid}
 	var txt := f.get_as_text()
@@ -45,4 +45,3 @@ func write_meta(save_id: String, npc_id: String, meta: Dictionary) -> void:
 		return
 	f.store_string(JSON.stringify(out) + "\n")
 	f.close()
-

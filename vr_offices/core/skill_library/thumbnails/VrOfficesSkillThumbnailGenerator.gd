@@ -107,9 +107,9 @@ static func _file_exists_any(p: String) -> bool:
 static func _thumbnail_ok(png_path: String, w: int, h: int) -> bool:
 	if not _file_exists_any(png_path):
 		return false
-	var abs := ProjectSettings.globalize_path(png_path)
+	var abs_path := ProjectSettings.globalize_path(png_path)
 	var img := Image.new()
-	var err := img.load(abs)
+	var err := img.load(abs_path)
 	if err != OK:
 		return false
 	return img.get_width() == w and img.get_height() == h

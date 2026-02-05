@@ -526,10 +526,10 @@ func _enqueue_installed_thumbnails(save_id: String, installed: Array) -> void:
 		if typeof(it0) != TYPE_DICTIONARY:
 			continue
 		var it: Dictionary = it0 as Dictionary
-		var name := str(it.get("name", "")).strip_edges()
-		if name == "":
+		var skill_name := str(it.get("name", "")).strip_edges()
+		if skill_name == "":
 			continue
-		svc.call("queue_generate", save_id, name, false)
+		svc.call("queue_generate", save_id, skill_name, false)
 
 func _format_download_failed(dr: Dictionary) -> String:
 	var err := str(dr.get("error", "Error")).strip_edges()

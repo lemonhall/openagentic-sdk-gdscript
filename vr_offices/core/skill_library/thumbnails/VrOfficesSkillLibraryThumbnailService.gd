@@ -25,8 +25,8 @@ func bind_options(options: Dictionary) -> void:
 
 func queue_generate(save_id: String, skill_name: String, force: bool = false) -> void:
 	var sid := save_id.strip_edges()
-	var name := skill_name.strip_edges()
-	if sid == "" or name == "":
+	var skill_name_clean := skill_name.strip_edges()
+	if sid == "" or skill_name_clean == "":
 		return
 
 	for i in range(_queue.size() - 1, -1, -1):
@@ -34,9 +34,9 @@ func queue_generate(save_id: String, skill_name: String, force: bool = false) ->
 		if typeof(j0) != TYPE_DICTIONARY:
 			continue
 		var j: Dictionary = j0 as Dictionary
-		if String(j.get("save_id", "")) == sid and String(j.get("skill_name", "")) == name:
+		if String(j.get("save_id", "")) == sid and String(j.get("skill_name", "")) == skill_name_clean:
 			_queue.remove_at(i)
-	_queue.append({"save_id": sid, "skill_name": name, "force": force})
+	_queue.append({"save_id": sid, "skill_name": skill_name_clean, "force": force})
 	_start_drain_if_needed()
 
 func _start_drain_if_needed() -> void:
@@ -52,18 +52,18 @@ func _drain_queue() -> void:
 			continue
 		var job: Dictionary = job0 as Dictionary
 		var sid := String(job.get("save_id", "")).strip_edges()
-		var name := String(job.get("skill_name", "")).strip_edges()
+		var skill_name_clean := String(job.get("skill_name", "")).strip_edges()
 		var force := bool(job.get("force", false))
-		if sid == "" or name == "":
+		if sid == "" or skill_name_clean == "":
 			continue
 
 		var transport := _transport_override
 		var opts := _options_override
-		var st0: Variant = _gen.call("generate_for_skill", sid, name, force, transport, opts)
+		var st0: Variant = _gen.call("generate_for_skill", sid, skill_name_clean, force, transport, opts)
 		var rr0: Variant = await st0 if _is_function_state(st0) else st0
 		var ok := typeof(rr0) == TYPE_DICTIONARY and bool((rr0 as Dictionary).get("ok", false))
 		var path := String((rr0 as Dictionary).get("path", "")).strip_edges() if typeof(rr0) == TYPE_DICTIONARY else ""
-		thumbnail_generated.emit(sid, name, ok, path)
+		thumbnail_generated.emit(sid, skill_name_clean, ok, path)
 	_draining = false
 
 static func find_service(tree: SceneTree) -> VrOfficesSkillLibraryThumbnailService:

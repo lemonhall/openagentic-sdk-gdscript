@@ -1,17 +1,33 @@
 # OpenAgentic Godot (GDScript)
 
-![Screenshot](screenshot.png)
+[中文](README.zh-CN.md)
 
-Runtime-first **Godot 4** addon that ports the core loop of `openagentic-sdk-ts` into GDScript:
+![Screenshot](screenshot2.png)
+
+Runtime-first **Godot 4** addon that ports the core loop of `openagentic-sdk-ts` into GDScript — plus an IRC demo + multiple in-engine prototypes that exercise real orchestration patterns.
 
 - Event-sourced, per-save + per-NPC **continuous sessions** (JSONL)
 - Streaming assistant output (**`assistant.delta`**) via **OpenAI Responses-compatible SSE** (through your own proxy)
 - Tool calling loop (**tool registry → permission gate → tool runner**) for driving in-game Actors
 - Save-scoped “shadow workspace” under `user://` for NPC/world memory files (no import/commit workflow)
 
+## Screenshots
+
+![VR Offices](screenshot.png)
+
 ## Status
 
 Early v1 slice: minimal end-to-end core is implemented; API is expected to change.
+
+## What’s included
+
+- **OpenAgentic runtime addon** (`addons/openagentic/`): agent runtime loop + session store + tools + workspace FS sandbox (no Bash tool)
+- **VR Offices (3D demo)** (`vr_offices/`): multi-NPC orchestration, installs/teaches skills, persistence, media/IRC integrations
+- **IRC demo** (`demo_irc/`): minimal IRC-oriented example project code
+- **Local services (optional)**:
+  - `proxy/`: tiny dependency-free Node.js SSE proxy for OpenAI Responses API
+  - `media_service/`: helper service used by VR Offices media flows
+  - `remote_daemon/`: remote tool/daemon experiments used by demos
 
 ## Installation
 
@@ -19,6 +35,18 @@ Copy `addons/openagentic/` into your Godot project and enable it by adding an Au
 
 - Autoload name: `OpenAgentic`
 - Script: `res://addons/openagentic/OpenAgentic.gd`
+
+## Using from the Godot Asset Library
+
+This repository is a full Godot project.
+
+- If you want **only the addon**, copy `addons/openagentic/` into your own project and add the Autoload.
+- If you want the **demos**, open this project and run one of the scenes listed in the “Demo” section.
+
+## Requirements
+
+- Godot **4.x** (this repo is tested on **4.6**)
+- If using the built-in local proxy: Node.js 18+
 
 ## Persistence layout (per save slot)
 
@@ -142,6 +170,7 @@ done < <(find tests -type f -name 'test_*.gd' | LC_ALL=C sort)
 1. Start the proxy (above).
 2. Run the Godot project.
    - Default main scene is the 3D VR Offices demo: `res://vr_offices/VrOffices.tscn`
+   - The IRC demo scene: `res://demo_irc/Main.tscn`
    - The RPG-style demo remains at: `res://demo_rpg/World.tscn`
    - The older “chat UI” demo remains at `res://demo/Main.tscn`
 
@@ -198,3 +227,11 @@ Optional environment variables for the demo:
 - `docs/plan/v3-index.md`
 - `docs/plan/v3-vr-offices.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`
+
+## License
+
+Code in this repository is licensed under **Apache-2.0** (see `LICENSE`).
+
+Third-party assets may have their own licenses:
+
+- Kenney art under `assets/kenney/` is **CC0** (see `assets/CREDITS.md` and `assets/kenney/**/License.txt`).

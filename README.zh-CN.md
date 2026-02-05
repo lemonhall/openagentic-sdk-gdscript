@@ -1,17 +1,33 @@
 # OpenAgentic Godot（GDScript）
 
-![截图](screenshot.png)
+[English](README.md)
 
-面向 **Godot 4 运行时** 的 Agent 插件：把 `openagentic-sdk-ts` 的核心 tool-loop 移植到 GDScript，方便在游戏里用 Agent 驱动 Actor/NPC 行为。
+![截图](screenshot2.png)
+
+面向 **Godot 4 运行时** 的 Agent 插件：把 `openagentic-sdk-ts` 的核心 tool-loop 移植到 GDScript，方便在游戏里用 Agent 驱动 Actor/NPC 行为；同时仓库还包含 IRC demo + 多个可运行的 in-engine 原型工程（演示编排/持久化/工具链路）。
 
 - 事件溯源：按存档 + NPC 维度持久化 **连续会话**（JSONL）
 - 流式输出：通过 **OpenAI Responses 兼容的 SSE**（走你自己的代理）产生 `assistant.delta`
 - 工具调用闭环：工具注册表 → 权限门禁 → 工具执行器（tool runner）
 - “shadow workspace”：所有 AI 相关文件都落在 `user://` 的存档目录里（不做 import/commit 工作流）
 
+## 截图
+
+![VR Offices](screenshot.png)
+
 ## 状态
 
 v1 早期最小闭环已实现，API 可能会频繁调整。
+
+## 仓库内容（包含什么）
+
+- **OpenAgentic 运行时插件**（`addons/openagentic/`）：Agent runtime loop + session store + tools + workspace FS 沙盒（不提供 Bash tool）
+- **VR Offices（3D demo）**（`vr_offices/`）：多 NPC 编排、技能安装/教学、持久化、media/IRC 集成
+- **IRC demo**（`demo_irc/`）：一个最小的 IRC 相关示例工程
+- **可选本地服务**：
+  - `proxy/`：无依赖 Node.js SSE 代理（兼容 OpenAI Responses API）
+  - `media_service/`：VR Offices 媒体链路的辅助服务
+  - `remote_daemon/`：demo 使用的远程工具/daemon 实验
 
 ## 安装
 
@@ -19,6 +35,18 @@ v1 早期最小闭环已实现，API 可能会频繁调整。
 
 - 名称：`OpenAgentic`
 - 脚本：`res://addons/openagentic/OpenAgentic.gd`
+
+## 从 Godot Asset Library 使用
+
+这个仓库本身就是一个完整的 Godot 工程：
+
+- 如果你只想要 **插件本体**：把 `addons/openagentic/` 复制进你的项目并添加 Autoload。
+- 如果你想直接跑 **demo**：打开本工程，运行“Demo”章节里列出的场景即可。
+
+## 运行环境
+
+- Godot **4.x**（本仓库以 **4.6** 为主要测试版本）
+- 如需使用内置本地 proxy：Node.js 18+
 
 ## 落盘结构（按存档隔离）
 
@@ -125,6 +153,7 @@ scripts/run_godot_tests.sh --suite vr_offices
 1. 先启动上面的代理。
 2. 运行 Godot 工程。
    - 默认主场景是 3D 的 VR Offices demo：`res://vr_offices/VrOffices.tscn`
+   - IRC demo 场景：`res://demo_irc/Main.tscn`
    - RPG 风格 demo 仍保留在：`res://demo_rpg/World.tscn`
    - 旧的“聊天 UI” demo 仍保留在：`res://demo/Main.tscn`
 
@@ -181,3 +210,11 @@ Demo 可通过环境变量配置：
 - `docs/plan/v3-index.md`
 - `docs/plan/v3-vr-offices.md`
 - `docs/plans/2026-01-28-openagentic-godot4-runtime.md`
+
+## 许可证
+
+本仓库的代码以 **Apache-2.0** 许可协议发布（见 `LICENSE`）。
+
+第三方资源可能有各自的许可协议：
+
+- `assets/kenney/` 下的 Kenney 美术资源为 **CC0**（见 `assets/CREDITS.md` 与 `assets/kenney/**/License.txt`）。

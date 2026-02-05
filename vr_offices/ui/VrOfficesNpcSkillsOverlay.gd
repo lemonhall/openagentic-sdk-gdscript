@@ -404,34 +404,34 @@ func _apply_selected_skill_content() -> void:
 
 	var cur: Dictionary = _skills[_skill_idx]
 	var dir_name := String(cur.get("dir_name", "")).strip_edges()
-	var name := String(cur.get("name", dir_name)).strip_edges()
+	var display_name := String(cur.get("name", dir_name)).strip_edges()
 	var desc := String(cur.get("description", "")).strip_edges()
 
 	if card_title != null:
-		card_title.text = name if name != "" else dir_name
+		card_title.text = display_name if display_name != "" else dir_name
 	if card_desc != null:
 		card_desc.text = desc
 	if card_thumb != null:
 		card_thumb.texture = _thumbnail_texture_for_skill(dir_name)
 
 func _thumbnail_texture_for_skill(skill_name: String) -> Texture2D:
-	var name := skill_name.strip_edges()
-	if name == "" or _save_id == "":
+	var skill_key := skill_name.strip_edges()
+	if skill_key == "" or _save_id == "":
 		return null
-	if _thumb_cache.has(name):
-		return _thumb_cache.get(name) as Texture2D
-	var p := _LibraryPaths.thumbnail_path(_save_id, name)
+	if _thumb_cache.has(skill_key):
+		return _thumb_cache.get(skill_key) as Texture2D
+	var p := _LibraryPaths.thumbnail_path(_save_id, skill_key)
 	if p == "" or not (FileAccess.file_exists(p) or FileAccess.file_exists(ProjectSettings.globalize_path(p))):
-		_thumb_cache[name] = null
+		_thumb_cache[skill_key] = null
 		return null
-	var abs := ProjectSettings.globalize_path(p)
+	var abs_path := ProjectSettings.globalize_path(p)
 	var img := Image.new()
-	var err := img.load(abs)
+	var err := img.load(abs_path)
 	if err != OK:
-		_thumb_cache[name] = null
+		_thumb_cache[skill_key] = null
 		return null
 	var tex := ImageTexture.create_from_image(img)
-	_thumb_cache[name] = tex
+	_thumb_cache[skill_key] = tex
 	return tex
 
 func _uninstall_skill(dir_name: String) -> void:
@@ -439,10 +439,10 @@ func _uninstall_skill(dir_name: String) -> void:
 	if dn == "" or _save_id == "" or _npc_id == "":
 		return
 	var dir := String(_OAPaths.npc_skill_dir(_save_id, _npc_id, dn))
-	var abs := ProjectSettings.globalize_path(dir)
-	if DirAccess.dir_exists_absolute(abs):
+	var abs_path := ProjectSettings.globalize_path(dir)
+	if DirAccess.dir_exists_absolute(abs_path):
 		_SkillFs.rm_tree(dir)
-		DirAccess.remove_absolute(abs)
+		DirAccess.remove_absolute(abs_path)
 	_refresh_skills()
 	_refresh_summary_cached()
 	_request_summary_refresh(false)
