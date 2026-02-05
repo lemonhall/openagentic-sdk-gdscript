@@ -353,8 +353,9 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 
 [node name="TeachPreviewViewport" type="SubViewport" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer"]
 	unique_name_in_owner = true
-	size = Vector2i(360, 240)
+	size = Vector2i(480, 320)
 	render_target_update_mode = 2
+	own_world_3d = true
 
 [node name="TeachPreviewRoot" type="Node3D" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer/TeachPreviewViewport"]
 	unique_name_in_owner = true
@@ -366,6 +367,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 [node name="TeachPreviewCamera" type="Camera3D" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow/TeachPreviewContainer/TeachPreviewViewport"]
 	unique_name_in_owner = true
 	position = Vector3(0, 1.1, 2.2)
+	fov = 35.0
 
 [node name="TeachNextNpcButton" type="Button" parent="TeachSkillPopup/TeachPanel/TeachVBox/TeachNpcRow"]
 	unique_name_in_owner = true

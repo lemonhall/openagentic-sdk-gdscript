@@ -75,6 +75,13 @@ func _init() -> void:
 	get_root().add_child(overlay)
 	await process_frame
 
+	var vp := overlay.get_node_or_null("%TeachPreviewViewport") as SubViewport
+	if vp == null:
+		T.fail_and_quit(self, "Missing %TeachPreviewViewport")
+		return
+	if not T.require_true(self, bool(vp.own_world_3d), "Expected TeachPreviewViewport.own_world_3d == true"):
+		return
+
 	if overlay.has_method("open"):
 		overlay.call("open")
 	await process_frame
