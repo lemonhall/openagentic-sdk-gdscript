@@ -39,6 +39,12 @@ func _ready() -> void:
 		)
 	_update_preview_visibility()
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		if preview_viewport != null:
+			# Keep updating while visible so animations render; reduce work when hidden.
+			preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible else SubViewport.UPDATE_DISABLED
+
 func open_for_skill(save_id: String, skill_name: String, npcs: Array) -> void:
 	_save_id = save_id.strip_edges()
 	_skill_name = skill_name.strip_edges()
@@ -157,9 +163,10 @@ func _update_preview_model() -> void:
 		inst = mi
 	_preview_freeze_node(inst)
 	preview_root.add_child(inst)
+	autoplay_idle_animation_for_preview(inst)
 	_frame_camera_to_preview_root()
 	if preview_viewport != null:
-		preview_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 
 func _set_status(t: String) -> void:
 	if status_label != null:
@@ -177,25 +184,63 @@ func _preview_freeze_node(root: Node) -> void:
 	if root == null:
 		return
 	# Disable processing so preview doesn't "run" gameplay scripts.
-	if root.has_method("set_process"):
-		root.set_process(false)
-	if root.has_method("set_physics_process"):
-		root.set_physics_process(false)
-	root.process_mode = Node.PROCESS_MODE_DISABLED
-	for n in root.find_children("*", "", true, false):
-		var node := n as Node
-		if node == null:
+	# Keep AnimationPlayers processing so preview models can animate.
+	var anim_players: Array = root.find_children("*", "AnimationPlayer", true, false)
+	var ap_set: Dictionary = {}
+	for ap0 in anim_players:
+		if ap0 != null:
+			ap_set[ap0] = true
+
+	_preview_disable_node_rec(root, ap_set)
+
+static func _preview_disable_node_rec(node: Node, ap_set: Dictionary) -> void:
+	if node == null:
+		return
+	if ap_set.has(node):
+		node.process_mode = Node.PROCESS_MODE_ALWAYS
+		return
+	node.process_mode = Node.PROCESS_MODE_DISABLED
+	for c0 in node.get_children():
+		var c := c0 as Node
+		if c == null:
 			continue
-		if node.has_method("set_process"):
-			node.set_process(false)
-		if node.has_method("set_physics_process"):
-			node.set_physics_process(false)
-		node.process_mode = Node.PROCESS_MODE_DISABLED
-	for ap0 in root.find_children("*", "AnimationPlayer", true, false):
-		var ap := ap0 as AnimationPlayer
-		if ap == null:
-			continue
-		ap.stop()
+		_preview_disable_node_rec(c, ap_set)
+
+static func autoplay_idle_animation_for_preview(root: Node) -> bool:
+	if root == null:
+		return false
+	var players := root.find_children("*", "AnimationPlayer", true, false)
+	if players.is_empty():
+		return false
+	var ap := players[0] as AnimationPlayer
+	if ap == null:
+		return false
+	var names := ap.get_animation_list()
+	if names.is_empty():
+		return false
+	var chosen := _pick_named_animation(names, "idle")
+	if chosen == &"":
+		chosen = _pick_named_animation(names, "walk")
+	if chosen == &"":
+		chosen = StringName(names[0])
+	_ensure_loop(ap, chosen)
+	ap.play(chosen)
+	return ap.is_playing()
+
+static func _pick_named_animation(names: PackedStringArray, contains: String) -> StringName:
+	for n0 in names:
+		if str(n0).to_lower().find(contains) != -1:
+			return StringName(n0)
+	return &""
+
+static func _ensure_loop(ap: AnimationPlayer, anim_name: StringName) -> void:
+	if ap == null or anim_name == &"":
+		return
+	var anim := ap.get_animation(anim_name)
+	if anim == null:
+		return
+	if anim.loop_mode == Animation.LOOP_NONE:
+		anim.loop_mode = Animation.LOOP_LINEAR
 
 func _frame_camera_to_preview_root() -> void:
 	if preview_camera == null or preview_root == null:
