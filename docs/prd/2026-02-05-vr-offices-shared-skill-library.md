@@ -117,6 +117,20 @@ Place the UI affordance on the Library tab (selection + “Assign” button), bu
 
 Rationale: teaching/ownership and per-NPC skill lifecycle needs its own acceptance + persistence story.
 
+### REQ-010 — Uninstall truly removes the skill directory (reinstall works)
+
+- Uninstall must remove:
+  - the skill directory under `shared/skill_library/<skill_name>/` (including the root folder itself), and
+  - the manifest entry.
+- After uninstall, installing the same skill again must succeed (no false “AlreadyInstalled” due to empty leftover dirs).
+
+### REQ-011 — Library: open the shared library folder in OS file manager
+
+- The Library tab includes an `Open Folder` button that opens:
+  - `user://openagentic/saves/<save_id>/shared/skill_library/`
+  - using `OS.shell_open(ProjectSettings.globalize_path(path))`.
+- In headless/server builds, it must be a no-op and must not error/crash.
+
 ## Non-Goals (MVP)
 
 - Git clone, branches/tags selection, private repo auth flows.

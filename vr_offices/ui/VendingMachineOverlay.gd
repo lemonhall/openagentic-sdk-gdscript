@@ -37,6 +37,7 @@ const _LibraryPaths := preload("res://vr_offices/core/skill_library/VrOfficesSha
 
 @onready var library_filter_edit: LineEdit = %LibraryFilterEdit
 @onready var library_refresh_button: Button = %LibraryRefreshButton
+@onready var library_open_folder_button: Button = %LibraryOpenFolderButton
 @onready var library_list: ItemList = %LibraryList
 @onready var library_details_text: RichTextLabel = %LibraryDetailsText
 @onready var library_status_label: Label = %LibraryStatusLabel
@@ -105,6 +106,8 @@ func _ready() -> void:
 
 	if library_refresh_button != null:
 		library_refresh_button.pressed.connect(library_refresh)
+	if library_open_folder_button != null:
+		library_open_folder_button.pressed.connect(_on_library_open_folder_pressed)
 	if library_filter_edit != null:
 		library_filter_edit.text_changed.connect(func(_t: String) -> void:
 			_apply_library_filter_and_render()
@@ -113,6 +116,17 @@ func _ready() -> void:
 		library_list.item_selected.connect(_on_library_selected)
 	if library_uninstall_button != null:
 		library_uninstall_button.pressed.connect(_on_library_uninstall_pressed)
+
+func _on_library_open_folder_pressed() -> void:
+	if _is_headless():
+		return
+	var sid := _resolve_save_id()
+	if sid == "":
+		return
+	var p := _LibraryPaths.library_root(sid)
+	if p.strip_edges() == "":
+		return
+	OS.shell_open(ProjectSettings.globalize_path(p))
 
 func open() -> void:
 	visible = true
@@ -646,6 +660,8 @@ func _rm_tree(dir_path: String) -> void:
 		else:
 			DirAccess.remove_absolute(p)
 	d.list_dir_end()
+	# Remove the root directory itself so reinstall doesn't hit AlreadyInstalled due to an empty folder.
+	DirAccess.remove_absolute(abs_dir)
 
 func _resolve_save_id() -> String:
 	var oa := get_node_or_null("/root/OpenAgentic") as Node

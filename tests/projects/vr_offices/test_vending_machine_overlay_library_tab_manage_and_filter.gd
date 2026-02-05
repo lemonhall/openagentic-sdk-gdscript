@@ -58,6 +58,13 @@ func _init() -> void:
 	var overlay := (OverlayScene as PackedScene).instantiate() as Control
 	root.add_child(overlay)
 	await process_frame
+
+	var open_folder_btn := overlay.get_node_or_null("%LibraryOpenFolderButton") as Button
+	if open_folder_btn == null:
+		T.fail_and_quit(self, "Missing %LibraryOpenFolderButton")
+		return
+	open_folder_btn.pressed.emit()
+	await process_frame
 	if overlay.has_method("open"):
 		overlay.call("open")
 	await process_frame
@@ -87,4 +94,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-
