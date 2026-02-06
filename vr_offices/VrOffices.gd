@@ -59,6 +59,7 @@ var _workspace_ctrl: RefCounted = null
 var _desk_manager: RefCounted = null
 var _irc_settings: RefCounted = null
 var _quitting := false
+var _skills_return_context: Dictionary = {}
 
 func _ready() -> void:
 	randomize()
@@ -81,6 +82,8 @@ func _ready() -> void:
 
 	_BgmScript.configure(bgm, _OAData.BGM_PATH, _is_headless())
 	_profiles = _ProfilesScript.new(_OAData.MODEL_PATHS, _OAData.CULTURE_NAMES, culture_code)
+	if _profiles != null and _profiles.has_method("exclude_model"):
+		_profiles.call("exclude_model", _OAData.MANAGER_MODEL_PATH)
 	_npc_manager = _NpcManagerScript.new(
 		self,
 		npc_scene,
@@ -129,6 +132,10 @@ func _ready() -> void:
 			dialogue_surface.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
 		if dialogue_surface.has_signal("skills_pressed"):
 			dialogue_surface.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
+
+	if npc_skills_overlay != null and npc_skills_overlay.has_signal("closed"):
+		if not npc_skills_overlay.is_connected("closed", Callable(self, "_on_npc_skills_overlay_closed")):
+			npc_skills_overlay.connect("closed", Callable(self, "_on_npc_skills_overlay_closed"))
 
 	if settings_overlay != null and settings_overlay.has_method("bind"):
 		settings_overlay.call("bind", self, _desk_manager)
@@ -196,7 +203,8 @@ func _enter_talk(npc: Node) -> void:
 		if npc_name == "":
 			npc_name = npc_id if npc_id != "" else String(npc.name)
 		if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("open_for_npc"):
-			manager_dialogue_overlay.call("open_for_npc", npc_id, npc_name, model_path)
+			var npc_workspace_id := _workspace_id_for_node(npc)
+			manager_dialogue_overlay.call("open_for_npc", npc_id, npc_name, model_path, npc_workspace_id)
 	if dialogue != null and dialogue.visible and dialogue.has_method("close"):
 		dialogue.call("close")
 	if _dialogue_ctrl != null:
@@ -306,6 +314,20 @@ func open_manager_dialogue_for_workspace(workspace_id: String) -> void:
 	if _dialogue_ctrl != null and _dialogue_ctrl.has_method("enter_talk_by_id"):
 		_dialogue_ctrl.call("enter_talk_by_id", manager_id, manager_name)
 
+func _workspace_id_for_node(n: Node) -> String:
+	if n == null:
+		return ""
+	var p: Node = n
+	while p != null:
+		if p.has_method("get"):
+			var wid0: Variant = p.get("workspace_id")
+			if wid0 != null:
+				var wid := String(wid0).strip_edges()
+				if wid != "":
+					return wid
+		p = p.get_parent()
+	return ""
+
 func _active_npc_ids_for_workspace(workspace_id: String) -> Array[String]:
 	var wid := workspace_id.strip_edges()
 	var out: Array[String] = []
@@ -375,13 +397,69 @@ func _find_npc_by_id(npc_id: String) -> Node:
 func _on_dialogue_skills_pressed(save_id: String, npc_id: String, npc_name: String) -> void:
 	if npc_skills_overlay == null or not npc_skills_overlay.has_method("open_for_npc"):
 		return
+	var sid := save_id.strip_edges()
+	var nid := npc_id.strip_edges()
+	if sid == "" or nid == "":
+		return
+	var who := npc_name.strip_edges()
+	if who == "":
+		who = nid
+	var manager_workspace_id := _OAPaths.workspace_id_from_manager_npc_id(nid)
+	var workspace_id := manager_workspace_id
 	var model_path := ""
-	var npc := _find_npc_by_id(npc_id)
+	if manager_workspace_id != "":
+		model_path = _ManagerDeskDefaults.MANAGER_NPC_MODEL
+	var npc := _find_npc_by_id(nid)
 	if npc != null and npc.has_method("get"):
 		var v: Variant = npc.get("model_path")
 		if v != null:
 			model_path = String(v).strip_edges()
-	npc_skills_overlay.call("open_for_npc", save_id, npc_id, npc_name, model_path)
+		workspace_id = _workspace_id_for_node(npc)
+	if workspace_id != "":
+		_skills_return_context = {
+			"npc_id": nid,
+			"npc_name": who,
+			"model_path": model_path,
+			"workspace_id": workspace_id,
+		}
+	else:
+		_skills_return_context = {
+			"npc_id": nid,
+			"npc_name": who,
+			"model_path": model_path,
+		}
+	if manager_dialogue_overlay != null and manager_dialogue_overlay.visible:
+		if manager_dialogue_overlay.has_method("close"):
+			manager_dialogue_overlay.call("close")
+		else:
+			manager_dialogue_overlay.visible = false
+	npc_skills_overlay.call("open_for_npc", sid, nid, who, model_path)
+
+func _on_npc_skills_overlay_closed() -> void:
+	if _skills_return_context.is_empty():
+		return
+	var npc_id := String(_skills_return_context.get("npc_id", "")).strip_edges()
+	var npc_name := String(_skills_return_context.get("npc_name", "")).strip_edges()
+	var model_path := String(_skills_return_context.get("model_path", "")).strip_edges()
+	var workspace_id := String(_skills_return_context.get("workspace_id", "")).strip_edges()
+	_skills_return_context = {}
+	if npc_id == "":
+		return
+	if npc_name == "":
+		npc_name = npc_id
+	var manager_workspace_id := _OAPaths.workspace_id_from_manager_npc_id(npc_id)
+	if manager_workspace_id != "":
+		if workspace_id == "":
+			workspace_id = manager_workspace_id
+		if model_path == "":
+			model_path = _ManagerDeskDefaults.MANAGER_NPC_MODEL
+		if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("open_for_manager"):
+			manager_dialogue_overlay.call("open_for_manager", workspace_id, npc_name, model_path)
+	else:
+		if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("open_for_npc"):
+			manager_dialogue_overlay.call("open_for_npc", npc_id, npc_name, model_path, workspace_id)
+	if _dialogue_ctrl != null and _dialogue_ctrl.has_method("enter_talk_by_id"):
+		_dialogue_ctrl.call("enter_talk_by_id", npc_id, npc_name)
 
 func _on_desk_device_code_submitted(desk_id: String, device_code: String) -> void:
 	if _desk_manager == null or not _desk_manager.has_method("set_desk_device_code"):

@@ -1,6 +1,7 @@
 extends SceneTree
 
 const T := preload("res://tests/_test_util.gd")
+const _OAData := preload("res://vr_offices/core/data/VrOfficesData.gd")
 
 func _init() -> void:
 	# Ensure this smoke test runs against an isolated save slot (vr_offices now auto-loads saved NPCs).
@@ -56,13 +57,14 @@ func _init() -> void:
 	if not T.require_eq(self, npc_root.get_child_count(), 0, "Expected empty NpcRoot before spawning"):
 		return
 
-	# Add up to the max unique NPCs (12).
+	# Add up to the max unique non-manager NPC profiles.
 	var last_npc: Node = null
-	for _i in range(12):
+	var expected_max := _OAData.MODEL_PATHS.size() - 1
+	for _i in range(expected_max):
 		last_npc = world.call("add_npc") as Node
 		if not T.require_true(self, last_npc != null, "add_npc() must return the NPC instance"):
 			return
-	if not T.require_eq(self, npc_root.get_child_count(), 12, "Expected 12 NPCs after filling unique profiles"):
+	if not T.require_eq(self, npc_root.get_child_count(), expected_max, "Expected max NPCs after filling unique non-manager profiles"):
 		return
 
 	# 13th add should fail (no more unique profiles).
@@ -78,7 +80,7 @@ func _init() -> void:
 	# Simulate a frame so queued frees can run in real execution environments.
 	await process_frame
 
-	if not T.require_eq(self, npc_root.get_child_count(), 11, "Expected 11 NPC after remove_selected()"):
+	if not T.require_eq(self, npc_root.get_child_count(), expected_max - 1, "Expected one fewer NPC after remove_selected()"):
 		return
 
 	var again: Node = world.call("add_npc") as Node

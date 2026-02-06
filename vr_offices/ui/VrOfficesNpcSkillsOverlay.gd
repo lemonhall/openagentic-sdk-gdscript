@@ -1,6 +1,8 @@
 extends Control
 class_name VrOfficesNpcSkillsOverlay
 
+signal closed
+
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _Validator := preload("res://addons/openagentic/core/OASkillMdValidator.gd")
 const _SkillFs := preload("res://vr_offices/core/skill_library/VrOfficesSkillLibraryFs.gd")
@@ -120,7 +122,10 @@ func open_for_npc(save_id: String, npc_id: String, npc_name: String, model_path:
 	_update_preview_model()
 
 func close() -> void:
+	var was_visible := visible
 	visible = false
+	if was_visible:
+		emit_signal("closed")
 
 func _refresh_title() -> void:
 	if title_label == null:

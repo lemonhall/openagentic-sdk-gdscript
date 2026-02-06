@@ -96,3 +96,22 @@ rotation = Vector3(-0.85, -0.9, 0.0)
 unique_name_in_owner = true
 position = Vector3(0, 1.1, 2.2)
 fov = 35.0
+
+[node name="IdentityPanel" type="PanelContainer" parent="Panel/RootVBox/Body/RightPreview"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 68)
+
+[node name="IdentityVBox" type="VBoxContainer" parent="Panel/RootVBox/Body/RightPreview/IdentityPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IdentityNameLabel" type="Label" parent="Panel/RootVBox/Body/RightPreview/IdentityPanel/IdentityVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "对象：-"
+
+[node name="IdentityWorkspaceLabel" type="Label" parent="Panel/RootVBox/Body/RightPreview/IdentityPanel/IdentityVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "工作区：-"

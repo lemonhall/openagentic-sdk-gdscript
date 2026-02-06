@@ -6,6 +6,7 @@ var culture_names_by_code: Dictionary = {}
 
 var available_indices: Array[int] = []
 var index_by_model_path: Dictionary = {}
+var excluded_indices: Dictionary = {}
 
 func _init(model_paths_in: Array[String], culture_names_in: Dictionary, culture_code_in: String) -> void:
 	model_paths = model_paths_in
@@ -19,9 +20,24 @@ func reset() -> void:
 	for i in range(model_paths.size()):
 		available_indices.append(i)
 		index_by_model_path[model_paths[i]] = i
+	_apply_exclusions()
 
 func can_add() -> bool:
 	return not available_indices.is_empty()
+
+func exclude_model(model_path: String) -> void:
+	var idx := profile_index_for_model(model_path)
+	if idx < 0:
+		return
+	excluded_indices[idx] = true
+	if available_indices.has(idx):
+		available_indices.erase(idx)
+
+func _apply_exclusions() -> void:
+	for idx0 in excluded_indices.keys():
+		var idx := int(idx0)
+		if available_indices.has(idx):
+			available_indices.erase(idx)
 
 func reserve_model(model_path: String) -> void:
 	var idx := profile_index_for_model(model_path)
@@ -33,6 +49,8 @@ func reserve_model(model_path: String) -> void:
 func release_model(model_path: String) -> void:
 	var idx := profile_index_for_model(model_path)
 	if idx < 0:
+		return
+	if excluded_indices.has(idx):
 		return
 	if not available_indices.has(idx):
 		available_indices.append(idx)

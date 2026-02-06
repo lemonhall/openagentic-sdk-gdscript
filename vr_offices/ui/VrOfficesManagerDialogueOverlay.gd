@@ -10,6 +10,8 @@ const _TeachPopup := preload("res://vr_offices/ui/VrOfficesTeachSkillPopup.gd")
 @onready var preview_viewport: SubViewport = %PreviewViewport
 @onready var preview_root: Node3D = %PreviewRoot
 @onready var preview_camera: Camera3D = %PreviewCamera
+@onready var identity_name_label: Label = %IdentityNameLabel
+@onready var identity_workspace_label: Label = %IdentityWorkspaceLabel
 
 var _model_path: String = ""
 var _workspace_id: String = ""
@@ -31,13 +33,15 @@ func _ready() -> void:
 func open_for_manager(workspace_id: String, manager_name: String, manager_model_path: String = "") -> void:
 	_workspace_id = workspace_id.strip_edges()
 	_model_path = manager_model_path.strip_edges()
+	var who := manager_name.strip_edges() if manager_name.strip_edges() != "" else "经理"
 	if title_label != null:
-		title_label.text = "%s · %s" % [manager_name.strip_edges() if manager_name.strip_edges() != "" else "经理", _workspace_id]
+		title_label.text = "%s · %s" % [who, _workspace_id]
+	_set_identity_labels(who, _workspace_id)
 	visible = true
 	_update_preview_model()
 
-func open_for_npc(npc_id: String, npc_name: String, npc_model_path: String = "") -> void:
-	_workspace_id = ""
+func open_for_npc(npc_id: String, npc_name: String, npc_model_path: String = "", workspace_id: String = "") -> void:
+	_workspace_id = workspace_id.strip_edges()
 	_model_path = npc_model_path.strip_edges()
 	var who := npc_name.strip_edges()
 	if who == "":
@@ -46,8 +50,19 @@ func open_for_npc(npc_id: String, npc_name: String, npc_model_path: String = "")
 		who = "同事"
 	if title_label != null:
 		title_label.text = who
+	_set_identity_labels(who, _workspace_id)
 	visible = true
 	_update_preview_model()
+
+func _set_identity_labels(name_text: String, workspace_id: String) -> void:
+	var who := name_text.strip_edges()
+	if who == "":
+		who = "未知对象"
+	if identity_name_label != null:
+		identity_name_label.text = "对象：%s" % who
+	var wid := workspace_id.strip_edges()
+	if identity_workspace_label != null:
+		identity_workspace_label.text = "工作区：%s" % (wid if wid != "" else "全局")
 
 func close() -> void:
 	visible = false
@@ -158,9 +173,9 @@ func _frame_camera_to_preview_root() -> void:
 	if first:
 		_frame_camera()
 		return
-	var size := max_v - min_v
-	var center := min_v + size * 0.5
-	var extent := maxf(size.x, maxf(size.y, size.z))
+	var bounds_size := max_v - min_v
+	var center := min_v + bounds_size * 0.5
+	var extent := maxf(bounds_size.x, maxf(bounds_size.y, bounds_size.z))
 	if extent <= 0.01:
 		extent = 1.2
 	preview_camera.fov = 35.0
