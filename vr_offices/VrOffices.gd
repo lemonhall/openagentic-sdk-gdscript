@@ -52,7 +52,6 @@ var _chat_history: RefCounted = null
 var _world_state: RefCounted = null
 var _save_ctrl: RefCounted = null
 var _dialogue_ctrl: RefCounted = null
-var _manager_dialogue_ctrl: RefCounted = null
 var _input_ctrl: RefCounted = null
 var _move_ctrl: RefCounted = null
 var _workspace_manager: RefCounted = null
@@ -110,42 +109,26 @@ func _ready() -> void:
 		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"), Callable(_agent, "effective_save_id"))
 	_irc_settings = _IrcSettingsScript.new()
 	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _desk_manager, _irc_settings)
+	var manager_dialogue_ui: Control = null
+	if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("get_embedded_dialogue"):
+		manager_dialogue_ui = manager_dialogue_overlay.call("get_embedded_dialogue") as Control
+	var dialogue_surface: Control = manager_dialogue_ui if manager_dialogue_ui != null else dialogue
 	_dialogue_ctrl = _DialogueControllerScript.new(
 		self,
 		camera_rig,
-		dialogue,
+		dialogue_surface,
 		oa,
 		_chat_history,
 		Callable(self, "_is_headless"),
 		Callable(_agent, "effective_save_id")
 	)
-	var manager_dialogue_ui: Control = null
-	if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("get_embedded_dialogue"):
-		manager_dialogue_ui = manager_dialogue_overlay.call("get_embedded_dialogue") as Control
-	if manager_dialogue_ui != null:
-		_manager_dialogue_ctrl = _DialogueControllerScript.new(
-			self,
-			camera_rig,
-			manager_dialogue_ui,
-			oa,
-			_chat_history,
-			Callable(self, "_is_headless"),
-			Callable(_agent, "effective_save_id")
-		)
-	if dialogue != null and _dialogue_ctrl != null:
-		if dialogue.has_signal("message_submitted"):
-			dialogue.connect("message_submitted", Callable(_dialogue_ctrl, "on_message_submitted"))
-		if dialogue.has_signal("closed"):
-			dialogue.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
-		if dialogue.has_signal("skills_pressed"):
-			dialogue.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
-	if manager_dialogue_ui != null and _manager_dialogue_ctrl != null:
-		if manager_dialogue_ui.has_signal("message_submitted"):
-			manager_dialogue_ui.connect("message_submitted", Callable(_manager_dialogue_ctrl, "on_message_submitted"))
-		if manager_dialogue_ui.has_signal("closed"):
-			manager_dialogue_ui.connect("closed", Callable(_manager_dialogue_ctrl, "exit_talk"))
-		if manager_dialogue_ui.has_signal("skills_pressed"):
-			manager_dialogue_ui.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
+	if dialogue_surface != null and _dialogue_ctrl != null:
+		if dialogue_surface.has_signal("message_submitted"):
+			dialogue_surface.connect("message_submitted", Callable(_dialogue_ctrl, "on_message_submitted"))
+		if dialogue_surface.has_signal("closed"):
+			dialogue_surface.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
+		if dialogue_surface.has_signal("skills_pressed"):
+			dialogue_surface.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
 
 	if settings_overlay != null and settings_overlay.has_method("bind"):
 		settings_overlay.call("bind", self, _desk_manager)
@@ -163,9 +146,10 @@ func _ready() -> void:
 		action_hint_overlay,
 		Callable(self, "autosave")
 	)
+	var dialogue_blocker: Control = manager_dialogue_overlay if manager_dialogue_overlay != null else dialogue
 	_input_ctrl = _InputControllerScript.new(
 		self,
-		dialogue,
+		dialogue_blocker,
 		camera_rig,
 		_dialogue_ctrl,
 		Callable(self, "_command_selected_move_to_click"),
@@ -196,6 +180,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		_input_ctrl.call("handle_unhandled_input", event, selected)
 
 func _enter_talk(npc: Node) -> void:
+	if npc != null and is_instance_valid(npc):
+		var npc_id := ""
+		var npc_name := ""
+		var model_path := ""
+		if npc.has_method("get"):
+			var nid0: Variant = npc.get("npc_id")
+			if nid0 != null:
+				npc_id = String(nid0).strip_edges()
+			var model0: Variant = npc.get("model_path")
+			if model0 != null:
+				model_path = String(model0).strip_edges()
+		if npc.has_method("get_display_name"):
+			npc_name = String(npc.call("get_display_name")).strip_edges()
+		if npc_name == "":
+			npc_name = npc_id if npc_id != "" else String(npc.name)
+		if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("open_for_npc"):
+			manager_dialogue_overlay.call("open_for_npc", npc_id, npc_name, model_path)
+	if dialogue != null and dialogue.visible and dialogue.has_method("close"):
+		dialogue.call("close")
 	if _dialogue_ctrl != null:
 		_dialogue_ctrl.call("enter_talk", npc)
 func _exit_talk() -> void:
@@ -300,8 +303,8 @@ func open_manager_dialogue_for_workspace(workspace_id: String) -> void:
 	var model_path := _ManagerDeskDefaults.MANAGER_NPC_MODEL
 	if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("open_for_manager"):
 		manager_dialogue_overlay.call("open_for_manager", wid, manager_name, model_path)
-	if _manager_dialogue_ctrl != null and _manager_dialogue_ctrl.has_method("enter_talk_by_id"):
-		_manager_dialogue_ctrl.call("enter_talk_by_id", manager_id, manager_name)
+	if _dialogue_ctrl != null and _dialogue_ctrl.has_method("enter_talk_by_id"):
+		_dialogue_ctrl.call("enter_talk_by_id", manager_id, manager_name)
 
 func _active_npc_ids_for_workspace(workspace_id: String) -> Array[String]:
 	var wid := workspace_id.strip_edges()

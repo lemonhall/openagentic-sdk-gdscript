@@ -93,10 +93,12 @@ func _init() -> void:
 		world.call("_enter_talk", again)
 		if not T.require_true(self, bool(cam_rig.get("controls_enabled")) == false, "CameraRig should be disabled while dialogue is open"):
 			return
-		var overlay := world.get_node_or_null("UI/DialogueOverlay") as Node
-		if not T.require_true(self, overlay != null, "Missing node VrOffices/UI/DialogueOverlay"):
+		var shell := world.get_node_or_null("UI/VrOfficesManagerDialogueOverlay") as Control
+		if not T.require_true(self, shell != null, "Missing node VrOffices/UI/VrOfficesManagerDialogueOverlay"):
 			return
-		overlay.call("close")
+		if not T.require_true(self, shell.visible, "Manager-style dialogue shell should be visible while talking"):
+			return
+		world.call("_exit_talk")
 		if not T.require_true(self, bool(cam_rig.get("controls_enabled")) == true, "CameraRig should re-enable after dialogue closes"):
 			return
 

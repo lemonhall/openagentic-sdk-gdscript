@@ -51,8 +51,13 @@ func _init() -> void:
 	if not T.require_true(self, npc1 != null and npc2 != null, "Expected two NPCs"):
 		return
 
-	var overlay := world.get_node_or_null("UI/DialogueOverlay") as Control
-	if not T.require_true(self, overlay != null, "Missing node VrOffices/UI/DialogueOverlay"):
+	var shell := world.get_node_or_null("UI/VrOfficesManagerDialogueOverlay") as Control
+	if not T.require_true(self, shell != null, "Missing node VrOffices/UI/VrOfficesManagerDialogueOverlay"):
+		return
+	var overlay: Control = null
+	if shell != null and shell.has_method("get_embedded_dialogue"):
+		overlay = shell.call("get_embedded_dialogue") as Control
+	if not T.require_true(self, overlay != null, "Expected embedded dialogue in manager shell"):
 		return
 	var messages := overlay.get_node_or_null("Panel/VBox/Scroll/Messages") as VBoxContainer
 	if not T.require_true(self, messages != null, "Missing Messages container"):

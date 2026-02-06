@@ -57,11 +57,16 @@ func _init() -> void:
 	s.call("_unhandled_input", ev)
 	await process_frame
 
-	var dialogue: Control = s.get_node("UI/DialogueOverlay") as Control
-	if dialogue == null:
-		T.fail_and_quit(self, "Missing DialogueOverlay")
+	var shell := s.get_node_or_null("UI/VrOfficesManagerDialogueOverlay") as Control
+	if shell == null:
+		T.fail_and_quit(self, "Missing VrOfficesManagerDialogueOverlay")
 		return
-	if not T.require_true(self, dialogue.visible, "Expected dialogue to open on double click"):
+	if not T.require_true(self, shell.visible, "Expected manager-style dialogue shell to open on double click"):
+		return
+	var embedded: Control = null
+	if shell.has_method("get_embedded_dialogue"):
+		embedded = shell.call("get_embedded_dialogue") as Control
+	if not T.require_true(self, embedded != null and embedded.visible, "Expected embedded dialogue to be visible"):
 		return
 
 	T.pass_and_quit(self)

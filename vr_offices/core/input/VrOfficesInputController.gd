@@ -1,5 +1,4 @@
 extends RefCounted
-
 const _ClickPicker := preload("res://vr_offices/core/input/VrOfficesClickPicker.gd")
 
 var owner: Node = null
@@ -48,20 +47,21 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				return
 
 	if dialogue != null and dialogue.visible:
-		# In dialogue: Esc is a 2-step exit (helps avoid accidental close while typing).
-		# 1st Esc: release LineEdit focus (stop typing)
-		# 2nd Esc: close the overlay
 		if Input.is_action_just_pressed("ui_cancel") and dialogue.has_method("close"):
-			var input_node := dialogue.get_node_or_null("Panel/VBox/Footer/Input") as Control
+			var input_node: Control = null
+			if dialogue.has_method("get_embedded_dialogue"):
+				var embedded := dialogue.call("get_embedded_dialogue") as Control
+				if embedded != null:
+					input_node = embedded.get_node_or_null("Panel/VBox/Footer/Input") as Control
+			if input_node == null:
+				input_node = dialogue.get_node_or_null("Panel/VBox/Footer/Input") as Control
 			if input_node != null and input_node.has_focus():
 				owner.get_viewport().gui_release_focus()
 			else:
 				dialogue.close()
-		# Prevent camera rig / world from handling mouse input while the dialogue UI is open.
 		owner.get_viewport().set_input_as_handled()
 		return
 
-	# Double-click on pickable props should take precedence over workspace interactions.
 	if event is InputEventMouseButton:
 		var mb0 := event as InputEventMouseButton
 		if mb0.button_index == MOUSE_BUTTON_LEFT and mb0.pressed and mb0.double_click:
@@ -123,8 +123,6 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 							owner.call("open_desk_context_menu", did, mb.position)
 							_rmb_down = false
 							return
-					# If an NPC is selected, RMB should keep working as "move to click" even inside a workspace.
-					# Use Shift+RMB as an explicit override to open the workspace context menu.
 					var has_selected := selected_npc != null and is_instance_valid(selected_npc)
 					var want_menu := mb.shift_pressed
 					if has_selected and not want_menu:
@@ -143,8 +141,11 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			var clicked := _try_select_from_click(mb.position)
-			if mb.double_click and clicked != null and dialogue_ctrl != null:
-				dialogue_ctrl.call("enter_talk", clicked)
+			if mb.double_click and clicked != null:
+				if owner.has_method("_enter_talk"):
+					owner.call("_enter_talk", clicked)
+				elif dialogue_ctrl != null:
+					dialogue_ctrl.call("enter_talk", clicked)
 				return
 			if mb.double_click:
 				var vending := _try_find_vending_machine_from_click(mb.position)
@@ -166,8 +167,11 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 
 	if selected_npc != null and event is InputEventKey:
 		var k := event as InputEventKey
-		if k.pressed and not k.echo and k.physical_keycode == KEY_E and dialogue_ctrl != null:
-			dialogue_ctrl.call("enter_talk", selected_npc)
+		if k.pressed and not k.echo and k.physical_keycode == KEY_E:
+			if owner.has_method("_enter_talk"):
+				owner.call("_enter_talk", selected_npc)
+			elif dialogue_ctrl != null:
+				dialogue_ctrl.call("enter_talk", selected_npc)
 
 func _try_select_from_click(screen_pos: Vector2) -> Node:
 	var npc := _ClickPicker.try_pick_npc(owner, camera_rig, screen_pos)
@@ -180,9 +184,6 @@ func _try_find_desk_from_click(screen_pos: Vector2) -> Node:
 
 func _try_find_vending_machine_from_click(screen_pos: Vector2) -> Node:
 	return _ClickPicker.try_pick_vending_machine(owner, camera_rig, screen_pos)
-
-func _try_find_manager_desk_from_click(screen_pos: Vector2) -> Node:
-	return _ClickPicker.try_pick_manager_desk(owner, camera_rig, screen_pos)
 
 func _workspace_id_for_manager_desk(manager_desk: Node) -> String:
 	if manager_desk == null:
