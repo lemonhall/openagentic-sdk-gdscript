@@ -15,6 +15,8 @@ const _WorkspaceControllerScript := preload("res://vr_offices/core/workspaces/Vr
 const _DeskManagerScript := preload("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/audio/VrOfficesBgm.gd")
 const _IrcSettingsScript := preload("res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
+const _ManagerDeskDefaults := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceManagerDeskDefaults.gd")
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.tscn")
 const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tscn")
@@ -39,6 +41,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var settings_overlay: Control = $UI/SettingsOverlay
 @onready var vending_overlay: Control = $UI/VendingMachineOverlay
 @onready var npc_skills_overlay: Control = $UI/VrOfficesNpcSkillsOverlay
+@onready var manager_dialogue_overlay: Control = $UI/VrOfficesManagerDialogueOverlay
 @onready var npc_skills_service: Node = $NpcSkillsService
 @onready var bgm: AudioStreamPlayer = $Bgm
 
@@ -49,6 +52,7 @@ var _chat_history: RefCounted = null
 var _world_state: RefCounted = null
 var _save_ctrl: RefCounted = null
 var _dialogue_ctrl: RefCounted = null
+var _manager_dialogue_ctrl: RefCounted = null
 var _input_ctrl: RefCounted = null
 var _move_ctrl: RefCounted = null
 var _workspace_manager: RefCounted = null
@@ -115,6 +119,19 @@ func _ready() -> void:
 		Callable(self, "_is_headless"),
 		Callable(_agent, "effective_save_id")
 	)
+	var manager_dialogue_ui: Control = null
+	if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("get_embedded_dialogue"):
+		manager_dialogue_ui = manager_dialogue_overlay.call("get_embedded_dialogue") as Control
+	if manager_dialogue_ui != null:
+		_manager_dialogue_ctrl = _DialogueControllerScript.new(
+			self,
+			camera_rig,
+			manager_dialogue_ui,
+			oa,
+			_chat_history,
+			Callable(self, "_is_headless"),
+			Callable(_agent, "effective_save_id")
+		)
 	if dialogue != null and _dialogue_ctrl != null:
 		if dialogue.has_signal("message_submitted"):
 			dialogue.connect("message_submitted", Callable(_dialogue_ctrl, "on_message_submitted"))
@@ -122,6 +139,13 @@ func _ready() -> void:
 			dialogue.connect("closed", Callable(_dialogue_ctrl, "exit_talk"))
 		if dialogue.has_signal("skills_pressed"):
 			dialogue.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
+	if manager_dialogue_ui != null and _manager_dialogue_ctrl != null:
+		if manager_dialogue_ui.has_signal("message_submitted"):
+			manager_dialogue_ui.connect("message_submitted", Callable(_manager_dialogue_ctrl, "on_message_submitted"))
+		if manager_dialogue_ui.has_signal("closed"):
+			manager_dialogue_ui.connect("closed", Callable(_manager_dialogue_ctrl, "exit_talk"))
+		if manager_dialogue_ui.has_signal("skills_pressed"):
+			manager_dialogue_ui.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
 
 	if settings_overlay != null and settings_overlay.has_method("bind"):
 		settings_overlay.call("bind", self, _desk_manager)
@@ -146,7 +170,8 @@ func _ready() -> void:
 		_dialogue_ctrl,
 		Callable(self, "_command_selected_move_to_click"),
 		Callable(self, "select_npc"),
-		_workspace_ctrl
+		_workspace_ctrl,
+		Callable(self, "open_manager_dialogue_for_workspace")
 	)
 	if _save_ctrl != null:
 		_save_ctrl.call("load_world")
@@ -265,6 +290,63 @@ func open_vending_machine_overlay() -> void:
 		return
 	if vending_overlay.has_method("open"):
 		vending_overlay.call("open")
+
+func open_manager_dialogue_for_workspace(workspace_id: String) -> void:
+	var wid := workspace_id.strip_edges()
+	if wid == "":
+		return
+	var manager_id := _OAPaths.workspace_manager_npc_id(wid)
+	var manager_name := "经理"
+	var model_path := _ManagerDeskDefaults.MANAGER_NPC_MODEL
+	if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("open_for_manager"):
+		manager_dialogue_overlay.call("open_for_manager", wid, manager_name, model_path)
+	if _manager_dialogue_ctrl != null and _manager_dialogue_ctrl.has_method("enter_talk_by_id"):
+		_manager_dialogue_ctrl.call("enter_talk_by_id", manager_id, manager_name)
+
+func _active_npc_ids_for_workspace(workspace_id: String) -> Array[String]:
+	var wid := workspace_id.strip_edges()
+	var out: Array[String] = []
+	if wid == "" or get_tree() == null:
+		return out
+	for n0 in get_tree().get_nodes_in_group("vr_offices_npc"):
+		if typeof(n0) != TYPE_OBJECT:
+			continue
+		var n := n0 as Node
+		if n == null or not is_instance_valid(n):
+			continue
+		if n.has_method("get"):
+			var nid0: Variant = n.get("npc_id")
+			var nid := String(nid0).strip_edges() if nid0 != null else ""
+			if _OAPaths.workspace_id_from_manager_npc_id(nid) != "":
+				continue
+		var ws := ""
+		var p: Node = n
+		while p != null:
+			if p.has_method("get"):
+				var v: Variant = p.get("workspace_id")
+				if v != null and String(v).strip_edges() != "":
+					ws = String(v).strip_edges()
+					break
+			p = p.get_parent()
+		if ws != wid:
+			continue
+		if n.has_method("get"):
+			var id0: Variant = n.get("npc_id")
+			if id0 != null and String(id0).strip_edges() != "":
+				out.append(String(id0).strip_edges())
+	if out.is_empty():
+		for n1 in get_tree().get_nodes_in_group("vr_offices_npc"):
+			if typeof(n1) != TYPE_OBJECT:
+				continue
+			var n2 := n1 as Node
+			if n2 == null or not is_instance_valid(n2):
+				continue
+			if n2.has_method("get"):
+				var id1: Variant = n2.get("npc_id")
+				var sid := String(id1).strip_edges() if id1 != null else ""
+				if sid != "" and _OAPaths.workspace_id_from_manager_npc_id(sid) == "":
+					out.append(sid)
+	return out
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:

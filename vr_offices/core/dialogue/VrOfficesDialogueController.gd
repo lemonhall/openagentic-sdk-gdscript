@@ -101,6 +101,24 @@ func _start_turn(npc_id: String, text: String) -> void:
 	if dialogue != null and dialogue.has_method("set_busy"):
 		dialogue.call("set_busy", false)
 
+func enter_talk_by_id(npc_id: String, npc_name: String) -> void:
+	if dialogue == null or not dialogue.has_method("open"):
+		return
+	var nid := npc_id.strip_edges()
+	if nid == "":
+		return
+	_talk_npc = null
+	if camera_rig != null and camera_rig.has_method("set_controls_enabled"):
+		camera_rig.call("set_controls_enabled", false)
+	var sid := ""
+	if get_save_id.is_valid():
+		sid = String(get_save_id.call())
+	dialogue.open(nid, npc_name.strip_edges(), sid)
+	if dialogue.has_method("set_history") and chat_history != null and sid.strip_edges() != "":
+		var hist0: Variant = chat_history.call("read_ui_history", sid, nid)
+		var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
+		dialogue.call("set_history", hist)
+
 func _on_agent_event(ev: Dictionary) -> void:
 	if dialogue == null:
 		return

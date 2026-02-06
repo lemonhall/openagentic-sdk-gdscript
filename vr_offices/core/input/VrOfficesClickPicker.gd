@@ -18,6 +18,26 @@ static func try_pick_vending_machine(owner: Node, camera_rig: Node, screen_pos: 
 		return null
 	return _find_owner_in_group(hit.get("collider") as Object, "vr_offices_vending_machine")
 
+static func try_pick_manager_desk(owner: Node, camera_rig: Node, screen_pos: Vector2) -> Node:
+	var hit := _raycast(owner, camera_rig, screen_pos, 32)
+	if hit.is_empty():
+		return null
+	return _find_owner_in_group(hit.get("collider") as Object, "vr_offices_manager_desk")
+
+static func try_pick_double_click_prop(owner: Node, camera_rig: Node, screen_pos: Vector2) -> Dictionary:
+	var hit_vending := _raycast(owner, camera_rig, screen_pos, 16)
+	if not hit_vending.is_empty():
+		var vending := _find_owner_in_group(hit_vending.get("collider") as Object, "vr_offices_vending_machine")
+		if vending != null:
+			return {"type": "vending", "node": vending}
+
+	var hit_manager := _raycast(owner, camera_rig, screen_pos, 32)
+	if not hit_manager.is_empty():
+		var manager_desk := _find_owner_in_group(hit_manager.get("collider") as Object, "vr_offices_manager_desk")
+		if manager_desk != null:
+			return {"type": "manager_desk", "node": manager_desk}
+	return {}
+
 static func _raycast(owner: Node, camera_rig: Node, screen_pos: Vector2, collision_mask: int) -> Dictionary:
 	if owner == null:
 		return {}

@@ -10,6 +10,7 @@ var dialogue_ctrl: RefCounted = null
 var command_move_to_click: Callable
 var select_npc: Callable
 var workspace_ctrl: RefCounted = null
+var open_manager_dialogue_for_workspace: Callable = Callable()
 
 var _rmb_down := false
 var _rmb_dragged := false
@@ -22,7 +23,8 @@ func _init(
 	dialogue_ctrl_in: RefCounted,
 	command_move_to_click_in: Callable,
 	select_npc_in: Callable,
-	workspace_ctrl_in: RefCounted = null
+	workspace_ctrl_in: RefCounted = null,
+	open_manager_dialogue_for_workspace_in: Callable = Callable()
 ) -> void:
 	owner = owner_in
 	dialogue = dialogue_in
@@ -31,6 +33,7 @@ func _init(
 	command_move_to_click = command_move_to_click_in
 	select_npc = select_npc_in
 	workspace_ctrl = workspace_ctrl_in
+	open_manager_dialogue_for_workspace = open_manager_dialogue_for_workspace_in
 
 func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 	if owner == null:
@@ -62,11 +65,21 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 	if event is InputEventMouseButton:
 		var mb0 := event as InputEventMouseButton
 		if mb0.button_index == MOUSE_BUTTON_LEFT and mb0.pressed and mb0.double_click:
-			var vending0 := _try_find_vending_machine_from_click(mb0.position)
-			if vending0 != null and owner.has_method("open_vending_machine_overlay"):
-				owner.call("open_vending_machine_overlay")
-				owner.get_viewport().set_input_as_handled()
-				return
+			var picked_prop := _ClickPicker.try_pick_double_click_prop(owner, camera_rig, mb0.position)
+			if typeof(picked_prop) == TYPE_DICTIONARY:
+				var pp := picked_prop as Dictionary
+				var typ := String(pp.get("type", "")).strip_edges()
+				if typ == "vending" and owner.has_method("open_vending_machine_overlay"):
+					owner.call("open_vending_machine_overlay")
+					owner.get_viewport().set_input_as_handled()
+					return
+				if typ == "manager_desk" and open_manager_dialogue_for_workspace.is_valid():
+					var manager_desk0 := pp.get("node", null) as Node
+					var workspace_id0 := _workspace_id_for_manager_desk(manager_desk0)
+					if workspace_id0 != "":
+						open_manager_dialogue_for_workspace.call(workspace_id0)
+						owner.get_viewport().set_input_as_handled()
+						return
 
 	if workspace_ctrl != null and workspace_ctrl.has_method("handle_lmb_event"):
 		var consumed := bool(workspace_ctrl.call("handle_lmb_event", event, select_npc))
@@ -167,3 +180,20 @@ func _try_find_desk_from_click(screen_pos: Vector2) -> Node:
 
 func _try_find_vending_machine_from_click(screen_pos: Vector2) -> Node:
 	return _ClickPicker.try_pick_vending_machine(owner, camera_rig, screen_pos)
+
+func _try_find_manager_desk_from_click(screen_pos: Vector2) -> Node:
+	return _ClickPicker.try_pick_manager_desk(owner, camera_rig, screen_pos)
+
+func _workspace_id_for_manager_desk(manager_desk: Node) -> String:
+	if manager_desk == null:
+		return ""
+	var cur: Node = manager_desk
+	while cur != null:
+		if cur.has_method("get"):
+			var wid0: Variant = cur.get("workspace_id")
+			if wid0 != null:
+				var wid := String(wid0).strip_edges()
+				if wid != "":
+					return wid
+		cur = cur.get_parent()
+	return ""

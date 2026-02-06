@@ -2,9 +2,11 @@ extends RefCounted
 
 const _OAData := preload("res://vr_offices/core/data/VrOfficesData.gd")
 const _RemoteTools := preload("res://vr_offices/core/agent/VrOfficesRemoteTools.gd")
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 
 var _owner: Node
 var _find_npc_by_id: Callable
+var _list_active_workspace_npcs: Callable
 
 var _oa: Node = null
 var _save_id: String = "slot1"
@@ -14,6 +16,8 @@ var _model: String = "gpt-5.2"
 func _init(owner: Node, find_npc_by_id: Callable) -> void:
 	_owner = owner
 	_find_npc_by_id = find_npc_by_id
+	if _owner != null and _owner.has_method("_active_npc_ids_for_workspace"):
+		_list_active_workspace_npcs = Callable(_owner, "_active_npc_ids_for_workspace")
 
 func set_defaults(save_id: String, proxy_base_url: String, model: String) -> void:
 	if save_id.strip_edges() != "":
@@ -106,7 +110,14 @@ func _install_turn_hooks() -> void:
 
 func _before_turn_hook(payload: Dictionary) -> Dictionary:
 	var npc_id := String(payload.get("npc_id", "")).strip_edges()
-	if npc_id == "" or not _find_npc_by_id.is_valid():
+	if npc_id == "":
+		return {}
+
+	var manager_ctx := _build_manager_context(payload)
+	if manager_ctx != "":
+		return {"override_user_text": manager_ctx + "\n\n" + String(payload.get("user_text", "")), "action": "manager_context"}
+
+	if not _find_npc_by_id.is_valid():
 		return {}
 	var npc0: Variant = _find_npc_by_id.call(npc_id)
 	var npc := npc0 as Node
@@ -119,6 +130,33 @@ func _before_turn_hook(payload: Dictionary) -> Dictionary:
 		npc.call("play_animation_once", "interact-right", 0.7)
 		return {"action": "npc_anim:interact-right"}
 	return {}
+
+func _build_manager_context(payload: Dictionary) -> String:
+	var npc_id := String(payload.get("npc_id", "")).strip_edges()
+	if _OAPaths.workspace_id_from_manager_npc_id(npc_id) == "":
+		return ""
+	var ctx0: Variant = payload.get("context", {})
+	var ctx: Dictionary = ctx0 as Dictionary if typeof(ctx0) == TYPE_DICTIONARY else {}
+	var workspace_id := String(ctx.get("workspace_id", _OAPaths.workspace_id_from_manager_npc_id(npc_id))).strip_edges()
+	if workspace_id != "" and _list_active_workspace_npcs.is_valid() and not ctx.has("active_workspace_npcs"):
+		var arr0: Variant = _list_active_workspace_npcs.call(workspace_id)
+		ctx["active_workspace_npcs"] = arr0
+	var lines: Array[String] = []
+	lines.append("[Manager Role Context]")
+	lines.append("You are the workspace manager responsible for coordinating active NPCs in workspace %s." % workspace_id)
+	var roster0: Variant = ctx.get("active_workspace_npcs", [])
+	if typeof(roster0) != TYPE_ARRAY and _list_active_workspace_npcs.is_valid() and workspace_id != "":
+		roster0 = _list_active_workspace_npcs.call(workspace_id)
+	if typeof(roster0) == TYPE_ARRAY:
+		var roster := roster0 as Array
+		if roster.size() > 0:
+			var names: Array[String] = []
+			for n0 in roster:
+				names.append(String(n0).strip_edges())
+			lines.append("Active NPCs: %s" % ", ".join(PackedStringArray(names)))
+		else:
+			lines.append("Active NPCs: (none)")
+	return "\n".join(PackedStringArray(lines)).strip_edges()
 
 func _after_turn_hook(payload: Dictionary) -> Dictionary:
 	var npc_id := String(payload.get("npc_id", "")).strip_edges()

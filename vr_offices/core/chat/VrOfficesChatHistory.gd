@@ -1,6 +1,7 @@
 extends RefCounted
 
 const _SessionStoreScript := preload("res://addons/openagentic/core/OAJsonlNpcSessionStore.gd")
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 
 func read_ui_history(save_id: String, npc_id: String) -> Array:
 	# Translate the persisted per-NPC JSONL event log into a simple UI chat history.
@@ -11,6 +12,11 @@ func read_ui_history(save_id: String, npc_id: String) -> Array:
 
 	var store = _SessionStoreScript.new(save_id)
 	var events: Array = store.read_events(npc_id)
+	if events.is_empty():
+		var workspace_id := _OAPaths.workspace_id_from_manager_npc_id(npc_id)
+		if workspace_id != "":
+			var old_manager_npc_id := "%s_manager" % workspace_id
+			events = store.read_events(old_manager_npc_id)
 	for e0 in events:
 		if typeof(e0) != TYPE_DICTIONARY:
 			continue
@@ -25,4 +31,3 @@ func read_ui_history(save_id: String, npc_id: String) -> Array:
 			if typeof(tx1) == TYPE_STRING:
 				out.append({"role": "assistant", "text": String(tx1)})
 	return out
-

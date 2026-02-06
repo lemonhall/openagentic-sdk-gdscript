@@ -1,6 +1,8 @@
 extends RefCounted
 
 const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
+const _PickBodies := preload("res://vr_offices/core/props/VrOfficesPickBodyUtils.gd")
+const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 
 const MANAGER_DESK_SCENE := "res://assets/office_pack_glb/Desk-ISpMh81QGq.glb"
 const MANAGER_NPC_SCENE := preload("res://vr_offices/npc/Npc.tscn")
@@ -20,6 +22,7 @@ static func ensure_manager_defaults(decor: Node3D, workspace_id: String, hz: flo
 	_place_manager_desk(desk_wrapper, hz)
 
 	var desk_model := _Props.spawn_floor_model(desk_wrapper, MANAGER_DESK_SCENE)
+	_PickBodies.ensure_box_pick_body(desk_wrapper, "vr_offices_manager_desk", 32, Vector3(2.0, 1.3, 1.0), Vector3(0.0, 0.65, 0.0))
 	var chair := _find_node_name_contains(desk_model, "chair") as Node3D if desk_model != null else null
 	if chair != null:
 		_pull_back_chair(desk_wrapper, chair)
@@ -87,7 +90,7 @@ static func _ensure_manager_npc(decor: Node3D, workspace_id: String, desk_wrappe
 	# Important: set exported properties BEFORE adding to the scene tree.
 	# If we add first, `_ready()` may run with empty `model_path` and the NPC will keep the fallback capsule.
 	if npc.has_method("set"):
-		npc.set("npc_id", "%s_manager" % workspace_id.strip_edges())
+		npc.set("npc_id", _OAPaths.workspace_manager_npc_id(workspace_id))
 		npc.set("display_name", "经理")
 		npc.set("model_path", MANAGER_NPC_MODEL)
 		npc.set("stationary", true)

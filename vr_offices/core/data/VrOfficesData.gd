@@ -2,6 +2,7 @@ extends Object
 
 const MAX_NPCS := 12
 const BGM_PATH := "res://assets/audio/pixel_coffee_break.mp3"
+const MANAGER_MODEL_PATH := "res://assets/kenney/mini-characters-1/character-male-d.glb"
 
 const MODEL_PATHS: Array[String] = [
 	"res://assets/kenney/mini-characters-1/character-female-a.glb",
