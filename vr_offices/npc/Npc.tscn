@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/npc/Npc.gd" id="1"]
 
@@ -15,6 +15,17 @@ radial_segments = 24
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
 transparency = 1
 albedo_color = Color(1, 0.9, 0.2, 0.45)
+shading_mode = 0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
+top_radius = 0.42
+bottom_radius = 0.42
+height = 0.03
+radial_segments = 24
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
+transparency = 1
+albedo_color = Color(0.35, 1, 0.55, 0.55)
 shading_mode = 0
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_2"]
@@ -47,6 +58,13 @@ visible = false
 position = Vector3(0, 0.02, 0)
 mesh = SubResource("CylinderMesh_1")
 material_override = SubResource("StandardMaterial3D_1")
+
+[node name="MeetingRing" type="MeshInstance3D" parent="."]
+visible = false
+position = Vector3(0, 0.021, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_3")
+material_override = SubResource("StandardMaterial3D_3")
 
 [node name="SelectionPlumbob" type="Node3D" parent="."]
 visible = false

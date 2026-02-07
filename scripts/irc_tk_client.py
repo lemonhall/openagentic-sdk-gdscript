@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import os
 import queue
-import random
 import socket
 import ssl
 import threading
@@ -122,6 +121,30 @@ def parse_list_numeric(line: str) -> Optional[ListItem]:
     return ListItem(channel=channel, users=users, topic=topic)
 
 
+def _normalize_nick(token: str) -> str:
+    t = token.strip()
+    while t and t[0] in {"~", "&", "@", "%", "+"}:
+        t = t[1:]
+    return t
+
+
+def parse_names_numeric(line: str) -> Optional[tuple[str, list[str]]]:
+    msg = parse_irc_line(line)
+    if msg.command != "353":
+        return None
+    if len(msg.params) < 3:
+        return None
+    channel = msg.params[2]
+    trailing = (msg.trailing or "").strip()
+    if not trailing:
+        return (channel, [])
+    names: list[str] = []
+    for raw in trailing.split(" "):
+        n = _normalize_nick(raw)
+        if n:
+            names.append(n)
+    return (channel, names)
+
 def _format_irc_command(command: str) -> bytes:
     return (command.rstrip("\r\n") + "\r\n").encode("utf-8", errors="replace")
 
@@ -143,6 +166,9 @@ class IrcIoThread(threading.Thread):
 
         self._sock: socket.socket | ssl.SSLSocket | None = None
         self._buffer = b""
+        self._registered = False
+        self._pending_outbound: list[str] = []
+        self._names_buf: dict[str, set[str]] = {}
 
     def _emit(self, kind: str, payload: object) -> None:
         try:
@@ -152,13 +178,14 @@ class IrcIoThread(threading.Thread):
 
     def _connect(self) -> None:
         raw = socket.create_connection((self._config.host, self._config.port), timeout=10)
-        raw.settimeout(0.2)
         if self._config.tls:
             ctx = ssl.create_default_context()
+            raw.settimeout(10)
             sock: socket.socket | ssl.SSLSocket = ctx.wrap_socket(raw, server_hostname=self._config.host)
             sock.settimeout(0.2)
             self._sock = sock
         else:
+            raw.settimeout(0.2)
             self._sock = raw
 
         if self._config.password:
@@ -170,6 +197,18 @@ class IrcIoThread(threading.Thread):
         if not self._sock:
             return
         self._sock.sendall(_format_irc_command(line))
+
+    def _send_outbound_cmd(self, cmd: str) -> None:
+        c = cmd.strip()
+        if not c:
+            return
+        self._send_now(c)
+        if c.upper().startswith("JOIN "):
+            parts = c.split()
+            if len(parts) >= 2:
+                channel = parts[1]
+                if channel:
+                    self._send_now(f"NAMES {channel}")
 
     def _recv_lines(self) -> list[str]:
         if not self._sock:
@@ -202,7 +241,12 @@ class IrcIoThread(threading.Thread):
                 try:
                     while True:
                         cmd = self._outbound.get_nowait()
-                        self._send_now(cmd)
+                        if cmd.startswith("QUIT"):
+                            self._send_now(cmd)
+                        elif self._registered:
+                            self._send_outbound_cmd(cmd)
+                        else:
+                            self._pending_outbound.append(cmd)
                 except queue.Empty:
                     pass
                 if self._stop_event.is_set():
@@ -211,6 +255,15 @@ class IrcIoThread(threading.Thread):
                 try:
                     for line in self._recv_lines():
                         msg = parse_irc_line(line)
+                        if (not self._registered) and msg.command == "001":
+                            self._registered = True
+                            self._emit("status", "registered")
+                            for cmd in self._pending_outbound:
+                                if cmd.startswith("QUIT"):
+                                    self._send_now(cmd)
+                                else:
+                                    self._send_outbound_cmd(cmd)
+                            self._pending_outbound.clear()
                         if msg.command == "PING":
                             token = msg.trailing or (msg.params[0] if msg.params else "")
                             self._send_now(f"PONG :{token}")
@@ -218,8 +271,24 @@ class IrcIoThread(threading.Thread):
                         item = parse_list_numeric(line)
                         if item is not None:
                             self._emit("list_item", item)
+                            continue
+                        names_item = parse_names_numeric(line)
+                        if names_item is not None:
+                            channel, names = names_item
+                            buf = self._names_buf.setdefault(channel, set())
+                            for n in names:
+                                buf.add(n)
+                            continue
                         elif msg.command == "323":
                             self._emit("list_end", None)
+                            continue
+                        elif msg.command == "366":
+                            if len(msg.params) >= 2:
+                                channel = msg.params[1]
+                                names = sorted(self._names_buf.get(channel, set()))
+                                self._names_buf.pop(channel, None)
+                                self._emit("names", (channel, names))
+                            continue
                         elif msg.command == "PRIVMSG":
                             self._emit("privmsg", msg)
                         else:
@@ -261,6 +330,9 @@ def run_self_test() -> int:
 
     item = parse_list_numeric(":irc.example 322 me #test 42 :topic here")
     assert item and item.channel == "#test" and item.users == 42
+
+    names = parse_names_numeric(":irc.example 353 me = #test :@alice +bob carol")
+    assert names and names[0] == "#test" and sorted(names[1]) == ["alice", "bob", "carol"]
     return 0
 
 
@@ -313,13 +385,18 @@ def main(argv: Optional[list[str]] = None) -> int:
         status_var.set(s)
 
     def current_config() -> IrcConfig:
-        env = dict(os.environ)
-        env["OA_IRC_HOST"] = host_var.get().strip()
-        env["OA_IRC_PORT"] = port_var.get().strip()
-        env["OA_IRC_TLS"] = "1" if tls_var.get() else "0"
-        env["OA_IRC_PASSWORD"] = password_var.get()
-        env["OA_IRC_NICK"] = nick_var.get().strip()
-        return select_irc_config(env)
+        nick = nick_var.get().strip() or "OAObserve"
+        user = (os.environ.get("OA_IRC_USER") or "").strip() or nick
+        realname = (os.environ.get("OA_IRC_REALNAME") or "").strip() or "OpenAgentic Tk IRC"
+        return IrcConfig(
+            host=host_var.get().strip(),
+            port=_parse_int(port_var.get(), 6667),
+            tls=bool(tls_var.get()),
+            password=password_var.get(),
+            nick=nick,
+            user=user,
+            realname=realname,
+        )
 
     def connect() -> None:
         nonlocal io_thread
@@ -356,6 +433,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             return
         channels.clear()
         chan_list.delete(0, "end")
+        topic_var.set("")
         outbound.put("LIST")
         ui_log(">> LIST")
 
@@ -369,6 +447,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             return
         item = channels[sel[0]]
         outbound.put(f"JOIN {item.channel}")
+        outbound.put(f"NAMES {item.channel}")
         ui_log(f">> JOIN {item.channel}")
 
     def on_channel_select(_evt: object = None) -> None:
@@ -386,32 +465,58 @@ def main(argv: Optional[list[str]] = None) -> int:
         except Exception:
             pass
 
+    def refresh_names() -> None:
+        if not io_thread or not io_thread.is_alive():
+            messagebox.showerror("Not connected", "Connect first.")
+            return
+        sel = chan_list.curselection()
+        if not sel:
+            messagebox.showerror("No selection", "Select a channel from the list.")
+            return
+        item = channels[sel[0]]
+        outbound.put(f"NAMES {item.channel}")
+        ui_log(f">> NAMES {item.channel}")
+
     def pump_inbound() -> None:
-        try:
-            while True:
+        processed = 0
+        while processed < 400:
+            try:
                 kind, payload = inbound.get_nowait()
-                if kind == "status":
-                    set_status(str(payload))
-                    ui_log(f"** {payload}")
-                elif kind == "raw":
-                    ui_log(payload)  # type: ignore[arg-type]
-                elif kind == "list_item":
-                    item = payload  # type: ignore[assignment]
-                    assert isinstance(item, ListItem)
-                    channels.append(item)
-                    chan_list.insert("end", f"{item.channel} ({item.users})")
-                elif kind == "list_end":
-                    ui_log("** LIST done")
-                elif kind == "privmsg":
-                    msg = payload  # type: ignore[assignment]
-                    assert isinstance(msg, IrcMessage)
-                    target = msg.params[0] if msg.params else ""
-                    who = (msg.prefix or "").split("!", 1)[0] if msg.prefix else ""
-                    text = msg.trailing or ""
-                    ui_log(f"[{target}] <{who}> {text}")
-        except queue.Empty:
-            pass
-        root.after(50, pump_inbound)
+            except queue.Empty:
+                break
+
+            if kind == "status":
+                set_status(str(payload))
+                ui_log(f"** {payload}")
+            elif kind == "raw":
+                ui_log(payload)  # type: ignore[arg-type]
+            elif kind == "list_item":
+                item = payload  # type: ignore[assignment]
+                assert isinstance(item, ListItem)
+                channels.append(item)
+                chan_list.insert("end", f"{item.channel} ({item.users})")
+            elif kind == "list_end":
+                ui_log("** LIST done")
+            elif kind == "privmsg":
+                msg = payload  # type: ignore[assignment]
+                assert isinstance(msg, IrcMessage)
+                target = msg.params[0] if msg.params else ""
+                who = (msg.prefix or "").split("!", 1)[0] if msg.prefix else ""
+                text = msg.trailing or ""
+                ui_log(f"[{target}] <{who}> {text}")
+            elif kind == "names":
+                channel, names = payload  # type: ignore[assignment]
+                if isinstance(channel, str) and isinstance(names, list):
+                    sel = chan_list.curselection()
+                    if sel:
+                        idx = sel[0]
+                        if 0 <= idx < len(channels) and channels[idx].channel == channel:
+                            users_list.delete(0, "end")
+                            for n in names:
+                                users_list.insert("end", n)
+            processed += 1
+
+        root.after(10 if processed >= 400 else 50, pump_inbound)
 
     top = ttk.Frame(root, padding=8)
     top.pack(fill="both", expand=True)
@@ -454,6 +559,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     chan_list.bind("<Return>", on_channel_activate)
     chan_list.bind("<<ListboxSelect>>", on_channel_select)
     ttk.Label(left, textvariable=topic_var, wraplength=260).pack(anchor="w", pady=(6, 0))
+    ttk.Button(left, text="NAMES (selected)", command=refresh_names).pack(fill="x", pady=(8, 0))
+    ttk.Label(left, text="Users").pack(anchor="w", pady=(8, 0))
+    users_list = tk.Listbox(left, height=10)
+    users_list.pack(fill="both", expand=False)
 
     ttk.Label(right, text="Messages / Raw").pack(anchor="w")
     out_text = tk.Text(right, height=18, width=100, state="disabled")

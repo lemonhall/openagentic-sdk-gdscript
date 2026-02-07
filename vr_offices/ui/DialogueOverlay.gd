@@ -30,6 +30,8 @@ const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLo
 @onready var file_dialog: FileDialog = %FileDialog
 @onready var panel: Control = $Panel
 @onready var backdrop: ColorRect = $Backdrop
+@onready var participants_panel: Control = %ParticipantsPanel
+@onready var participants_list: ItemList = %ParticipantsList
 
 var _npc_id: String = ""
 var _npc_name: String = ""
@@ -122,6 +124,8 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	visible = true
 	_busy = false
 	_assistant_rtl = null
+	set_participants_visible(false)
+	set_participants([])
 	_reset_attachments()
 	_clear_messages()
 	input.text = ""
@@ -151,6 +155,19 @@ func close() -> void:
 		return
 	visible = false
 	closed.emit()
+
+func set_participants_visible(v: bool) -> void:
+	if participants_panel != null:
+		participants_panel.visible = v
+
+func set_participants(names: Array[String]) -> void:
+	if participants_list == null:
+		return
+	participants_list.clear()
+	for n in names:
+		var s := String(n).strip_edges()
+		if s != "":
+			participants_list.add_item(s)
 
 func get_npc_id() -> String:
 	return _npc_id

@@ -87,6 +87,16 @@ func _init() -> void:
 	npc_root.add_child(npc)
 	await process_frame
 
+	var meeting_ring := npc.get_node_or_null("MeetingRing") as Node
+	if not T.require_true(self, meeting_ring != null, "Expected NPC MeetingRing node for meeting-bound state visibility"):
+		return
+	if meeting_ring is CanvasItem:
+		if not T.require_true(self, not bool((meeting_ring as CanvasItem).visible), "MeetingRing must start hidden"):
+			return
+	elif meeting_ring is Node3D:
+		if not T.require_true(self, not bool((meeting_ring as Node3D).visible), "MeetingRing must start hidden"):
+			return
+
 	var near := table.global_position + Vector3(1.0, 0.0, 0.0)
 	npc.emit_signal("move_target_reached", "npc_01", Vector3(near.x, 0.0, near.z))
 	await process_frame
@@ -97,6 +107,12 @@ func _init() -> void:
 		return
 	if not T.require_true(self, not bool(npc.get("wander_enabled")), "Meeting NPC should stop wandering"):
 		return
+	if meeting_ring is CanvasItem:
+		if not T.require_true(self, bool((meeting_ring as CanvasItem).visible), "MeetingRing must be visible when meeting-bound"):
+			return
+	elif meeting_ring is Node3D:
+		if not T.require_true(self, bool((meeting_ring as Node3D).visible), "MeetingRing must be visible when meeting-bound"):
+			return
 
 	# Repro: command_move_to sets a "waiting-for-work" timer by default; meeting state must suppress that.
 	# Use a target near the table end (outside center radius) but within 2m of the table footprint.
@@ -139,5 +155,11 @@ func _init() -> void:
 		return
 	if not T.require_true(self, bool(npc.get("wander_enabled")), "NPC should resume wandering after meeting exit"):
 		return
+	if meeting_ring is CanvasItem:
+		if not T.require_true(self, not bool((meeting_ring as CanvasItem).visible), "MeetingRing must hide after meeting exit"):
+			return
+	elif meeting_ring is Node3D:
+		if not T.require_true(self, not bool((meeting_ring as Node3D).visible), "MeetingRing must hide after meeting exit"):
+			return
 
 	T.pass_and_quit(self)

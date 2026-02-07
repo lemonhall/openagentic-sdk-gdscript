@@ -115,6 +115,24 @@ func _init() -> void:
 		T.fail_and_quit(self, "Expected meeting room overlay visible")
 		return
 
+	var roster_panel := overlay.get_node_or_null("%ParticipantsPanel") as Control
+	if not T.require_true(self, roster_panel != null and roster_panel.visible, "Expected meeting roster panel visible"):
+		return
+	var roster_list := overlay.get_node_or_null("%ParticipantsList") as ItemList
+	if not T.require_true(self, roster_list != null, "Expected meeting roster ItemList"):
+		return
+
+	var saw_alice := false
+	var saw_bob := false
+	for i in range(roster_list.item_count):
+		var t := roster_list.get_item_text(i)
+		if t.find("Alice") != -1:
+			saw_alice = true
+		if t.find("Bob") != -1:
+			saw_bob = true
+	if not T.require_true(self, saw_alice and saw_bob, "Expected roster to contain Alice and Bob"):
+		return
+
 	# Broadcast without mention: at least one participant should be turned.
 	overlay.emit_signal("message_submitted", "hello everyone")
 	for _i in range(10):
@@ -136,4 +154,3 @@ func _init() -> void:
 		return
 
 	T.pass_and_quit(self)
-

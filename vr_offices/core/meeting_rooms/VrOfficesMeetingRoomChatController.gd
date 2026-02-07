@@ -42,13 +42,25 @@ func open_for_meeting_room(meeting_room_id: String, meeting_room_name: String) -
 	_meeting_room_id = rid
 	_chat_npc_id = _meeting_npc_id(rid)
 
+	if owner != null and is_instance_valid(owner):
+		var bridge := owner.get_node_or_null("MeetingRoomIrcBridge") as Node
+		if bridge != null and bridge.has_method("ensure_host_for_room"):
+			bridge.call("ensure_host_for_room", rid)
+
 	if camera_rig != null and camera_rig.has_method("set_controls_enabled"):
 		camera_rig.call("set_controls_enabled", false)
 
 	var sid := ""
 	if get_save_id.is_valid():
 		sid = String(get_save_id.call())
-	overlay.call("open", _chat_npc_id, meeting_room_name.strip_edges(), sid)
+	var title := meeting_room_name.strip_edges()
+	if title == "":
+		title = rid
+	if channel_hub != null and channel_hub.has_method("get_channel_name"):
+		var ch := String(channel_hub.call("get_channel_name", rid)).strip_edges()
+		if ch != "":
+			title = "%s  %s" % [title, ch]
+	overlay.call("open", _chat_npc_id, title, sid)
 	_disable_skills_ui()
 
 	if overlay.has_method("set_history") and chat_history != null and sid.strip_edges() != "":

@@ -27,6 +27,7 @@ signal move_target_reached(npc_id: String, target: Vector3)
 
 @onready var model_root: Node3D = $ModelRoot
 @onready var selection_plumbob: Node3D = $SelectionPlumbob
+@onready var meeting_ring: MeshInstance3D = $MeetingRing
 
 var _wander_target_xz := Vector2.ZERO
 var _wander_pause_left := 0.0
@@ -73,6 +74,8 @@ func _ready() -> void:
 	if selection_plumbob != null:
 		_plumbob_base_y = selection_plumbob.position.y
 		_plumbob_base_rot_y = selection_plumbob.rotation.y
+	if meeting_ring != null:
+		meeting_ring.visible = _meeting_bound_room_id.strip_edges() != ""
 
 func _physics_process(delta: float) -> void:
 	if stationary:
@@ -232,6 +235,8 @@ func on_meeting_bound(meeting_room_id: String) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(_anim_idle)
+	if meeting_ring != null:
+		meeting_ring.visible = true
 
 func on_meeting_unbound(meeting_room_id: String) -> void:
 	var rid := meeting_room_id.strip_edges()
@@ -247,6 +252,8 @@ func on_meeting_unbound(meeting_room_id: String) -> void:
 	_wander_pause_left = 0.0
 	_pick_new_wander_target()
 	_play_anim(_anim_idle)
+	if meeting_ring != null:
+		meeting_ring.visible = false
 
 func play_animation_once(clip: String, duration: float = 0.7, lock_wander: bool = true) -> void:
 	if clip.strip_edges() == "":

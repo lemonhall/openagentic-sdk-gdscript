@@ -20,9 +20,10 @@ A small, local Python + Tkinter IRC client for monitoring messages on an IRC ser
 - REQ-004: Join a selected channel via `JOIN` and show channel messages.
 - REQ-005: Keep connection alive (`PING`/`PONG`) and display server/system lines.
 - REQ-006: Provide basic automated verification (unit tests + a no-network self-test mode).
+- REQ-007: After joining a channel, list users in the channel via `NAMES` and display them in the UI.
 
 ## Acceptance
 
 - With a valid `.env`, the user can connect, run `LIST`, select a channel, join it, and see incoming messages in the UI.
+- After joining, the user can fetch and view the channel user list (via `NAMES`).
 - `python scripts/irc_tk_client.py --self-test` exits with code 0.
-

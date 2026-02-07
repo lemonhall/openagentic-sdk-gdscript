@@ -1,23 +1,22 @@
 extends RefCounted
-
 const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 const _Mentions := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingMentions.gd")
 const _ReplyPolicy := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingReplyPolicy.gd")
 const _SessionStore := preload("res://addons/openagentic/core/OAJsonlNpcSessionStore.gd")
-
 const _DEFAULT_NICKLEN := 9
-
+signal roster_changed(meeting_room_id: String)
 var oa: Node = null
 var get_save_id: Callable
 var find_npc_by_id: Callable
-
-# meeting_room_id -> { channel:String, participants: Dictionary[npc_id -> {npc_id, display_name, irc_nick}] }
+var _irc_bridge: Node = null
 var _rooms: Dictionary = {}
-
 func _init(oa_in: Node, get_save_id_in: Callable, find_npc_by_id_in: Callable) -> void:
 	oa = oa_in
 	get_save_id = get_save_id_in
 	find_npc_by_id = find_npc_by_id_in
+
+func set_irc_bridge(bridge: Node) -> void:
+	_irc_bridge = bridge
 
 func get_channel_name(meeting_room_id: String, channellen: int = 50) -> String:
 	var rid := meeting_room_id.strip_edges()
@@ -43,6 +42,11 @@ func join_participant(meeting_room_id: String, npc: Node) -> void:
 	st["participants"] = parts
 	_rooms[rid] = st
 
+	if _irc_bridge != null and is_instance_valid(_irc_bridge) and _irc_bridge.has_method("join_participant"):
+		var ch := String(st.get("channel", "")).strip_edges()
+		_irc_bridge.call("join_participant", rid, npc_id, display_name, nick, ch)
+	roster_changed.emit(rid)
+
 func part_participant(meeting_room_id: String, npc_id: String) -> void:
 	var rid := meeting_room_id.strip_edges()
 	var nid := npc_id.strip_edges()
@@ -60,6 +64,9 @@ func part_participant(meeting_room_id: String, npc_id: String) -> void:
 		parts.erase(nid)
 	st["participants"] = parts
 	_rooms[rid] = st
+	if _irc_bridge != null and is_instance_valid(_irc_bridge) and _irc_bridge.has_method("part_participant"):
+		_irc_bridge.call("part_participant", rid, nid)
+	roster_changed.emit(rid)
 
 func roster_for_room(meeting_room_id: String) -> Array:
 	var rid := meeting_room_id.strip_edges()
@@ -95,6 +102,9 @@ func broadcast_human_message(meeting_room_id: String, meeting_npc_id: String, te
 	if roster.is_empty():
 		return
 
+	if _irc_bridge != null and is_instance_valid(_irc_bridge) and _irc_bridge.has_method("send_human_message"):
+		_irc_bridge.call("send_human_message", rid, t)
+
 	var sid := _effective_save_id()
 	var store: RefCounted = null
 	if sid != "":
@@ -111,7 +121,7 @@ func broadcast_human_message(meeting_room_id: String, meeting_npc_id: String, te
 			continue
 		var name := _display_name_for_node(npc)
 
-		var reply_buf := ""
+		var reply_parts := PackedStringArray()
 		if overlay != null and overlay.has_method("begin_assistant"):
 			overlay.call("begin_assistant")
 			if overlay.has_method("append_assistant_delta"):
@@ -121,7 +131,8 @@ func broadcast_human_message(meeting_room_id: String, meeting_npc_id: String, te
 			var typ := String(ev.get("type", ""))
 			if typ == "assistant.delta":
 				var delta := String(ev.get("text_delta", ""))
-				reply_buf += delta
+				if delta != "":
+					reply_parts.append(delta)
 				if overlay != null and overlay.has_method("append_assistant_delta"):
 					overlay.call("append_assistant_delta", delta)
 			elif typ == "result":
@@ -129,10 +140,17 @@ func broadcast_human_message(meeting_room_id: String, meeting_npc_id: String, te
 					overlay.call("end_assistant")
 		)
 
+		var reply_buf := "".join(reply_parts)
+		if _irc_bridge != null and is_instance_valid(_irc_bridge) and _irc_bridge.has_method("send_npc_message"):
+			var line2 := reply_buf.strip_edges()
+			if line2 != "":
+				_irc_bridge.call("send_npc_message", rid, npc_id, line2)
+
 		if store != null:
 			var line := ("%s: %s" % [name, reply_buf.strip_edges()]).strip_edges()
 			if line != "":
 				store.call("append_event", mid, {"type": "assistant.message", "text": line})
+
 
 func _ensure_room_state(meeting_room_id: String) -> Dictionary:
 	var rid := meeting_room_id.strip_edges()

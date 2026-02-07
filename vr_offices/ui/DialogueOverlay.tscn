@@ -48,94 +48,121 @@ offset_bottom = 0.0
 mouse_filter = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
-[node name="VBox" type="VBoxContainer" parent="Panel"]
+[node name="HBox" type="HBoxContainer" parent="Panel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Header" type="HBoxContainer" parent="Panel/VBox"]
+[node name="MainVBox" type="VBoxContainer" parent="Panel/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Header" type="HBoxContainer" parent="Panel/HBox/MainVBox"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="Panel/VBox/Header"]
+[node name="TitleLabel" type="Label" parent="Panel/HBox/MainVBox/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "NPC"
 
-[node name="SessionLogSizeLabel" type="Label" parent="Panel/VBox/Header"]
+[node name="SessionLogSizeLabel" type="Label" parent="Panel/HBox/MainVBox/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "events.jsonl=0B"
 
-[node name="ClearSessionLogButton" type="Button" parent="Panel/VBox/Header"]
+[node name="ClearSessionLogButton" type="Button" parent="Panel/HBox/MainVBox/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Clear Log"
 
-[node name="CloseButton" type="Button" parent="Panel/VBox/Header"]
+[node name="CloseButton" type="Button" parent="Panel/HBox/MainVBox/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Close"
 
-[node name="SkillsButton" type="Button" parent="Panel/VBox/Header"]
+[node name="SkillsButton" type="Button" parent="Panel/HBox/MainVBox/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Skills"
 
-[node name="Scroll" type="ScrollContainer" parent="Panel/VBox"]
+[node name="Scroll" type="ScrollContainer" parent="Panel/HBox/MainVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Messages" type="VBoxContainer" parent="Panel/VBox/Scroll"]
+[node name="Messages" type="VBoxContainer" parent="Panel/HBox/MainVBox/Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="AttachmentsPanel" type="PanelContainer" parent="Panel/VBox"]
+[node name="AttachmentsPanel" type="PanelContainer" parent="Panel/HBox/MainVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 visible = false
 
-[node name="AttachmentsVBox" type="VBoxContainer" parent="Panel/VBox/AttachmentsPanel"]
+[node name="AttachmentsVBox" type="VBoxContainer" parent="Panel/HBox/MainVBox/AttachmentsPanel"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="AttachmentsHeader" type="HBoxContainer" parent="Panel/VBox/AttachmentsPanel/AttachmentsVBox"]
+[node name="AttachmentsHeader" type="HBoxContainer" parent="Panel/HBox/MainVBox/AttachmentsPanel/AttachmentsVBox"]
 layout_mode = 2
 
-[node name="AttachmentsLabel" type="Label" parent="Panel/VBox/AttachmentsPanel/AttachmentsVBox/AttachmentsHeader"]
+[node name="AttachmentsLabel" type="Label" parent="Panel/HBox/MainVBox/AttachmentsPanel/AttachmentsVBox/AttachmentsHeader"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Attachments"
 
-[node name="CancelAllButton" type="Button" parent="Panel/VBox/AttachmentsPanel/AttachmentsVBox/AttachmentsHeader"]
+[node name="CancelAllButton" type="Button" parent="Panel/HBox/MainVBox/AttachmentsPanel/AttachmentsVBox/AttachmentsHeader"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Cancel All"
 
-[node name="AttachmentsList" type="VBoxContainer" parent="Panel/VBox/AttachmentsPanel/AttachmentsVBox"]
+[node name="AttachmentsList" type="VBoxContainer" parent="Panel/HBox/MainVBox/AttachmentsPanel/AttachmentsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Footer" type="HBoxContainer" parent="Panel/VBox"]
+[node name="Footer" type="HBoxContainer" parent="Panel/HBox/MainVBox"]
 layout_mode = 2
 
-[node name="AttachButton" type="Button" parent="Panel/VBox/Footer"]
+[node name="AttachButton" type="Button" parent="Panel/HBox/MainVBox/Footer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Attach"
 
-[node name="Input" type="LineEdit" parent="Panel/VBox/Footer"]
+[node name="Input" type="LineEdit" parent="Panel/HBox/MainVBox/Footer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Type a message…"
 
-[node name="SendButton" type="Button" parent="Panel/VBox/Footer"]
+[node name="SendButton" type="Button" parent="Panel/HBox/MainVBox/Footer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Send"
+
+[node name="ParticipantsPanel" type="PanelContainer" parent="Panel/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+custom_minimum_size = Vector2(220, 0)
+size_flags_vertical = 3
+
+[node name="ParticipantsVBox" type="VBoxContainer" parent="Panel/HBox/ParticipantsPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ParticipantsHeader" type="Label" parent="Panel/HBox/ParticipantsPanel/ParticipantsVBox"]
+layout_mode = 2
+text = "参会者"
+
+[node name="ParticipantsList" type="ItemList" parent="Panel/HBox/ParticipantsPanel/ParticipantsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+auto_height = false
 
 [node name="FileDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true

@@ -17,6 +17,7 @@ const _MeetingRoomControllerScript := preload("res://vr_offices/core/meeting_roo
 const _MeetingRoomChatControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChatController.gd")
 const _MeetingParticipationScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingParticipationController.gd")
 const _MeetingChannelHubScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChannelHub.gd")
+const _MeetingIrcBridgeScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomIrcBridge.gd")
 const _DeskManagerScript := preload("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/audio/VrOfficesBgm.gd")
 const _IrcSettingsScript := preload("res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
@@ -70,6 +71,7 @@ var _meeting_room_manager: RefCounted = null
 var _meeting_room_ctrl: RefCounted = null
 var _meeting_participation: RefCounted = null
 var _meeting_channel_hub: RefCounted = null
+var _meeting_irc_bridge: Node = null
 var _desk_manager: RefCounted = null
 var _irc_settings: RefCounted = null
 var _quitting := false
@@ -125,6 +127,13 @@ func _ready() -> void:
 	if _meeting_room_manager != null:
 		_meeting_room_manager.call("bind_scene", meeting_rooms_root, _MeetingRoomAreaScene, Callable(self, "_is_headless"))
 	_meeting_channel_hub = _MeetingChannelHubScript.new(oa, Callable(_agent, "effective_save_id"), Callable(self, "_find_npc_by_id"))
+	_meeting_irc_bridge = _MeetingIrcBridgeScript.new()
+	if _meeting_irc_bridge != null:
+		_meeting_irc_bridge.name = "MeetingRoomIrcBridge"
+		add_child(_meeting_irc_bridge)
+		if _meeting_irc_bridge.has_method("bind"):
+			_meeting_irc_bridge.call("bind", Callable(_agent, "effective_save_id"), Callable(self, "_is_headless"))
+	_meeting_channel_hub.call("set_irc_bridge", _meeting_irc_bridge)
 	_meeting_participation = _MeetingParticipationScript.new(self, npc_root, meeting_rooms_root, _meeting_room_manager, _meeting_channel_hub)
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
@@ -300,6 +309,8 @@ func _apply_irc_settings_to_desks() -> void:
 	if not _desk_manager.has_method("set_irc_config") or not _irc_settings.has_method("get_config"):
 		return
 	_desk_manager.call("set_irc_config", _irc_settings.call("get_config"))
+	if _meeting_irc_bridge != null and is_instance_valid(_meeting_irc_bridge) and _meeting_irc_bridge.has_method("set_config"):
+		_meeting_irc_bridge.call("set_config", _irc_settings.call("get_config"))
 
 func open_settings_overlay() -> void:
 	if settings_overlay == null:

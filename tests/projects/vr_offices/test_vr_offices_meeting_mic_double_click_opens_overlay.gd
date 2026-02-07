@@ -100,9 +100,13 @@ func _init() -> void:
 		return
 	if not T.require_true(self, overlay.visible, "Expected meeting room chat overlay to open on mic double click"):
 		return
+	var title := overlay.get_node_or_null("%TitleLabel") as Label
+	if not T.require_true(self, title != null, "Missing meeting chat TitleLabel"):
+		return
+	if not T.require_true(self, title.text.find("#oa_") != -1, "Expected meeting chat title to include derived IRC channel name"):
+		return
 	var skills := overlay.get_node_or_null("%SkillsButton") as Control
 	if not T.require_true(self, skills != null and not skills.visible, "Expected skills button hidden for meeting room chat"):
 		return
 
 	T.pass_and_quit(self)
-

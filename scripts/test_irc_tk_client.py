@@ -77,5 +77,17 @@ class TestListParsing(unittest.TestCase):
         self.assertIsNone(m.parse_list_numeric(":irc.example 323 me :End of /LIST"))
 
 
+class TestNamesParsing(unittest.TestCase):
+    def test_parse_names_353(self) -> None:
+        import irc_tk_client as m
+
+        res = m.parse_names_numeric(":irc.example 353 me = #chan :@alice +bob carol")
+        self.assertIsNotNone(res)
+        assert res is not None
+        channel, names = res
+        self.assertEqual(channel, "#chan")
+        self.assertEqual(sorted(names), ["alice", "bob", "carol"])
+
+
 if __name__ == "__main__":
     unittest.main()

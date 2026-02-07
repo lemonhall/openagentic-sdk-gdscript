@@ -1,20 +1,22 @@
 # v91 index
 
-Goal: auto-place meeting room props (table + screen + ceiling projector) using `assets/meeting_room/*.glb`, with size probing + tests.
+Goal: add channel user listing (`NAMES`) to the Python Tk IRC client.
 
 ## Artifacts
 
-- PRD: `docs/prd/2026-02-07-vr-offices-meeting-room-decorations.md`
-- Plan: `docs/plan/v91-vr-offices-meeting-room-decorations.md`
+- PRD: `docs/prd/2026-02-07-python-tk-irc-client.md` (REQ-007)
+- Plan: `docs/plan/v91-python-tk-irc-client-names.md`
 
 ## Milestones
 
 | Milestone | Scope | Verify | Status |
 |---|---|---|---|
-| M1 | Meeting room decoration wrappers + placement logic | `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_rooms_nodes.gd` | done |
-| M2 | Full VR Offices regression suite | `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` | done |
+| M1 | Parse `353/366` numerics and emit `names` event | `python -m unittest -q scripts/test_irc_tk_client.py` | done |
+| M2 | Auto-request `NAMES` after JOIN + UI users list | `python -m unittest -q scripts/test_irc_tk_client_integration.py` | done |
 
 ## Evidence
 
 - 2026-02-07:
-  - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` → OK
+  - `python -m unittest -q scripts/test_irc_tk_client.py` → OK
+  - `python -m unittest -q scripts/test_irc_tk_client_integration.py` → OK
+

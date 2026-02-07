@@ -69,24 +69,18 @@ class _MiniIrcServer(threading.Thread):
                 if not (saw_nick and saw_user):
                     raise AssertionError("did not receive NICK/USER handshake")
 
+                _send_line(conn, ":irc.example 001 me :welcome")
                 _send_line(conn, "PING :pingtoken")
-
-                deadline = time.time() + 5
-                while time.time() < deadline and not saw_pong:
-                    for line in _recv_lines(conn, buf):
-                        if line == "PONG :pingtoken":
-                            saw_pong = True
-                    time.sleep(0.01)
-
-                if not saw_pong:
-                    raise AssertionError("did not receive PONG response to PING")
 
                 saw_list = False
                 saw_join = False
+                saw_names_req = False
 
                 deadline = time.time() + 5
-                while time.time() < deadline and not (saw_list and saw_join):
+                while time.time() < deadline and not (saw_pong and saw_list and saw_join and saw_names_req):
                     for line in _recv_lines(conn, buf):
+                        if line == "PONG :pingtoken":
+                            saw_pong = True
                         if line == "LIST":
                             saw_list = True
                             _send_line(conn, ":irc.example 322 me #chan1 5 :topic1")
@@ -95,12 +89,20 @@ class _MiniIrcServer(threading.Thread):
                         if line == "JOIN #chan1":
                             saw_join = True
                             _send_line(conn, ":alice!u@h PRIVMSG #chan1 :hello")
+                        if line == "NAMES #chan1":
+                            saw_names_req = True
+                            _send_line(conn, ":irc.example 353 me = #chan1 :@alice +bob carol")
+                            _send_line(conn, ":irc.example 366 me #chan1 :End of /NAMES list.")
                     time.sleep(0.01)
 
+                if not saw_pong:
+                    raise AssertionError("did not receive PONG response to PING")
                 if not saw_list:
                     raise AssertionError("did not receive LIST")
                 if not saw_join:
                     raise AssertionError("did not receive JOIN")
+                if not saw_names_req:
+                    raise AssertionError("did not receive NAMES")
 
                 while not self.stop.is_set():
                     time.sleep(0.05)
@@ -155,9 +157,10 @@ class TestIrcIoThreadIntegration(unittest.TestCase):
         list_items: list[m.ListItem] = []
         saw_list_end = False
         saw_privmsg = False
+        saw_names = False
 
         deadline = time.time() + 5
-        while time.time() < deadline and not (saw_list_end and saw_privmsg):
+        while time.time() < deadline and not (saw_list_end and saw_privmsg and saw_names):
             try:
                 kind, payload = inbound.get(timeout=0.2)
             except queue.Empty:
@@ -172,6 +175,11 @@ class TestIrcIoThreadIntegration(unittest.TestCase):
                 self.assertEqual(payload.params, ["#chan1"])
                 self.assertEqual(payload.trailing, "hello")
                 saw_privmsg = True
+            elif kind == "names":
+                channel, names = payload  # type: ignore[assignment]
+                self.assertEqual(channel, "#chan1")
+                self.assertEqual(sorted(names), ["alice", "bob", "carol"])
+                saw_names = True
 
         stop_event.set()
         server.stop.set()
@@ -183,9 +191,9 @@ class TestIrcIoThreadIntegration(unittest.TestCase):
 
         self.assertTrue(saw_list_end)
         self.assertTrue(saw_privmsg)
+        self.assertTrue(saw_names)
         self.assertEqual([i.channel for i in list_items], ["#chan1", "#chan2"])
 
 
 if __name__ == "__main__":
     unittest.main()
-

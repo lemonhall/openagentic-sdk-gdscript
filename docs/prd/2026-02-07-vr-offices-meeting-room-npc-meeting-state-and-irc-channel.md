@@ -5,7 +5,7 @@
 - Topic：Meeting Room NPC 进入会议状态 + 会议室 IRC channel + 群聊分发
 - Owner：OpenAgentic VR Offices
 - Status：draft
-- Version：v1
+- Version：v2
 - Last updated：2026-02-07
 - Links：
   - 相关 PRD：`docs/prd/2026-02-07-vr-offices-meeting-rooms.md`
@@ -68,6 +68,7 @@
 | REQ-009 | 可观测性：channel 加入/退出/消息事件可追踪 | 每个 meeting room 有可读日志（磁盘或内存快照），包含 join/part 与消息摘要 | 测试：触发 join/消息后日志存在且含关键行 | P2 | 日志体积与隐私控制 |
 | REQ-010 | 删除 meeting room 时清理状态 | 删除 meeting room → channel 关闭/清理；参会 NPC 状态回落到非 meeting | 集成测试：删除 room 后 participants 清空、NPC 退出 meeting | P0 | 生命周期管理与引用悬挂 |
 | REQ-011 | 会议桌周围显示“呼吸灯圈”提示参会区域 | 每个 meeting room 的桌子周围有一个柔光、呼吸的区域指示；玩家把 NPC 放进圈内即可入会 | 目测 + 自动化：节点树包含 `Decor/MeetingZoneIndicator`；shader 允许 headless 编译 | P1 | 视觉与规则一致性（圈形状 vs 判定） |
+| REQ-012 | （可选）Meeting Room 群聊桥接到真实 IRC server 的 channel（含 NPC join/part） | 当 IRC 配置可用且非 headless：meeting room 派生的 channel 在 IRC 上能观察到真实 `JOIN/PART/PRIVMSG`；NPC 入会时 join、离会时 part；人类 mic 消息与 NPC 回复都能被外部观察者看到 | 自动化（离线）：smoke 测试验证 wiring + 模拟 IRC message 使 link ready；手动（在线）：连接到测试 IRC server 验证 JOIN/PART/PRIVMSG | P1 | 多连接开销（每 NPC 1 连接）；测试不能依赖外网；需要设置开关/降级策略 |
 
 ## 7) 约束与不接受（Constraints）
 

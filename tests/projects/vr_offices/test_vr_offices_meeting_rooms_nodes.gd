@@ -139,6 +139,31 @@ func _init() -> void:
 	var zone := decor.get_node_or_null("MeetingZoneIndicator") as Node3D
 	if not T.require_true(self, zone != null, "Expected Decor/MeetingZoneIndicator"):
 		return
+	var zone_mesh := zone.get_node_or_null("Mesh") as MeshInstance3D
+	if not T.require_true(self, zone_mesh != null, "Expected MeetingZoneIndicator/Mesh MeshInstance3D"):
+		return
+	var zone_mat := zone_mesh.material_override as ShaderMaterial
+	if not T.require_true(self, zone_mat != null, "Expected MeetingZoneIndicator mesh ShaderMaterial override"):
+		return
+
+	var ring_a0: Variant = zone_mat.get_shader_parameter("ring_alpha")
+	var fill_a0: Variant = zone_mat.get_shader_parameter("fill_alpha")
+	var pulse_max0: Variant = zone_mat.get_shader_parameter("pulse_max")
+	if not T.require_true(self, (ring_a0 is float) or (ring_a0 is int), "Expected ring_alpha shader parameter"):
+		return
+	if not T.require_true(self, (fill_a0 is float) or (fill_a0 is int), "Expected fill_alpha shader parameter"):
+		return
+	if not T.require_true(self, (pulse_max0 is float) or (pulse_max0 is int), "Expected pulse_max shader parameter"):
+		return
+	var ring_a := float(ring_a0)
+	var fill_a := float(fill_a0)
+	var pulse_max := float(pulse_max0)
+	if not T.require_true(self, ring_a >= 0.55, "Meeting zone ring_alpha must be >= 0.55 for visibility"):
+		return
+	if not T.require_true(self, fill_a >= 0.08, "Meeting zone fill_alpha must be >= 0.08 for visibility"):
+		return
+	if not T.require_true(self, pulse_max >= 0.95, "Meeting zone pulse_max must be >= 0.95"):
+		return
 	# Screen should be attached under a wall so it hides with wall visibility.
 	var screen := _find_descendant_named(walls, "ProjectorScreen") as Node3D
 	if not T.require_true(self, screen != null, "Expected Walls/**/ProjectorScreen wrapper"):
