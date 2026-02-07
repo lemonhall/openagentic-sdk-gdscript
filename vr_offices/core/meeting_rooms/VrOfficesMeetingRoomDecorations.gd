@@ -11,10 +11,10 @@ const PROJECTOR_SCENE := "res://assets/meeting_room/projector.glb"
 
 const _MARGIN_XZ := 0.55
 const _SCREEN_GAP := 0.75
-const _CEILING_INSET := 0.05
+const _CEILING_INSET := -2
 const _SCREEN_YAW_OFFSET := PI * 0.5
 const _SCREEN_WIDTH_MULT := 2.0
-const _PROJECTOR_TARGET_H := 0.65
+const _PROJECTOR_TARGET_H := 1
 const _PROJECTOR_MODEL_YAW_OFFSET := PI
 const _TABLE_STRETCH_RATIO := 1.1
 

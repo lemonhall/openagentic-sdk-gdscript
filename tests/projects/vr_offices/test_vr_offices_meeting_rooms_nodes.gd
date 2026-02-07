@@ -18,6 +18,67 @@ func _find_descendant_named(root: Node, want: String) -> Node:
 				stack.append(c)
 	return null
 
+func _iter_descendants(root: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	if root == null:
+		return out
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var cur := stack.pop_back() as Node
+		if cur == null:
+			continue
+		for c0 in cur.get_children():
+			var c := c0 as Node
+			if c == null:
+				continue
+			out.append(c)
+			stack.append(c)
+	return out
+
+func _aabb_corners(aabb: AABB) -> Array[Vector3]:
+	var p := aabb.position
+	var s := aabb.size
+	return [
+		Vector3(p.x, p.y, p.z),
+		Vector3(p.x + s.x, p.y, p.z),
+		Vector3(p.x, p.y + s.y, p.z),
+		Vector3(p.x, p.y, p.z + s.z),
+		Vector3(p.x + s.x, p.y + s.y, p.z),
+		Vector3(p.x + s.x, p.y, p.z + s.z),
+		Vector3(p.x, p.y + s.y, p.z + s.z),
+		Vector3(p.x + s.x, p.y + s.y, p.z + s.z),
+	]
+
+func _compute_visual_bounds_local(space: Node3D, root: Node) -> AABB:
+	if space == null or root == null:
+		return AABB()
+	var min_x := INF
+	var min_y := INF
+	var min_z := INF
+	var max_x := -INF
+	var max_y := -INF
+	var max_z := -INF
+	var any := false
+	for n0: Node in _iter_descendants(root):
+		if not (n0 is MeshInstance3D):
+			continue
+		var mi := n0 as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		for p0 in _aabb_corners(mi.get_aabb()):
+			var p_world := mi.global_transform * p0
+			var p_local := space.to_local(p_world)
+			min_x = minf(min_x, float(p_local.x))
+			min_y = minf(min_y, float(p_local.y))
+			min_z = minf(min_z, float(p_local.z))
+			max_x = maxf(max_x, float(p_local.x))
+			max_y = maxf(max_y, float(p_local.y))
+			max_z = maxf(max_z, float(p_local.z))
+			any = true
+	if not any:
+		return AABB()
+	return AABB(Vector3(min_x, min_y, min_z), Vector3(max_x - min_x, max_y - min_y, max_z - min_z))
+
 func _init() -> void:
 	var ManagerScript := load("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomManager.gd")
 	var AreaScene0 := load("res://vr_offices/meeting_rooms/MeetingRoomArea.tscn")
@@ -62,6 +123,15 @@ func _init() -> void:
 		return
 	var proj_wrap := decor.get_node_or_null("CeilingProjector") as Node3D
 	if not T.require_true(self, proj_wrap != null, "Expected Decor/CeilingProjector wrapper"):
+		return
+	var table_collision := table_wrap.get_node_or_null("TableCollision") as StaticBody3D
+	if not T.require_true(self, table_collision != null, "Expected Decor/Table/TableCollision StaticBody3D"):
+		return
+	var table_collision_shape := table_collision.get_node_or_null("Shape") as CollisionShape3D
+	if not T.require_true(self, table_collision_shape != null, "Expected table collision Shape"):
+		return
+	var mic_wrap := table_wrap.get_node_or_null("Mic") as Node3D
+	if not T.require_true(self, mic_wrap != null, "Expected Decor/Table/Mic wrapper"):
 		return
 	# Screen should be attached under a wall so it hides with wall visibility.
 	var screen := _find_descendant_named(walls, "ProjectorScreen") as Node3D
@@ -120,6 +190,37 @@ func _init() -> void:
 	var forward := -proj_wrap.global_transform.basis.z
 	if not T.require_true(self, forward.dot(to_tgt) >= 0.6, "Expected projector facing screen (forward dot >= 0.6)"):
 		return
+
+	# Mic should sit on the table top near one end.
+	var table_model := table_wrap.get_node_or_null("Model") as Node3D
+	var mic_model := mic_wrap.get_node_or_null("Model") as Node3D
+	if not T.require_true(self, table_model != null, "Expected Table wrapper to contain Model"):
+		return
+	if not T.require_true(self, mic_model != null, "Expected Mic wrapper to contain Model"):
+		return
+	var tb := _compute_visual_bounds_local(table_wrap, table_model)
+	if not T.require_true(self, tb.size != Vector3.ZERO, "Expected table bounds non-zero"):
+		return
+	var top_y := float(tb.position.y + tb.size.y)
+	if not T.require_true(self, float(mic_wrap.position.y) >= top_y - 0.05, "Expected mic on/above table top"):
+		return
+	if not T.require_true(self, float(mic_wrap.position.y) <= top_y + 0.35, "Expected mic not floating too high"):
+		return
+	var long_is_x := float(tb.size.x) >= float(tb.size.z)
+	if long_is_x:
+		var minx := float(tb.position.x)
+		var maxx := float(tb.position.x + tb.size.x)
+		var cx := (minx + maxx) * 0.5
+		var hx := (maxx - minx) * 0.5
+		if not T.require_true(self, absf(float(mic_wrap.position.x) - cx) >= hx * 0.55, "Expected mic near a table end (x)"):
+			return
+	else:
+		var minz := float(tb.position.z)
+		var maxz := float(tb.position.z + tb.size.z)
+		var cz := (minz + maxz) * 0.5
+		var hz := (maxz - minz) * 0.5
+		if not T.require_true(self, absf(float(mic_wrap.position.z) - cz) >= hz * 0.55, "Expected mic near a table end (z)"):
+			return
 
 	var rid := String(child.get("meeting_room_id"))
 	var del: Dictionary = mgr.call("delete_meeting_room", rid)
