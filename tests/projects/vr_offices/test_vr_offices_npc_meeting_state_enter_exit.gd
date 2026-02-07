@@ -98,9 +98,42 @@ func _init() -> void:
 	if not T.require_true(self, not bool(npc.get("wander_enabled")), "Meeting NPC should stop wandering"):
 		return
 
-	var far := table.global_position + Vector3(8.0, 0.0, 8.0)
-	npc.emit_signal("move_target_reached", "npc_01", Vector3(far.x, 0.0, far.z))
-	await process_frame
+	# Repro: command_move_to sets a "waiting-for-work" timer by default; meeting state must suppress that.
+	# Use a target near the table end (outside center radius) but within 2m of the table footprint.
+	var table_body := table.get_node_or_null("TableCollision") as StaticBody3D
+	var shape_node := table_body.get_node_or_null("Shape") as CollisionShape3D if table_body != null else null
+	if not T.require_true(self, shape_node != null and shape_node.shape is BoxShape3D, "Expected table collision box"):
+		return
+	var box := shape_node.shape as BoxShape3D
+	var hx := float(box.size.x) * 0.5
+	var local_outside := Vector3(shape_node.position.x + hx + 0.5, 0.0, shape_node.position.z)
+	var p_global := table_body.to_global(local_outside)
+	if npc is Node3D:
+		# Start a bit away so the NPC has to process a real move-to completion.
+		(npc as Node3D).global_position = Vector3(p_global.x + 3.0, 0.3, p_global.z)
+	# Wait until the NPC settles on the floor.
+	for _k in range(60):
+		await process_frame
+		if npc.has_method("is_on_floor") and bool(npc.call("is_on_floor")):
+			break
+	npc.call("command_move_to", Vector3(p_global.x, 0.0, p_global.z))
+	for _m in range(240):
+		await process_frame
+		if not bool(npc.get("_goto_active")):
+			break
+	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), rid, "Move-to near table footprint should keep meeting binding"):
+		return
+	if not T.require_true(self, float(npc.get("_waiting_for_work_left")) <= 0.001, "Meeting-bound NPC must not start waiting-for-work timer"):
+		return
+
+	var far := table.global_position + Vector3(5.0, 0.0, 5.0)
+	npc.call("command_move_to", Vector3(far.x, 0.0, far.z))
+	for _n in range(600):
+		await process_frame
+		if not bool(npc.get("_goto_active")):
+			break
+	if not T.require_true(self, not bool(npc.get("_goto_active")), "Expected NPC to reach far target"):
+		return
 
 	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), "", "NPC should exit meeting state when moved away"):
 		return

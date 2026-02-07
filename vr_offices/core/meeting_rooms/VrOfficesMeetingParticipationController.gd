@@ -1,7 +1,6 @@
 extends RefCounted
 
-const _ENTER_RADIUS_M := 2.0
-const _EXIT_RADIUS_M := 2.2
+const _Meeting := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingConstants.gd")
 
 var owner: Node = null
 var npc_root: Node3D = null
@@ -90,20 +89,19 @@ func _on_npc_move_target_reached(_npc_id: String, target: Vector3, npc: Node) ->
 		var rid := String(r.get("id", "")).strip_edges()
 		if rid == "":
 			continue
-		var anchor: Dictionary = _table_anchor_global(rid)
-		if not bool(anchor.get("ok", false)):
+		var dist0: Dictionary = _distance_xz_to_table(rid, target)
+		if not bool(dist0.get("ok", false)):
 			continue
-		var a0: Variant = anchor.get("pos", null)
-		if not (a0 is Vector3):
+		var d0: Variant = dist0.get("dist", null)
+		if typeof(d0) != TYPE_FLOAT and typeof(d0) != TYPE_INT:
 			continue
-		var a := a0 as Vector3
-		var d := target_xz.distance_to(Vector2(a.x, a.z))
+		var d := float(d0)
 		if d < best_dist:
 			best_dist = d
 			best_room = rid
 
-	var want_room := best_room if best_dist <= _ENTER_RADIUS_M else ""
-	if cur_room != "" and best_room == cur_room and best_dist <= _EXIT_RADIUS_M:
+	var want_room := best_room if best_dist <= float(_Meeting.ENTER_RADIUS_M) else ""
+	if cur_room != "" and best_room == cur_room and best_dist <= float(_Meeting.EXIT_RADIUS_M):
 		want_room = cur_room
 
 	if want_room == cur_room:
@@ -118,18 +116,42 @@ func _on_npc_move_target_reached(_npc_id: String, target: Vector3, npc: Node) ->
 		if channel_hub != null and channel_hub.has_method("join_participant"):
 			channel_hub.call("join_participant", want_room, npc)
 
-func _table_anchor_global(meeting_room_id: String) -> Dictionary:
+func _distance_xz_to_table(meeting_room_id: String, point: Vector3) -> Dictionary:
 	if meeting_room_manager == null or not meeting_room_manager.has_method("get_meeting_room_node"):
 		return {"ok": false}
 	var room := meeting_room_manager.call("get_meeting_room_node", meeting_room_id) as Node
 	if room == null or not is_instance_valid(room):
 		return {"ok": false}
 	var table := room.get_node_or_null("Decor/Table") as Node3D
-	if table != null:
-		return {"ok": true, "pos": table.global_position}
-	if room is Node3D:
-		return {"ok": true, "pos": (room as Node3D).global_position}
-	return {"ok": false}
+	if table == null:
+		if room is Node3D:
+			var rp := (room as Node3D).global_position
+			var d2 := Vector2(point.x, point.z).distance_to(Vector2(rp.x, rp.z))
+			return {"ok": true, "dist": d2}
+		return {"ok": false}
+
+	# Prefer table collision footprint: distance to the oriented box in XZ.
+	var body := table.get_node_or_null("TableCollision") as StaticBody3D
+	var shape_node := body.get_node_or_null("Shape") as CollisionShape3D if body != null else null
+	if shape_node != null and shape_node.shape is BoxShape3D:
+		var box := shape_node.shape as BoxShape3D
+		var center := shape_node.position
+		# Compute in body-local coordinates (accounts for table transform/rotation).
+		var p_local := body.to_local(Vector3(point.x, body.global_position.y, point.z))
+		var hx := float(box.size.x) * 0.5
+		var hz := float(box.size.z) * 0.5
+		var dx := maxf(absf(float(p_local.x - center.x)) - hx, 0.0)
+		var dz := maxf(absf(float(p_local.z - center.z)) - hz, 0.0)
+		# Convert local distances back to global meters (to_local cancels parent scaling).
+		var sc := body.global_transform.basis.get_scale()
+		dx *= absf(float(sc.x))
+		dz *= absf(float(sc.z))
+		return {"ok": true, "dist": sqrt(dx * dx + dz * dz)}
+
+	# Fallback: distance to table origin.
+	var tp := table.global_position
+	var d := Vector2(point.x, point.z).distance_to(Vector2(tp.x, tp.z))
+	return {"ok": true, "dist": d}
 
 func _unbind_all_from_room(meeting_room_id: String) -> void:
 	if npc_root == null:

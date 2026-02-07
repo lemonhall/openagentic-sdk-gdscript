@@ -4,6 +4,7 @@ const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
 const _WallUtils := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomWallUtils.gd")
 const _ModelUtils := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomDecorationModelUtils.gd")
 const _TableLayout := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomTableLayout.gd")
+const _ZoneBinder := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingZoneIndicatorBinder.gd")
 
 const TABLE_SCENE := "res://assets/meeting_room/Table.glb"
 const SCREEN_SCENE := "res://assets/meeting_room/projector screen.glb"
@@ -114,6 +115,7 @@ static func decorate_meeting_room(meeting_room_node: Node3D, meeting_room_id: St
 	table_pos = _clamp_aabb_center_to_room(table_bounds, hx, hz, _MARGIN_XZ)
 	table_pos = _push_away_from_screen_wall(table_pos, table_bounds, screen_axis, screen_wall_sign, axis_half, _SCREEN_GAP)
 	table_wrap.position = table_pos
+	_ZoneBinder.ensure_for_table(decor, table_wrap)
 
 	# Place projector on ceiling above the table, slightly toward the screen wall, facing the screen.
 	var ceiling_y := float(screen_spec.get("height", 2.2)) - _CEILING_INSET

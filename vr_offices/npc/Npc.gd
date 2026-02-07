@@ -455,6 +455,13 @@ func _update_wander(delta: float) -> void:
 			velocity.z = 0.0
 			_play_anim(_anim_idle)
 			move_target_reached.emit(npc_id, Vector3(_goto_target_xz.x, 0.0, _goto_target_xz.y))
+			# If another system (e.g. MeetingRooms) bound the NPC during the signal,
+			# do not start the "waiting for work" timer (it would eventually re-enable wandering).
+			if _meeting_bound_room_id != "":
+				_skip_wait_after_goto = false
+				_waiting_for_work_left = 0.0
+				wander_enabled = false
+				return
 			if _skip_wait_after_goto:
 				_skip_wait_after_goto = false
 				_waiting_for_work_left = 0.0

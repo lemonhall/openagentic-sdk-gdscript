@@ -67,6 +67,7 @@
 | REQ-008 | 复用/扩展既有 IRC/RPC 传输层以承载长回复 | 长回复不会被粗暴硬切导致乱码或语义断裂；IRC 单行限制下可重组（类似 `OAMEDIA1F`） | 单测：编码→分片→重组；集成测试：NPC 生成长回复仍能完整显示 | P1 | 与 `OA1 ` 工具 RPC 前缀冲突风险 |
 | REQ-009 | 可观测性：channel 加入/退出/消息事件可追踪 | 每个 meeting room 有可读日志（磁盘或内存快照），包含 join/part 与消息摘要 | 测试：触发 join/消息后日志存在且含关键行 | P2 | 日志体积与隐私控制 |
 | REQ-010 | 删除 meeting room 时清理状态 | 删除 meeting room → channel 关闭/清理；参会 NPC 状态回落到非 meeting | 集成测试：删除 room 后 participants 清空、NPC 退出 meeting | P0 | 生命周期管理与引用悬挂 |
+| REQ-011 | 会议桌周围显示“呼吸灯圈”提示参会区域 | 每个 meeting room 的桌子周围有一个柔光、呼吸的区域指示；玩家把 NPC 放进圈内即可入会 | 目测 + 自动化：节点树包含 `Decor/MeetingZoneIndicator`；shader 允许 headless 编译 | P1 | 视觉与规则一致性（圈形状 vs 判定） |
 
 ## 7) 约束与不接受（Constraints）
 
@@ -85,4 +86,3 @@
 ## 9) 追溯矩阵（由实施侧维护，避免漂移）
 
 > 本 PRD 的追溯矩阵在 v93 计划阶段补齐（`Req ID -> v93 slice -> tests/commands -> 证据 -> 关键代码路径`）。
-

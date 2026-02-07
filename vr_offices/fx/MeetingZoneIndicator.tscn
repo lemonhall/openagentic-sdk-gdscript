@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://vr_offices/fx/MeetingZoneIndicator.gd" id="1"]
+[ext_resource type="Shader" path="res://vr_offices/fx/meeting_zone_indicator.gdshader" id="2"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(6, 6)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+shader = ExtResource("2")
+
+[node name="MeetingZoneIndicator" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_1")
+material_override = SubResource("ShaderMaterial_1")
