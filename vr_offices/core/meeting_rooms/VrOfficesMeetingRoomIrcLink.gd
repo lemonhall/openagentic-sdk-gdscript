@@ -5,6 +5,7 @@ signal message_received(msg: RefCounted)
 signal error(msg: String)
 const IrcClient := preload("res://addons/irc_client/IrcClient.gd")
 const IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
+const _NamesRequester := preload("res://vr_offices/core/irc/VrOfficesIrcNamesRequester.gd")
 var _config: Dictionary = {}
 var _save_id: String = ""
 var _meeting_room_id: String = ""
@@ -24,18 +25,14 @@ func configure(config: Dictionary, save_id: String, meeting_room_id: String, nic
 	_nick = nick.strip_edges()
 	if _nick == "":
 		_nick = "host"
-
 	var channellen := int(_config.get("channellen_default", 50))
 	_desired_channel = String(IrcNames.derive_channel_for_meeting_room(_save_id, _meeting_room_id, channellen))
-
 	_ensure_client()
 	_joined_this_session = false
 	_set_ready(false)
-
 	_client.call("set_cap_enabled", false)
 	_client.call("set_auto_reconnect_enabled", true)
 	_client.call("set_auto_rejoin_enabled", true)
-
 	var host := String(_config.get("host", "")).strip_edges()
 	var port := int(_config.get("port", 0))
 	var tls := bool(_config.get("tls", false))
@@ -44,30 +41,23 @@ func configure(config: Dictionary, save_id: String, meeting_room_id: String, nic
 	var new_key := "%s|%d|%s|%s|%s|%s" % [host, port, "tls" if tls else "tcp", server_name, password, _nick]
 	var key_changed := _connect_key != "" and _connect_key != new_key
 	_connect_key = new_key
-
 	if password != "":
 		_client.call("set_password", password)
 	_client.call("set_nick", _nick)
 	_client.call("set_user", _nick, "0", "*", _nick)
-
 	if key_changed and _client != null:
 		_set_status("reconnecting")
 		_client.call("close_connection")
-
 	_connect_if_needed()
 
 func get_desired_channel() -> String:
 	return _desired_channel
-
 func get_nick() -> String:
 	return _nick
-
 func get_status() -> String:
 	return _status
-
 func is_ready() -> bool:
 	return _ready
-
 func send_channel_message(text: String) -> void:
 	if _client == null:
 		return
@@ -75,7 +65,9 @@ func send_channel_message(text: String) -> void:
 	if msg == "" or _desired_channel.strip_edges() == "":
 		return
 	_client.call("privmsg", _desired_channel, msg)
-
+func close_connection() -> void:
+	if _client != null:
+		_client.call("close_connection")
 func reconnect_now() -> void:
 	_ensure_client()
 	_joined_this_session = false
@@ -83,15 +75,12 @@ func reconnect_now() -> void:
 	if _client != null:
 		_client.call("close_connection")
 	_connect_if_needed()
-
 func _process(dt: float) -> void:
 	if _client != null:
 		_client.call("poll", dt)
-
 func _exit_tree() -> void:
 	if _client != null:
 		_client.call("close_connection")
-
 func _ensure_client() -> void:
 	if _client != null and is_instance_valid(_client):
 		return
@@ -102,7 +91,6 @@ func _ensure_client() -> void:
 	_client.message_received.connect(_on_message_received)
 	_client.raw_line_received.connect(_on_raw_line_received)
 	_client.error.connect(_on_error)
-
 func _connect_if_needed() -> void:
 	if _client == null:
 		return
@@ -122,7 +110,6 @@ func _connect_if_needed() -> void:
 		_client.call("connect_to_tls", host, port, server_name)
 	else:
 		_client.call("connect_to", host, port)
-
 func _set_status(s: String) -> void:
 	var ss := s.strip_edges()
 	if ss == "":
@@ -131,27 +118,21 @@ func _set_status(s: String) -> void:
 		return
 	_status = ss
 	status_changed.emit(_status)
-
 func _set_ready(v: bool) -> void:
 	if v == _ready:
 		return
 	_ready = v
 	ready_changed.emit(_ready)
-
 func _on_connected() -> void:
 	_joined_this_session = false
 	_set_status("tcp_connected")
-
 func _on_disconnected() -> void:
 	_set_ready(false)
 	_set_status("disconnected")
-
 func _on_error(msg0: String) -> void:
 	error.emit(msg0)
-
 func _on_raw_line_received(_line: String) -> void:
 	pass
-
 func _on_message_received(msg: RefCounted) -> void:
 	message_received.emit(msg)
 	if msg == null:
@@ -165,7 +146,6 @@ func _on_message_received(msg: RefCounted) -> void:
 		if _join_matches_desired(obj):
 			_set_status("joined")
 			_set_ready(true)
-
 func _try_join() -> void:
 	if _client == null or _joined_this_session:
 		return
@@ -174,14 +154,12 @@ func _try_join() -> void:
 		return
 	_joined_this_session = true
 	_client.call("join", ch)
-
 func _join_matches_desired(msg: Object) -> bool:
 	if msg == null:
 		return false
 	var desired := _desired_channel.strip_edges()
 	if desired == "":
 		return false
-
 	var ch := ""
 	var params0: Variant = msg.get("params")
 	if params0 is Array:
@@ -197,3 +175,11 @@ func _join_matches_desired(msg: Object) -> bool:
 		if String(part0).strip_edges() == desired:
 			return true
 	return false
+func request_names_for_desired_channel(timeout_frames: int = 240) -> Dictionary:
+	if _NamesRequester == null or _client == null:
+		return {}
+	var ch := _desired_channel.strip_edges()
+	if ch == "":
+		return {}
+	var res: Variant = await _NamesRequester.request_names(self, _client, ch, timeout_frames)
+	return res as Dictionary if typeof(res) == TYPE_DICTIONARY else {}

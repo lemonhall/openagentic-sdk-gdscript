@@ -17,7 +17,7 @@ Manual play feels like “host message is fanned out per NPC” instead of a sha
 - Write a per-meeting-room JSONL event log under the save directory.
 - Add an online E2E test against localhost IRC (`127.0.0.1:6667`) proving:
   - derived channel exists and all participants JOIN
-  - host + a mentioned NPC send observable PRIVMSG
+  - host + a mentioned NPC send observable PRIVMSG (observed via the other participants’ IRC links; no extra monitor connection)
   - long NPC reply survives transport (not truncated)
   - meeting-room event log exists and contains join+msg events
 
@@ -36,4 +36,3 @@ Manual play feels like “host message is fanned out per NPC” instead of a sha
 - 2026-02-07:
   - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_e2e_meeting_room_irc_group_chat_localhost.gd -TimeoutSec 240 -ExtraArgs --oa-online-tests` → PASS
   - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` → EXIT=0
-

@@ -2,6 +2,7 @@ extends Node
 const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 const _LinkScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomIrcLink.gd")
 const _TextSplit := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomTextSplit.gd")
+const _Connections := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomIrcBridgeConnections.gd")
 var _config: Dictionary = {}
 var _get_save_id: Callable = Callable()
 var _is_headless: Callable = Callable()
@@ -31,7 +32,16 @@ func ensure_host_for_room(meeting_room_id: String) -> void:
 	if rid == "":
 		return
 	_ensure_host_link(rid)
-
+func get_host_link(meeting_room_id: String) -> Node:
+	var rid := meeting_room_id.strip_edges()
+	return null if rid == "" or not _enabled() else _ensure_host_link(rid)
+func get_npc_link(meeting_room_id: String, npc_id: String) -> Node:
+	var rid := meeting_room_id.strip_edges()
+	var nid := npc_id.strip_edges()
+	return null if rid == "" or nid == "" else _npc_link(rid, nid)
+func close_room_connections(meeting_room_id: String) -> void:
+	if _Connections != null:
+		_Connections.close_room_connections(_rooms, meeting_room_id)
 func part_participant(meeting_room_id: String, npc_id: String) -> void:
 	var rid := meeting_room_id.strip_edges()
 	var nid := npc_id.strip_edges()
@@ -127,7 +137,6 @@ func _ensure_npc_link(meeting_room_id: String, npc_id: String, nick: String) -> 
 	st["npcs"] = npcs
 	_rooms[rid] = st
 	return link
-
 func _npc_link(meeting_room_id: String, npc_id: String) -> Node:
 	var rid := meeting_room_id.strip_edges()
 	var nid := npc_id.strip_edges()
@@ -146,7 +155,6 @@ func _npc_link(meeting_room_id: String, npc_id: String) -> Node:
 	var link0: Variant = npcs.get(nid, null)
 	var link := link0 as Node
 	return link if link != null and is_instance_valid(link) else null
-
 func _room_state(meeting_room_id: String) -> Dictionary:
 	var rid := meeting_room_id.strip_edges()
 	if rid == "":
@@ -156,7 +164,6 @@ func _room_state(meeting_room_id: String) -> Dictionary:
 		if typeof(st0) == TYPE_DICTIONARY:
 			return st0 as Dictionary
 	return {"host": null, "npcs": {}}
-
 func _new_link(save_id: String, meeting_room_id: String, nick: String) -> Node:
 	if _LinkScript == null:
 		return null
@@ -167,7 +174,6 @@ func _new_link(save_id: String, meeting_room_id: String, nick: String) -> Node:
 	if link.has_method("configure"):
 		link.call("configure", _config, save_id, meeting_room_id, nick)
 	return link
-
 func _reconfigure_all() -> void:
 	var sid := _effective_save_id()
 	for rid0 in _rooms.keys():

@@ -187,27 +187,23 @@ func _init() -> void:
 		T.fail_and_quit(self, "Expected meeting room overlay visible")
 		return
 
-	# Connect a monitor to observe real IRC PRIVMSG traffic for the meeting channel.
-	var mon := IrcClient.new()
-	get_root().add_child(mon)
-	var mon_nick := _monitor_nick()
-	mon.call("set_cap_enabled", false)
-	mon.call("set_nick", mon_nick)
-	mon.call("set_user", mon_nick, "0", "*", mon_nick)
-
-	var inbox: Array[RefCounted] = []
-	mon.message_received.connect(func(m: RefCounted) -> void:
-		inbox.append(m)
-	)
-	mon.connect_to(irc_host, irc_port)
-
-	if not await _wait_for_command(mon, inbox, "001", 900):
-		_cleanup(s, mon, oa)
-		T.fail_and_quit(self, "IRC monitor did not register (missing 001) to %s:%d" % [irc_host, irc_port])
+	var ch := String(IrcNames.derive_channel_for_meeting_room(save_id, rid, 50)).strip_edges()
+	if not T.require_true(self, ch.begins_with("#"), "Expected derived meeting channel to start with #"):
+		_cleanup(s, null, oa)
 		return
 
-	var ch := String(IrcNames.derive_channel_for_meeting_room(save_id, rid, 50)).strip_edges()
-	mon.join(ch)
+	var bridge := s.get_node_or_null("MeetingRoomIrcBridge") as Node
+	if bridge == null:
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Missing MeetingRoomIrcBridge")
+		return
+
+	var host_link0: Variant = bridge.call("get_host_link", rid) if bridge.has_method("get_host_link") else null
+	var host_link := host_link0 as Node
+	if host_link == null or not is_instance_valid(host_link):
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Missing host IRC link")
+		return
 
 	# Sanity: ensure host + three NPCs are present.
 	var want_nicks: Array[String] = []
@@ -215,67 +211,147 @@ func _init() -> void:
 	for p in roster:
 		want_nicks.append(String(IrcNames.derive_nick(save_id, String(p.get("id", "")), 9)).strip_edges())
 
+	var npc_ids := ["npc_01", "npc_02", "npc_03"]
+	var npc_links: Dictionary = {}
+	for nid in npc_ids:
+		var l0: Variant = bridge.call("get_npc_link", rid, nid) if bridge.has_method("get_npc_link") else null
+		var l := l0 as Node
+		if l == null or not is_instance_valid(l):
+			_cleanup(s, null, oa)
+			T.fail_and_quit(self, "Missing NPC IRC link: %s" % nid)
+			return
+		npc_links[nid] = l
+
+	if not await _wait_for_ready(host_link, 900):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Host IRC link did not become ready (JOIN)")
+		return
+	for nid in npc_ids:
+		if not await _wait_for_ready(npc_links[nid] as Node, 900):
+			if bridge.has_method("close_room_connections"):
+				bridge.call("close_room_connections", rid)
+			_cleanup(s, null, oa)
+			T.fail_and_quit(self, "NPC IRC link did not become ready (JOIN): %s" % nid)
+			return
+
 	var missing: Array[String] = []
 	var ready := false
 	for _attempt in range(18):
-		var names := await _names_for_channel(mon, inbox, ch, 240)
+		var names0: Variant = await host_link.call("request_names_for_desired_channel", 240) if host_link.has_method("request_names_for_desired_channel") else {}
+		var names: Dictionary = names0 as Dictionary if typeof(names0) == TYPE_DICTIONARY else {}
 		missing = _missing_nicks(names, want_nicks)
 		if missing.is_empty():
 			ready = true
 			break
-		await _pump(mon, 30)
+		await _pump_links([host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]], 30)
 	if not T.require_true(self, ready, "Expected all participants JOIN. Missing: %s" % ", ".join(missing)):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 
-	# Send a forced-mention prompt and wait for both host and Alice to PRIVMSG in IRC.
+	# Wire inboxes for real IRC messages (no extra monitor connection).
+	var host_inbox: Array[RefCounted] = []
+	host_link.message_received.connect(func(m: RefCounted) -> void:
+		host_inbox.append(m)
+	)
+	var inbox_01: Array[RefCounted] = []
+	var inbox_02: Array[RefCounted] = []
+	var inbox_03: Array[RefCounted] = []
+	(npc_links["npc_01"] as Node).message_received.connect(func(m: RefCounted) -> void: inbox_01.append(m))
+	(npc_links["npc_02"] as Node).message_received.connect(func(m: RefCounted) -> void: inbox_02.append(m))
+	(npc_links["npc_03"] as Node).message_received.connect(func(m: RefCounted) -> void: inbox_03.append(m))
+
+	# Send a forced-mention prompt; NPCs must receive host message via IRC, and host must receive Alice's reply via IRC.
 	overlay.emit_signal("message_submitted", "hi @Alice")
 	var host_nick := want_nicks[0]
 	var alice_nick := want_nicks[1]
-	if not await _wait_for_privmsg_from(mon, inbox, host_nick, ch, 420):
-		_cleanup(s, mon, oa)
-		T.fail_and_quit(self, "Expected host PRIVMSG to meeting channel")
+	if not await _wait_for_privmsg_in_inbox(inbox_01, host_nick, ch, 420, [host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]]):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Expected NPC_01 to receive host PRIVMSG to meeting channel")
 		return
-	if not await _wait_for_privmsg_from(mon, inbox, alice_nick, ch, 420):
-		_cleanup(s, mon, oa)
-		T.fail_and_quit(self, "Expected Alice PRIVMSG to meeting channel")
+	if not await _wait_for_privmsg_in_inbox(inbox_02, host_nick, ch, 420, [host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]]):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Expected NPC_02 to receive host PRIVMSG to meeting channel")
+		return
+	if not await _wait_for_privmsg_in_inbox(inbox_03, host_nick, ch, 420, [host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]]):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Expected NPC_03 to receive host PRIVMSG to meeting channel")
+		return
+
+	if not await _wait_for_privmsg_in_inbox(host_inbox, alice_nick, ch, 420, [host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]]):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Expected host to receive Alice PRIVMSG to meeting channel")
+		return
+	if not await _wait_for_privmsg_in_inbox(inbox_02, alice_nick, ch, 420, [host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]]):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Expected NPC_02 to receive Alice PRIVMSG to meeting channel")
 		return
 
 	# Verify Bob's session has a line from Alice (group chat awareness).
 	var bob_events := String(OAPaths.npc_events_path(save_id, "npc_02"))
 	var bob_abs := ProjectSettings.globalize_path(bob_events)
 	if not T.require_true(self, FileAccess.file_exists(bob_abs), "Expected Bob events.jsonl to exist (meeting transcript injection)"):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 	var bob_text := _read_file_text(bob_abs)
 	if not T.require_true(self, bob_text.find("Alice") != -1, "Expected Bob session to include Alice public message"):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 
 	# Send a long prompt to force a long reply and assert it is not truncated on IRC (REQ-008).
-	inbox.clear()
+	# Wait for the previous fanout run to fully finish; IRC receive can happen before the
+	# in-engine broadcast clears its busy flag.
+	await _pump_links([host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]], 60)
+	host_inbox.clear()
 	overlay.emit_signal("message_submitted", "[LONG] @Alice")
-	var got := await _collect_privmsg_text(mon, inbox, alice_nick, ch, 1200, 720)
+	var got := await _collect_privmsg_text_from_inbox(host_inbox, alice_nick, ch, 1200, 720, [host_link, npc_links["npc_01"], npc_links["npc_02"], npc_links["npc_03"]])
 	var want_prefix := "LONG:"
 	if not T.require_true(self, got.begins_with(want_prefix), "Expected long reply prefix. Got: %s" % got.substr(0, min(32, got.length()))):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 	if not T.require_true(self, got.length() >= 1200, "Expected long reply to survive IRC transport without truncation. Got len=%d" % got.length()):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 
 	# Verify meeting-room event log exists (REQ-009).
 	var log_path := "%s/vr_offices/meeting_rooms/%s/events.jsonl" % [String(OAPaths.save_root(save_id)), rid]
 	var log_abs := ProjectSettings.globalize_path(log_path)
 	if not T.require_true(self, FileAccess.file_exists(log_abs), "Expected meeting-room events log at: %s" % log_path):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 	var log_text := _read_file_text(log_abs)
 	if not T.require_true(self, log_text.find("\"type\":\"join\"") != -1 and log_text.find("\"type\":\"msg\"") != -1, "Expected join+msg events in meeting log"):
-		_cleanup(s, mon, oa)
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, null, oa)
 		return
 
-	_cleanup(s, mon, oa)
+	if bridge.has_method("close_room_connections"):
+		bridge.call("close_room_connections", rid)
+	_cleanup(s, null, oa)
 	T.pass_and_quit(self)
 
 func _cleanup(vr_scene: Node, monitor: Node, oa: Node) -> void:
@@ -383,6 +459,64 @@ static func _pump(client: Node, frames: int) -> void:
 		if client != null:
 			client.call("poll", 0.016)
 		await Engine.get_main_loop().process_frame
+
+static func _pump_links(links: Array, frames: int) -> void:
+	for _i in range(max(1, frames)):
+		for l0 in links:
+			var l := l0 as Node
+			if l != null and is_instance_valid(l) and l.has_method("_process"):
+				l.call("_process", 0.016)
+		await Engine.get_main_loop().process_frame
+
+static func _wait_for_ready(link: Node, max_frames: int) -> bool:
+	if link == null or not is_instance_valid(link) or not link.has_method("is_ready"):
+		return false
+	for _i in range(max_frames):
+		if bool(link.call("is_ready")):
+			return true
+		await _pump_links([link], 1)
+	return false
+
+static func _wait_for_privmsg_in_inbox(inbox: Array[RefCounted], want_nick: String, want_channel: String, max_frames: int, links: Array) -> bool:
+	var wn := want_nick.strip_edges()
+	var wc := want_channel.strip_edges()
+	for _i in range(max_frames):
+		for m in inbox:
+			if _get_cmd(m) != "PRIVMSG":
+				continue
+			var params := _get_params(m)
+			if params.size() < 1 or String(params[0]).strip_edges() != wc:
+				continue
+			if _nick_from_prefix(_get_prefix(m)) == wn:
+				return true
+		await _pump_links(links, 1)
+	return false
+
+static func _collect_privmsg_text_from_inbox(inbox: Array[RefCounted], from_nick: String, channel: String, want_len: int, max_frames: int, links: Array) -> String:
+	var wn := from_nick.strip_edges()
+	var wc := channel.strip_edges()
+	var buf := PackedStringArray()
+	var saw_any := false
+	for _i in range(max_frames):
+		for m in inbox:
+			if _get_cmd(m) != "PRIVMSG":
+				continue
+			var params := _get_params(m)
+			if params.size() < 1 or String(params[0]).strip_edges() != wc:
+				continue
+			if _nick_from_prefix(_get_prefix(m)) != wn:
+				continue
+			saw_any = true
+			var t := _get_trailing(m)
+			if t != "":
+				buf.append(t)
+		var joined := "\n".join(buf)
+		if saw_any and joined.length() >= want_len:
+			return joined
+		await _pump_links(links, 1)
+	if buf.is_empty():
+		return ""
+	return "\n".join(buf)
 
 static func _wait_for_command(client: Node, inbox: Array[RefCounted], want_cmd: String, max_frames: int) -> bool:
 	for _i in range(max_frames):

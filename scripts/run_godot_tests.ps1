@@ -22,7 +22,7 @@ function Run-ProcessCapture {
     [Parameter(Mandatory = $true)][string]$FilePath,
     [Parameter(Mandatory = $true)][string[]]$Args,
     [Parameter(Mandatory = $true)][string]$WorkingDirectory,
-    [Parameter(Mandatory = $true)][int]$TimeoutMs
+    [Parameter(Mandatory = $true)][int]$TimeoutSec
   )
 
   $psi = [System.Diagnostics.ProcessStartInfo]::new()
@@ -31,35 +31,35 @@ function Run-ProcessCapture {
   $psi.UseShellExecute = $false
   $psi.RedirectStandardOutput = $true
   $psi.RedirectStandardError = $true
+  $psi.CreateNoWindow = $true
   $psi.Arguments = (($Args | ForEach-Object { Quote-Arg $_ }) -join ' ')
 
   $p = [System.Diagnostics.Process]::new()
   $p.StartInfo = $psi
-  [void]$p.Start()
 
-  $exited = $p.WaitForExit($TimeoutMs)
-  if (-not $exited) {
+  [void]$p.Start()
+  # Read stdout/stderr concurrently to avoid deadlocks on full pipe buffers.
+  $outTask = $p.StandardOutput.ReadToEndAsync()
+  $errTask = $p.StandardError.ReadToEndAsync()
+
+  $timedOut = -not $p.WaitForExit($TimeoutSec * 1000)
+  if ($timedOut) {
     try { $p.Kill($true) } catch { try { Stop-Process -Id $p.Id -Force } catch {} }
-    return @{
-      ok = $false
-      timed_out = $true
-      exit_code = 1
-      stdout = ""
-      stderr = ""
-    }
   }
 
-  # Drain pipes *after* exit, then wait again to ensure streams flush.
-  $stdout = $p.StandardOutput.ReadToEnd()
-  $stderr = $p.StandardError.ReadToEnd()
+  # Ensure streams close + tasks complete.
   $p.WaitForExit()
 
+  $stdoutText = ""
+  $stderrText = ""
+  try { $stdoutText = $outTask.GetAwaiter().GetResult() } catch { $stdoutText = "" }
+  try { $stderrText = $errTask.GetAwaiter().GetResult() } catch { $stderrText = "" }
+
   return @{
-    ok = $true
-    timed_out = $false
+    timed_out = $timedOut
     exit_code = [int]$p.ExitCode
-    stdout = $stdout
-    stderr = $stderr
+    stdout = $stdoutText
+    stderr = $stderrText
   }
 }
 
@@ -154,15 +154,16 @@ foreach ($t in $tests) {
   if ($ExtraArgs.Count -gt 0) { $args += $ExtraArgs }
   $args += @("--headless", "--path", $RootDir.Path, "--script", $scriptPath)
 
-  $res = Run-ProcessCapture -FilePath $GodotExe -Args $args -WorkingDirectory $RootDir.Path -TimeoutMs ($TimeoutSec * 1000)
-  if ($res.stdout) { $res.stdout | Write-Host }
-  if ($res.stderr) { $res.stderr | Write-Host }
-
+  $res = Run-ProcessCapture -FilePath $GodotExe -Args $args -WorkingDirectory $RootDir.Path -TimeoutSec $TimeoutSec
   if ($res.timed_out) {
     Write-Host ("TIMEOUT after {0}s: {1}" -f $TimeoutSec, $t)
     $status = 1
     continue
   }
+
+  if (-not [string]::IsNullOrWhiteSpace($res.stdout)) { $res.stdout | Write-Host }
+  if (-not [string]::IsNullOrWhiteSpace($res.stderr)) { $res.stderr | Write-Host }
+
   if ($res.exit_code -ne 0) { $status = 1 }
 }
 

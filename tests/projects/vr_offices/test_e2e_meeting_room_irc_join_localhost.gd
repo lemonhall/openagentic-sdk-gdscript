@@ -148,59 +148,50 @@ func _init() -> void:
 	for nid in npc_ids:
 		want_nicks.append(String(IrcNames.derive_nick(save_id, nid, 9)).strip_edges())
 
-	var mon := IrcClient.new()
-	mon.name = "IrcMonitor"
-	get_root().add_child(mon)
-	await process_frame
-
-	var mon_nick := _monitor_nick()
-	mon.call("set_cap_enabled", false)
-	mon.call("set_auto_reconnect_enabled", false)
-	mon.call("set_auto_rejoin_enabled", false)
-	mon.call("set_nick", mon_nick)
-	mon.call("set_user", mon_nick, "0", "*", mon_nick)
-
-	var inbox: Array[RefCounted] = []
-	mon.message_received.connect(func(m: RefCounted) -> void:
-		inbox.append(m)
-	)
-	mon.error.connect(func(e: String) -> void:
-		print("MONITOR error: %s" % e)
-	)
-	mon.connect_to(irc_host, irc_port)
-
-	if not await _wait_for_command(mon, inbox, "001", 900):
-		_cleanup(s, mon, oa, created_oa)
-		T.fail_and_quit(self, "IRC monitor did not register (missing 001) to %s:%d" % [irc_host, irc_port])
+	var bridge := s.get_node_or_null("MeetingRoomIrcBridge") as Node
+	if bridge == null:
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Missing MeetingRoomIrcBridge")
 		return
 
-	mon.join(ch)
+	# Use the host's real IRC connection to query NAMES (avoid extra monitor connection;
+	# some servers cap connections per IP).
+	var host_link0: Variant = bridge.call("get_host_link", rid) if bridge.has_method("get_host_link") else null
+	var host_link := host_link0 as Node
+	if host_link == null or not is_instance_valid(host_link):
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Missing host IRC link")
+		return
+	if not await _wait_for_ready(host_link, 900):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Host IRC link did not become ready (JOIN) to %s:%d" % [irc_host, irc_port])
+		return
+
 	# Retry NAMES until the server reports all expected nicks in the channel.
 	var missing_last: Array[String] = []
 	var ok := false
 	for _attempt in range(18):
-		var names := await _names_for_channel(mon, inbox, ch, 240)
+		var names0: Variant = await host_link.call("request_names_for_desired_channel", 240) if host_link.has_method("request_names_for_desired_channel") else {}
+		var names: Dictionary = names0 as Dictionary if typeof(names0) == TYPE_DICTIONARY else {}
 		var missing := _missing_nicks(names, want_nicks)
 		if missing.is_empty():
 			print("E2E OK: channel=%s nicks=%s" % [ch, ", ".join(want_nicks)])
 			ok = true
 			break
 		missing_last = missing
-		await _pump(mon, 30)
+		await _pump(null, 30)
 
-	_cleanup(s, mon, oa, created_oa)
+	if bridge.has_method("close_room_connections"):
+		bridge.call("close_room_connections", rid)
+	_cleanup(s, oa, created_oa)
 	if ok:
 		T.pass_and_quit(self)
 		return
 	T.fail_and_quit(self, "E2E FAIL: channel=%s missing=%s (expected=%s)" % [ch, ", ".join(missing_last), ", ".join(want_nicks)])
 
-func _cleanup(vr_scene: Node, monitor: Node, oa: Node, created_oa: bool) -> void:
-	if monitor != null and is_instance_valid(monitor):
-		if monitor.has_method("close_connection"):
-			monitor.call("close_connection")
-		if monitor.get_parent() != null:
-			monitor.get_parent().remove_child(monitor)
-		monitor.free()
+func _cleanup(vr_scene: Node, oa: Node, created_oa: bool) -> void:
 	if vr_scene != null and is_instance_valid(vr_scene):
 		if vr_scene.get_parent() != null:
 			vr_scene.get_parent().remove_child(vr_scene)
@@ -285,6 +276,15 @@ static func _pump(client: Node, frames: int) -> void:
 		if client != null:
 			client.call("poll", 0.016)
 		await Engine.get_main_loop().process_frame
+
+static func _wait_for_ready(link: Node, max_frames: int) -> bool:
+	if link == null or not is_instance_valid(link) or not link.has_method("is_ready"):
+		return false
+	for _i in range(max_frames):
+		if bool(link.call("is_ready")):
+			return true
+		await _pump(null, 1)
+	return false
 
 static func _wait_for_command(client: Node, inbox: Array[RefCounted], want_cmd: String, max_frames: int) -> bool:
 	for _i in range(max_frames):
