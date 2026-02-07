@@ -14,6 +14,7 @@ const _WorkspaceManagerScript := preload("res://vr_offices/core/workspaces/VrOff
 const _WorkspaceControllerScript := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceController.gd")
 const _MeetingRoomManagerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomManager.gd")
 const _MeetingRoomControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomController.gd")
+const _MeetingRoomChatControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChatController.gd")
 const _DeskManagerScript := preload("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/audio/VrOfficesBgm.gd")
 const _IrcSettingsScript := preload("res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
@@ -46,6 +47,8 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var vending_overlay: Control = $UI/VendingMachineOverlay
 @onready var npc_skills_overlay: Control = $UI/VrOfficesNpcSkillsOverlay
 @onready var manager_dialogue_overlay: Control = $UI/VrOfficesManagerDialogueOverlay
+@onready var meeting_room_chat_overlay: Control = $UI/MeetingRoomChatOverlay
+@onready var dialogue_blocker: Control = $UI/DialogueBlocker
 @onready var npc_skills_service: Node = $NpcSkillsService
 @onready var bgm: AudioStreamPlayer = $Bgm
 
@@ -56,6 +59,7 @@ var _chat_history: RefCounted = null
 var _world_state: RefCounted = null
 var _save_ctrl: RefCounted = null
 var _dialogue_ctrl: RefCounted = null
+var _meeting_room_chat_ctrl: RefCounted = null
 var _input_ctrl: RefCounted = null
 var _move_ctrl: RefCounted = null
 var _workspace_manager: RefCounted = null
@@ -142,6 +146,21 @@ func _ready() -> void:
 		if dialogue_surface.has_signal("skills_pressed"):
 			dialogue_surface.connect("skills_pressed", Callable(self, "_on_dialogue_skills_pressed"))
 
+	_meeting_room_chat_ctrl = _MeetingRoomChatControllerScript.new(
+		self,
+		camera_rig,
+		meeting_room_chat_overlay,
+		oa,
+		_chat_history,
+		Callable(self, "_is_headless"),
+		Callable(_agent, "effective_save_id")
+	)
+	if meeting_room_chat_overlay != null and _meeting_room_chat_ctrl != null:
+		if meeting_room_chat_overlay.has_signal("message_submitted"):
+			meeting_room_chat_overlay.connect("message_submitted", Callable(_meeting_room_chat_ctrl, "on_message_submitted"))
+		if meeting_room_chat_overlay.has_signal("closed"):
+			meeting_room_chat_overlay.connect("closed", Callable(_meeting_room_chat_ctrl, "close"))
+
 	if npc_skills_overlay != null and npc_skills_overlay.has_signal("closed"):
 		if not npc_skills_overlay.is_connected("closed", Callable(self, "_on_npc_skills_overlay_closed")):
 			npc_skills_overlay.connect("closed", Callable(self, "_on_npc_skills_overlay_closed"))
@@ -170,10 +189,10 @@ func _ready() -> void:
 		workspace_overlay,
 		Callable(self, "autosave")
 	)
-	var dialogue_blocker: Control = manager_dialogue_overlay if manager_dialogue_overlay != null else dialogue
+	var dlg_blocker: Control = dialogue_blocker if dialogue_blocker != null else (manager_dialogue_overlay if manager_dialogue_overlay != null else dialogue)
 	_input_ctrl = _InputControllerScript.new(
 		self,
-		dialogue_blocker,
+		dlg_blocker,
 		camera_rig,
 		_dialogue_ctrl,
 		Callable(self, "_command_selected_move_to_click"),
@@ -319,6 +338,29 @@ func open_vending_machine_overlay() -> void:
 		return
 	if vending_overlay.has_method("open"):
 		vending_overlay.call("open")
+
+func open_meeting_room_chat_for_mic(mic_node: Node) -> void:
+	if mic_node == null or _meeting_room_chat_ctrl == null:
+		return
+	var cur: Node = mic_node
+	while cur != null:
+		if cur.is_in_group("vr_offices_meeting_room"):
+			var rid := ""
+			var name := ""
+			if cur.has_method("get"):
+				var rid0: Variant = cur.get("meeting_room_id")
+				if rid0 != null:
+					rid = String(rid0).strip_edges()
+				var name0: Variant = cur.get("meeting_room_name")
+				if name0 != null:
+					name = String(name0).strip_edges()
+			if rid != "":
+				var label := name
+				if label == "":
+					label = "Meeting Room"
+				_meeting_room_chat_ctrl.call("open_for_meeting_room", rid, label)
+			return
+		cur = cur.get_parent()
 
 func open_manager_dialogue_for_workspace(workspace_id: String) -> void:
 	var wid := workspace_id.strip_edges()

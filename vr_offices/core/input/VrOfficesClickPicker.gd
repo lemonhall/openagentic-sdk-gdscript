@@ -25,6 +25,12 @@ static func try_pick_manager_desk(owner: Node, camera_rig: Node, screen_pos: Vec
 	return _find_owner_in_group(hit.get("collider") as Object, "vr_offices_manager_desk")
 
 static func try_pick_double_click_prop(owner: Node, camera_rig: Node, screen_pos: Vector2) -> Dictionary:
+	var hit_mic := _raycast(owner, camera_rig, screen_pos, 64)
+	if not hit_mic.is_empty():
+		var mic := _find_owner_in_group(hit_mic.get("collider") as Object, "vr_offices_meeting_mic")
+		if mic != null:
+			return {"type": "meeting_mic", "node": mic}
+
 	var hit_vending := _raycast(owner, camera_rig, screen_pos, 16)
 	if not hit_vending.is_empty():
 		var vending := _find_owner_in_group(hit_vending.get("collider") as Object, "vr_offices_vending_machine")

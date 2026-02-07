@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://vr_offices/VrOffices.gd" id="1"]
 [ext_resource type="PackedScene" path="res://vr_offices/camera/OrbitCameraRig.tscn" id="2"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://vr_offices/core/skills/VrOfficesNpcSkillsService.gd" id="15"]
 [ext_resource type="Script" path="res://vr_offices/core/skill_library/thumbnails/VrOfficesSkillLibraryThumbnailService.gd" id="16"]
 [ext_resource type="PackedScene" path="res://vr_offices/ui/VrOfficesManagerDialogueOverlay.tscn" id="17"]
+[ext_resource type="Script" path="res://vr_offices/ui/VrOfficesDialogueBlocker.gd" id="18"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20, 20)
@@ -90,6 +91,12 @@ position = Vector3(0, 0, 0)
 [node name="VrOfficesNpcSkillsOverlay" parent="UI" instance=ExtResource("14")]
 
 [node name="VrOfficesManagerDialogueOverlay" parent="UI" instance=ExtResource("17")]
+
+[node name="MeetingRoomChatOverlay" parent="UI" instance=ExtResource("6")]
+
+[node name="DialogueBlocker" type="Control" parent="UI"]
+script = ExtResource("18")
+overlays = [NodePath("../VrOfficesManagerDialogueOverlay"), NodePath("../DialogueOverlay"), NodePath("../MeetingRoomChatOverlay")]
 
 [node name="NpcSkillsService" type="Node" parent="."]
 script = ExtResource("15")

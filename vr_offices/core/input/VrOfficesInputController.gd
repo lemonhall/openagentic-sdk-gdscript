@@ -69,6 +69,10 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 					owner.call("open_vending_machine_overlay")
 					owner.get_viewport().set_input_as_handled()
 					return
+				if typ == "meeting_mic" and owner.has_method("open_meeting_room_chat_for_mic"):
+					owner.call("open_meeting_room_chat_for_mic", pp.get("node", null))
+					owner.get_viewport().set_input_as_handled()
+					return
 				if typ == "manager_desk" and open_manager_dialogue_for_workspace.is_valid():
 					var manager_desk0 := pp.get("node", null) as Node
 					var workspace_id0 := _workspace_id_for_manager_desk(manager_desk0)

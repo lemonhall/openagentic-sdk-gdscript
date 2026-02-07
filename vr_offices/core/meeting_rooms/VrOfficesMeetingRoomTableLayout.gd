@@ -1,6 +1,7 @@
 extends RefCounted
 
 const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
+const _PickBody := preload("res://vr_offices/core/props/VrOfficesPickBodyUtils.gd")
 const _ModelUtils := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomDecorationModelUtils.gd")
 
 const MIC_SCENE := "res://assets/meeting_room/mic.glb"
@@ -10,6 +11,7 @@ const _MIC_END_INSET := 0.12
 const _MIC_Y_EPS := 0.01
 const _MIC_YAW_OFFSET :=  PI * 1.5
 const _MIC_INDICATOR_GAP := 0.12
+const _MIC_PICK_LAYER := 64
 
 const _TABLE_COLLISION_LAYER := 1 # Layer 1 (floor/props): NPCs collide with this.
 const _NPC_COLLISION_LAYER := 2 # vr_offices/npc/Npc.tscn: collision_layer = 2
@@ -110,23 +112,39 @@ static func _place_mic_on_table(table_wrap: Node3D, table_model: Node3D) -> void
 	var table_bounds := _ModelUtils.bounds_in_space(table_wrap, table_model)
 	if table_bounds.size == Vector3.ZERO:
 		return
-	var mic_bounds := _ModelUtils.bounds_in_space(table_wrap, mic_model)
-	if mic_bounds.size == Vector3.ZERO:
-		mic_bounds = AABB(Vector3(-0.05, 0.0, -0.05), Vector3(0.1, target_h, 0.1))
+	var mic_bounds_table := _ModelUtils.bounds_in_space(table_wrap, mic_model)
+	if mic_bounds_table.size == Vector3.ZERO:
+		mic_bounds_table = AABB(Vector3(-0.05, 0.0, -0.05), Vector3(0.1, target_h, 0.1))
+	var mic_bounds_local := _ModelUtils.bounds_in_space(mic_wrap, mic_model)
+	if mic_bounds_local.size == Vector3.ZERO:
+		mic_bounds_local = AABB(Vector3(-0.05, 0.0, -0.05), Vector3(0.1, target_h, 0.1))
+
+	_ensure_mic_pick_body(mic_wrap, mic_bounds_local)
 
 	var top_y := float(table_bounds.position.y + table_bounds.size.y)
 	var long_is_x := float(table_bounds.size.x) >= float(table_bounds.size.z)
 	var inset := _MIC_END_INSET
 	if long_is_x:
 		var max_x := float(table_bounds.position.x + table_bounds.size.x)
-		var half_mic := float(mic_bounds.size.x) * 0.5
+		var half_mic := float(mic_bounds_table.size.x) * 0.5
 		mic_wrap.position = Vector3(max_x - inset - half_mic, top_y + _MIC_Y_EPS, 0.0)
 	else:
 		var max_z := float(table_bounds.position.z + table_bounds.size.z)
-		var half_micz := float(mic_bounds.size.z) * 0.5
+		var half_micz := float(mic_bounds_table.size.z) * 0.5
 		mic_wrap.position = Vector3(0.0, top_y + _MIC_Y_EPS, max_z - inset - half_micz)
 
-	_ensure_mic_indicator(mic_wrap, mic_model, mic_bounds)
+	_ensure_mic_indicator(mic_wrap, mic_model, mic_bounds_local)
+
+static func _ensure_mic_pick_body(mic_wrap: Node3D, mic_bounds: AABB) -> void:
+	if mic_wrap == null:
+		return
+	var b := mic_bounds
+	if b.size == Vector3.ZERO:
+		b = AABB(Vector3(-0.05, 0.0, -0.05), Vector3(0.1, 0.1, 0.1))
+	var size := b.size + Vector3(0.05, 0.08, 0.05)
+	size = Vector3(maxf(0.12, float(size.x)), maxf(0.12, float(size.y)), maxf(0.12, float(size.z)))
+	var center := b.position + b.size * 0.5
+	_PickBody.ensure_box_pick_body(mic_wrap, "vr_offices_meeting_mic", _MIC_PICK_LAYER, size, center)
 
 static func _ensure_mic_indicator(mic_wrap: Node3D, mic_model: Node3D, mic_bounds: AABB) -> void:
 	if mic_wrap == null or mic_model == null:
