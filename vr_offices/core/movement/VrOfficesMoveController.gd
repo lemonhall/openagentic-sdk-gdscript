@@ -8,6 +8,7 @@ var indicator_scene: PackedScene = null
 
 var floor_bounds_xz := Rect2(Vector2(-10.0, -10.0), Vector2(20.0, 20.0))
 var _move_indicator_by_npc_id: Dictionary = {}
+var _transform_move_command: Callable = Callable()
 
 func _init(
 	owner_in: Node,
@@ -30,6 +31,9 @@ func connect_npc_signals(npc: Node) -> void:
 		var cb := Callable(self, "_on_npc_move_target_reached")
 		if not npc.is_connected("move_target_reached", cb):
 			npc.connect("move_target_reached", cb)
+
+func set_move_command_transformer(cb: Callable) -> void:
+	_transform_move_command = cb
 
 func clear_move_indicator_for_node(npc: Node) -> void:
 	if npc == null:
@@ -77,6 +81,19 @@ func command_selected_move_to_click(selected_npc: Node, screen_pos: Vector2) -> 
 	var max_z := floor_bounds_xz.position.y + floor_bounds_xz.size.y
 	p.x = clampf(p.x, min_x, max_x)
 	p.z = clampf(p.z, min_z, max_z)
+
+	var skip_default := false
+	if _transform_move_command.is_valid():
+		var t0: Variant = _transform_move_command.call(selected_npc, p)
+		if typeof(t0) == TYPE_DICTIONARY:
+			var tr := t0 as Dictionary
+			skip_default = bool(tr.get("skip_default", false))
+			var tp0: Variant = tr.get("target", null)
+			if tp0 is Vector3:
+				p = tp0 as Vector3
+	if skip_default:
+		_show_move_indicator_for_node(selected_npc, p)
+		return
 
 	selected_npc.call("command_move_to", p)
 	_show_move_indicator_for_node(selected_npc, p)
