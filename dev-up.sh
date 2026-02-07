@@ -58,6 +58,17 @@ if [[ -f "$ROOT/.env" ]]; then
   set +a
 fi
 
+# Keep a single source of truth across components:
+# - Rust remote daemon reads OA_IRC_*
+# - VR Offices reads VR_OFFICES_IRC_*
+export VR_OFFICES_IRC_HOST="${VR_OFFICES_IRC_HOST:-${OA_IRC_HOST:-}}"
+export VR_OFFICES_IRC_PORT="${VR_OFFICES_IRC_PORT:-${OA_IRC_PORT:-}}"
+export VR_OFFICES_IRC_PASSWORD="${VR_OFFICES_IRC_PASSWORD:-${OA_IRC_PASSWORD:-}}"
+
+export OA_IRC_HOST="${OA_IRC_HOST:-${VR_OFFICES_IRC_HOST:-}}"
+export OA_IRC_PORT="${OA_IRC_PORT:-${VR_OFFICES_IRC_PORT:-}}"
+export OA_IRC_PASSWORD="${OA_IRC_PASSWORD:-${VR_OFFICES_IRC_PASSWORD:-}}"
+
 PROXY_HOST="${OPENAGENTIC_PROXY_HOST:-127.0.0.1}"
 PROXY_PORT="${OPENAGENTIC_PROXY_PORT:-8787}"
 MEDIA_HOST="${OPENAGENTIC_MEDIA_HOST:-127.0.0.1}"
@@ -98,7 +109,7 @@ fi
 if [[ "$CHECK" -eq 1 ]]; then
   if [[ "$missing" -ne 0 ]]; then
     echo >&2
-    echo "Hint: copy `.env.example` to `.env` and fill required values." >&2
+    echo 'Hint: copy `.env.example` to `.env` and fill required values.' >&2
   fi
   exit "$missing"
 fi

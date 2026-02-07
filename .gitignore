@@ -23,6 +23,7 @@ proxy/.env
 
 # Dev launcher logs/state
 .dev/
+.openagentic_remote/
 
 # Local tools (e.g., Linux Godot binary)
 tools/

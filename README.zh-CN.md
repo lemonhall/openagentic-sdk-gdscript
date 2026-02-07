@@ -127,10 +127,27 @@ cp .env.example .env
 bash dev-up.sh --no-daemon
 ```
 
+Windows（PowerShell）：
+
+```powershell
+Copy-Item .env.example .env
+# 编辑 .env（至少设置 OPENAI_API_KEY、OPENAGENTIC_MEDIA_BEARER_TOKEN 等）
+
+pwsh -NoProfile -File dev-up.ps1 --no-daemon
+```
+
+注意：Rust remote daemon 会连接 IRC 服务器（默认 `127.0.0.1:6667`）。如果你本机没跑 IRC server，请用 `--no-daemon`。
+
 如需在同一环境变量下直接启动某个命令：
 
 ```bash
 bash dev-up.sh --no-daemon -- godot4 --path .
+```
+
+Windows（PowerShell）：
+
+```powershell
+pwsh -NoProfile -File dev-up.ps1 --no-daemon godot4 --path .
 ```
 
 ## 测试（本地）

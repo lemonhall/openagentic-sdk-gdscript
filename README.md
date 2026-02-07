@@ -127,10 +127,27 @@ cp .env.example .env
 bash dev-up.sh --no-daemon
 ```
 
+Windows (PowerShell):
+
+```powershell
+Copy-Item .env.example .env
+# edit .env (set OPENAI_API_KEY, OPENAGENTIC_MEDIA_BEARER_TOKEN, etc.)
+
+pwsh -NoProfile -File dev-up.ps1 --no-daemon
+```
+
+Note: the Rust remote daemon connects to an IRC server (defaults to `127.0.0.1:6667`). If you don’t have one running, use `--no-daemon`.
+
 To run a command with the same environment:
 
 ```bash
 bash dev-up.sh --no-daemon -- godot4 --path .
+```
+
+Windows (PowerShell):
+
+```powershell
+pwsh -NoProfile -File dev-up.ps1 --no-daemon godot4 --path .
 ```
 
 ## Tests (local)
