@@ -8,6 +8,61 @@ Param(
 
 $ErrorActionPreference = "Stop"
 
+function Quote-Arg([string]$a) {
+  if ($null -eq $a) { return '""' }
+  if ($a -match '[\s"]') {
+    $escaped = $a -replace '"', '\\"'
+    return '"' + $escaped + '"'
+  }
+  return $a
+}
+
+function Run-ProcessCapture {
+  Param(
+    [Parameter(Mandatory = $true)][string]$FilePath,
+    [Parameter(Mandatory = $true)][string[]]$Args,
+    [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+    [Parameter(Mandatory = $true)][int]$TimeoutMs
+  )
+
+  $psi = [System.Diagnostics.ProcessStartInfo]::new()
+  $psi.FileName = $FilePath
+  $psi.WorkingDirectory = $WorkingDirectory
+  $psi.UseShellExecute = $false
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $psi.Arguments = (($Args | ForEach-Object { Quote-Arg $_ }) -join ' ')
+
+  $p = [System.Diagnostics.Process]::new()
+  $p.StartInfo = $psi
+  [void]$p.Start()
+
+  $exited = $p.WaitForExit($TimeoutMs)
+  if (-not $exited) {
+    try { $p.Kill($true) } catch { try { Stop-Process -Id $p.Id -Force } catch {} }
+    return @{
+      ok = $false
+      timed_out = $true
+      exit_code = 1
+      stdout = ""
+      stderr = ""
+    }
+  }
+
+  # Drain pipes *after* exit, then wait again to ensure streams flush.
+  $stdout = $p.StandardOutput.ReadToEnd()
+  $stderr = $p.StandardError.ReadToEnd()
+  $p.WaitForExit()
+
+  return @{
+    ok = $true
+    timed_out = $false
+    exit_code = [int]$p.ExitCode
+    stdout = $stdout
+    stderr = $stderr
+  }
+}
+
 function Usage {
   Write-Host @"
 Run Godot headless test scripts from Windows (PowerShell).
@@ -95,26 +150,20 @@ foreach ($t in $tests) {
   }
 
   Write-Host "--- RUN $t"
-  $out = Join-Path $env:TEMP ("godot-test-out-" + [Guid]::NewGuid().ToString("N") + ".txt")
-  $err = Join-Path $env:TEMP ("godot-test-err-" + [Guid]::NewGuid().ToString("N") + ".txt")
-
   $args = @()
   if ($ExtraArgs.Count -gt 0) { $args += $ExtraArgs }
-  $args += @("--headless", "--path", $RootDir, "--script", $scriptPath)
+  $args += @("--headless", "--path", $RootDir.Path, "--script", $scriptPath)
 
-  $p = Start-Process -FilePath $GodotExe -ArgumentList $args -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
-  $exited = $p.WaitForExit($TimeoutSec * 1000)
-  if (-not $exited) {
-    try { $p.Kill($true) } catch { try { Stop-Process -Id $p.Id -Force } catch {} }
+  $res = Run-ProcessCapture -FilePath $GodotExe -Args $args -WorkingDirectory $RootDir.Path -TimeoutMs ($TimeoutSec * 1000)
+  if ($res.stdout) { $res.stdout | Write-Host }
+  if ($res.stderr) { $res.stderr | Write-Host }
+
+  if ($res.timed_out) {
     Write-Host ("TIMEOUT after {0}s: {1}" -f $TimeoutSec, $t)
     $status = 1
+    continue
   }
-
-  if (Test-Path $out) { Get-Content $out | Write-Host }
-  if (Test-Path $err) { Get-Content $err | Write-Host }
-  Remove-Item -ErrorAction SilentlyContinue $out, $err
-
-  if ($p.ExitCode -ne 0) { $status = 1 }
+  if ($res.exit_code -ne 0) { $status = 1 }
 }
 
 exit $status

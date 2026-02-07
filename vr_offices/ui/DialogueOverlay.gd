@@ -3,6 +3,7 @@ extends Control
 signal message_submitted(text: String)
 signal closed
 signal skills_pressed(save_id: String, npc_id: String, npc_name: String)
+signal participants_refresh_requested
 
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _OAMediaRef := preload("res://addons/openagentic/core/OAMediaRef.gd")
@@ -32,6 +33,7 @@ const _MediaSendLog := preload("res://vr_offices/core/media/VrOfficesMediaSendLo
 @onready var backdrop: ColorRect = $Backdrop
 @onready var participants_panel: Control = %ParticipantsPanel
 @onready var participants_list: ItemList = %ParticipantsList
+@onready var participants_refresh_button: Button = %ParticipantsRefreshButton
 
 var _npc_id: String = ""
 var _npc_name: String = ""
@@ -74,6 +76,10 @@ func _ready() -> void:
 		get_tree().files_dropped.connect(_on_files_dropped)
 
 	_reset_attachments()
+	if participants_refresh_button != null:
+		participants_refresh_button.pressed.connect(func() -> void:
+			participants_refresh_requested.emit()
+		)
 
 func _gui_input(event: InputEvent) -> void:
 	# When the overlay is visible, it should "own" mouse interactions so that the

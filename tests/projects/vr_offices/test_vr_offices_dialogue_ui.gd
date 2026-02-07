@@ -58,13 +58,13 @@ func _init() -> void:
 	if not T.require_true(self, panel_height_ratio >= 0.63, "Expected dialogue panel height >= ~2/3. Got: %s" % str(panel_height_ratio)):
 		return
 
-	var title := overlay.get_node("Panel/VBox/Header/TitleLabel") as Label
+	var title := overlay.get_node_or_null("%TitleLabel") as Label
 	if not T.require_true(self, title != null, "Missing TitleLabel"):
 		return
 	if not T.require_eq(self, title.text, "林晓", "Title must reflect npc_name"):
 		return
 
-	var size_label := overlay.get_node_or_null("Panel/VBox/Header/SessionLogSizeLabel") as Label
+	var size_label := overlay.get_node_or_null("%SessionLogSizeLabel") as Label
 	if not T.require_true(self, size_label != null, "Missing SessionLogSizeLabel"):
 		return
 	if not T.require_true(self, size_label.text.find("events.jsonl=") != -1, "Expected events.jsonl size label"):
@@ -72,19 +72,19 @@ func _init() -> void:
 	if not T.require_true(self, size_label.text.find("%dB" % expected_bytes) != -1, "Expected label to include file size in bytes. Got: " + size_label.text):
 		return
 
-	var clear_btn := overlay.get_node_or_null("Panel/VBox/Header/ClearSessionLogButton") as Button
+	var clear_btn := overlay.get_node_or_null("%ClearSessionLogButton") as Button
 	if not T.require_true(self, clear_btn != null, "Missing ClearSessionLogButton"):
 		return
 
 	# Entry: Skills button (NPC personal skill management).
-	var skills_btn := overlay.get_node_or_null("Panel/VBox/Header/SkillsButton") as Button
+	var skills_btn := overlay.get_node_or_null("%SkillsButton") as Button
 	if not T.require_true(self, skills_btn != null, "Missing SkillsButton"):
 		return
 	if not T.require_true(self, skills_btn.disabled == false, "SkillsButton should be enabled after open()"):
 		return
 
 	# Message append.
-	var messages := overlay.get_node("Panel/VBox/Scroll/Messages") as VBoxContainer
+	var messages := overlay.get_node_or_null("%Messages") as VBoxContainer
 	if not T.require_true(self, messages != null, "Missing Messages container"):
 		return
 	if not T.require_eq(self, messages.get_child_count(), 0, "Messages should start empty"):
@@ -116,8 +116,8 @@ func _init() -> void:
 	# Busy state toggles input.
 	if not T.require_true(self, overlay.has_method("set_busy"), "DialogueOverlay must have set_busy()"):
 		return
-	var input := overlay.get_node("Panel/VBox/Footer/Input") as LineEdit
-	var send := overlay.get_node("Panel/VBox/Footer/SendButton") as Button
+	var input := overlay.get_node_or_null("%Input") as LineEdit
+	var send := overlay.get_node_or_null("%SendButton") as Button
 	if not T.require_true(self, input != null and send != null, "Missing input/send controls"):
 		return
 	overlay.call("set_busy", true)

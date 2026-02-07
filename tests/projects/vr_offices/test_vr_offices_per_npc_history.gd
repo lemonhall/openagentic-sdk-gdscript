@@ -59,7 +59,7 @@ func _init() -> void:
 		overlay = shell.call("get_embedded_dialogue") as Control
 	if not T.require_true(self, overlay != null, "Expected embedded dialogue in manager shell"):
 		return
-	var messages := overlay.get_node_or_null("Panel/VBox/Scroll/Messages") as VBoxContainer
+	var messages := overlay.get_node_or_null("%Messages") as VBoxContainer
 	if not T.require_true(self, messages != null, "Missing Messages container"):
 		return
 

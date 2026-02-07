@@ -176,6 +176,8 @@ func _ready() -> void:
 			meeting_room_chat_overlay.connect("message_submitted", Callable(_meeting_room_chat_ctrl, "on_message_submitted"))
 		if meeting_room_chat_overlay.has_signal("closed"):
 			meeting_room_chat_overlay.connect("closed", Callable(_meeting_room_chat_ctrl, "close"))
+		if meeting_room_chat_overlay.has_signal("participants_refresh_requested"):
+			meeting_room_chat_overlay.connect("participants_refresh_requested", Callable(_meeting_room_chat_ctrl, "refresh_roster"))
 
 	if npc_skills_overlay != null and npc_skills_overlay.has_signal("closed"):
 		if not npc_skills_overlay.is_connected("closed", Callable(self, "_on_npc_skills_overlay_closed")):

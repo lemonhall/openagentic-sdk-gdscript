@@ -1,26 +1,20 @@
 extends Node
-
 const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
 const _LinkScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomIrcLink.gd")
-
+const _TextSplit := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomTextSplit.gd")
 var _config: Dictionary = {}
 var _get_save_id: Callable = Callable()
 var _is_headless: Callable = Callable()
-
 # meeting_room_id -> { host: Node, npcs: Dictionary[npc_id -> Node] }
 var _rooms: Dictionary = {}
-
 func _online_tests_enabled() -> bool:
 	return OS.get_cmdline_args().has("--oa-online-tests")
-
 func bind(get_save_id: Callable, is_headless: Callable) -> void:
 	_get_save_id = get_save_id
 	_is_headless = is_headless
-
 func set_config(cfg: Dictionary) -> void:
 	_config = cfg if cfg != null else {}
 	_reconfigure_all()
-
 func join_participant(meeting_room_id: String, npc_id: String, _display_name: String, irc_nick: String, _channel: String) -> void:
 	if not _enabled():
 		return
@@ -30,7 +24,6 @@ func join_participant(meeting_room_id: String, npc_id: String, _display_name: St
 		return
 	_ensure_host_link(rid)
 	_ensure_npc_link(rid, nid, irc_nick.strip_edges())
-
 func ensure_host_for_room(meeting_room_id: String) -> void:
 	if not _enabled():
 		return
@@ -61,7 +54,6 @@ func part_participant(meeting_room_id: String, npc_id: String) -> void:
 	npcs.erase(nid)
 	st["npcs"] = npcs
 	_rooms[rid] = st
-
 func send_human_message(meeting_room_id: String, text: String) -> void:
 	if not _enabled():
 		return
@@ -70,9 +62,7 @@ func send_human_message(meeting_room_id: String, text: String) -> void:
 	if rid == "" or t == "":
 		return
 	var host := _ensure_host_link(rid)
-	if host != null and host.has_method("send_channel_message"):
-		host.call("send_channel_message", t)
-
+	_send_text(host, t)
 func send_npc_message(meeting_room_id: String, npc_id: String, text: String) -> void:
 	if not _enabled():
 		return
@@ -82,21 +72,27 @@ func send_npc_message(meeting_room_id: String, npc_id: String, text: String) -> 
 	if rid == "" or nid == "" or t == "":
 		return
 	var link := _npc_link(rid, nid)
-	if link != null and link.has_method("send_channel_message"):
-		link.call("send_channel_message", t)
-
+	_send_text(link, t)
+func _send_text(link: Node, text: String) -> void:
+	if link == null or not is_instance_valid(link) or not link.has_method("send_channel_message"):
+		return
+	var chunks: Array[String] = _TextSplit.split_text(text, 320) if _TextSplit != null else []
+	if chunks.is_empty():
+		chunks = [text]
+	for c in chunks:
+		var s := String(c).strip_edges()
+		if s != "":
+			link.call("send_channel_message", s)
 func _enabled() -> bool:
 	if _is_headless.is_valid() and bool(_is_headless.call()) and not _online_tests_enabled():
 		return false
 	var host := String(_config.get("host", "")).strip_edges()
 	var port := int(_config.get("port", 0))
 	return host != "" and port > 0
-
 func _effective_save_id() -> String:
 	if _get_save_id.is_valid():
 		return String(_get_save_id.call()).strip_edges()
 	return ""
-
 func _ensure_host_link(meeting_room_id: String) -> Node:
 	var rid := meeting_room_id.strip_edges()
 	if rid == "":
@@ -112,7 +108,6 @@ func _ensure_host_link(meeting_room_id: String) -> Node:
 		st["host"] = host
 		_rooms[rid] = st
 	return host
-
 func _ensure_npc_link(meeting_room_id: String, npc_id: String, nick: String) -> Node:
 	var rid := meeting_room_id.strip_edges()
 	var nid := npc_id.strip_edges()

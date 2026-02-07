@@ -38,3 +38,7 @@ Manual playtests can’t easily tell whether NPCs are “in the meeting” (and 
 3) **Green:** emit roster-changed from `VrOfficesMeetingRoomChannelHub.gd` and subscribe from `VrOfficesMeetingRoomChatController.gd` to update the overlay list.
 4) **Verify:** run the single test then `-Suite vr_offices`.
 
+## Evidence
+
+- 2026-02-07: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` → PASS
+- 2026-02-07: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` → EXIT=0

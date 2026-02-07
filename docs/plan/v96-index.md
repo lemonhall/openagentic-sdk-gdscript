@@ -22,7 +22,7 @@ Goal: stop arguing about “real IRC join” by adding a localhost E2E test that
 
 | Req ID | Plan | Tests / Verify | Evidence |
 |---|---|---|---|
-| REQ-012 | v96 | `tests/projects/vr_offices/test_e2e_meeting_room_irc_join_localhost.gd` | (pending) |
+| REQ-012 | v96 | `tests/projects/vr_offices/test_e2e_meeting_room_irc_join_localhost.gd` | 2026-02-07 PASS |
 
 ## Evidence
 

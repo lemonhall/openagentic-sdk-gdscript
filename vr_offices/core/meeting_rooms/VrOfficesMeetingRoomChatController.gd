@@ -1,5 +1,8 @@
 extends RefCounted
 
+const _IrcNames := preload("res://vr_offices/core/irc/VrOfficesIrcNames.gd")
+const _DEFAULT_NICKLEN := 9
+
 var owner: Node = null
 var camera_rig: Node = null
 var overlay: Control = null
@@ -13,6 +16,8 @@ var busy := false
 
 var _meeting_room_id := ""
 var _chat_npc_id := ""
+var _save_id := ""
+var _roster_connected := false
 
 func _init(
 	owner_in: Node,
@@ -41,6 +46,7 @@ func open_for_meeting_room(meeting_room_id: String, meeting_room_name: String) -
 		return
 	_meeting_room_id = rid
 	_chat_npc_id = _meeting_npc_id(rid)
+	_ensure_roster_connected()
 
 	if owner != null and is_instance_valid(owner):
 		var bridge := owner.get_node_or_null("MeetingRoomIrcBridge") as Node
@@ -53,6 +59,7 @@ func open_for_meeting_room(meeting_room_id: String, meeting_room_name: String) -
 	var sid := ""
 	if get_save_id.is_valid():
 		sid = String(get_save_id.call())
+	_save_id = sid.strip_edges()
 	var title := meeting_room_name.strip_edges()
 	if title == "":
 		title = rid
@@ -62,6 +69,7 @@ func open_for_meeting_room(meeting_room_id: String, meeting_room_name: String) -
 			title = "%s  %s" % [title, ch]
 	overlay.call("open", _chat_npc_id, title, sid)
 	_disable_skills_ui()
+	_refresh_roster_ui()
 
 	if overlay.has_method("set_history") and chat_history != null and sid.strip_edges() != "":
 		var hist0: Variant = chat_history.call("read_ui_history", sid, _chat_npc_id)
@@ -69,12 +77,17 @@ func open_for_meeting_room(meeting_room_id: String, meeting_room_name: String) -
 		overlay.call("set_history", hist)
 
 func close() -> void:
+	_disconnect_roster()
 	_meeting_room_id = ""
 	_chat_npc_id = ""
+	_save_id = ""
 	if camera_rig != null and camera_rig.has_method("set_controls_enabled"):
 		camera_rig.call("set_controls_enabled", true)
 	if overlay != null and overlay.visible and overlay.has_method("close"):
 		overlay.call("close")
+
+func refresh_roster() -> void:
+	_refresh_roster_ui()
 
 func on_message_submitted(text: String) -> void:
 	if overlay == null or busy:
@@ -103,6 +116,72 @@ func _disable_skills_ui() -> void:
 	var skills := overlay.get_node_or_null("%SkillsButton") as Control
 	if skills != null:
 		skills.visible = false
+
+func _ensure_roster_connected() -> void:
+	if _roster_connected:
+		return
+	if channel_hub == null or not channel_hub.has_signal("roster_changed"):
+		return
+	var cb := Callable(self, "_on_roster_changed")
+	if channel_hub.is_connected("roster_changed", cb):
+		_roster_connected = true
+		return
+	channel_hub.connect("roster_changed", cb)
+	_roster_connected = true
+
+func _disconnect_roster() -> void:
+	if not _roster_connected:
+		return
+	_roster_connected = false
+	if channel_hub == null or not channel_hub.has_signal("roster_changed"):
+		return
+	var cb := Callable(self, "_on_roster_changed")
+	if channel_hub.is_connected("roster_changed", cb):
+		channel_hub.disconnect("roster_changed", cb)
+
+func _on_roster_changed(meeting_room_id: String) -> void:
+	var rid := meeting_room_id.strip_edges()
+	if rid == "" or rid != _meeting_room_id:
+		return
+	_refresh_roster_ui()
+
+func _refresh_roster_ui() -> void:
+	if overlay == null or not is_instance_valid(overlay) or not overlay.visible:
+		return
+	if not overlay.has_method("set_participants_visible") or not overlay.has_method("set_participants"):
+		return
+	if _meeting_room_id.strip_edges() == "":
+		return
+	overlay.call("set_participants_visible", true)
+
+	var roster_lines: Array[String] = []
+	var host_nick := ""
+	if _save_id != "" and _chat_npc_id != "":
+		host_nick = String(_IrcNames.derive_nick(_save_id, _chat_npc_id, _DEFAULT_NICKLEN)).strip_edges()
+	var host_line := "主持人（你）"
+	if host_nick != "":
+		host_line = "%s (@%s)" % [host_line, host_nick]
+	if channel_hub != null and channel_hub.has_method("roster_for_room"):
+		var roster0: Variant = channel_hub.call("roster_for_room", _meeting_room_id)
+		if typeof(roster0) == TYPE_ARRAY:
+			for p0 in (roster0 as Array):
+				if typeof(p0) != TYPE_DICTIONARY:
+					continue
+				var p := p0 as Dictionary
+				var display_name := String(p.get("display_name", "")).strip_edges()
+				var npc_id := String(p.get("npc_id", "")).strip_edges()
+				var nick := String(p.get("irc_nick", "")).strip_edges()
+				var base := display_name if display_name != "" else npc_id
+				if base == "":
+					continue
+				var line := base
+				if nick != "":
+					line = "%s (@%s)" % [base, nick]
+				roster_lines.append(line)
+	roster_lines.sort()
+	var out: Array[String] = [host_line]
+	out.append_array(roster_lines)
+	overlay.call("set_participants", out)
 
 func _meeting_npc_id(meeting_room_id: String) -> String:
 	var rid := meeting_room_id.strip_edges()

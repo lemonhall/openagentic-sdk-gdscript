@@ -75,10 +75,10 @@ func _init() -> void:
 	get_root().add_child(dlg)
 	await process_frame
 
-	var attach_btn := dlg.get_node_or_null("Panel/VBox/Footer/AttachButton") as Button
+	var attach_btn := dlg.get_node_or_null("%AttachButton") as Button
 	if not T.require_true(self, attach_btn != null, "Expected DialogueOverlay AttachButton"):
 		return
-	var attachments_panel := dlg.get_node_or_null("Panel/VBox/AttachmentsPanel") as Control
+	var attachments_panel := dlg.get_node_or_null("%AttachmentsPanel") as Control
 	if not T.require_true(self, attachments_panel != null, "Expected DialogueOverlay AttachmentsPanel"):
 		return
 	var file_dialog := dlg.get_node_or_null("FileDialog") as FileDialog

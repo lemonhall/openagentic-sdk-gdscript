@@ -49,9 +49,9 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 			if dialogue.has_method("get_embedded_dialogue"):
 				var embedded := dialogue.call("get_embedded_dialogue") as Control
 				if embedded != null:
-					input_node = embedded.get_node_or_null("Panel/VBox/Footer/Input") as Control
+					input_node = embedded.get_node_or_null("%Input") as Control
 			if input_node == null:
-				input_node = dialogue.get_node_or_null("Panel/VBox/Footer/Input") as Control
+				input_node = dialogue.get_node_or_null("%Input") as Control
 			if input_node != null and input_node.has_focus():
 				owner.get_viewport().gui_release_focus()
 			else:

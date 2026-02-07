@@ -36,5 +36,6 @@ Goal: Meeting Rooms gain functional “meetings”: NPCs enter a meeting state w
 
 ## Gaps / Follow-ups
 
-- Long-reply transport chunking (P1): decide whether to reuse `OA1` frames, `OAMEDIA1F`, or define a meeting-specific fragment prefix to avoid `OA1` ambiguity.
-- Overlay UX: show a participant roster / click-to-mention helper (nice-to-have).
+- Long-reply transport chunking (REQ-008): implemented in v98 as multi-line IRC PRIVMSG split (see `docs/plan/v98-index.md`).
+- Meeting-room observability log (REQ-009): implemented in v98 (see `docs/plan/v98-index.md`).
+- Overlay UX roster / refresh: implemented in v97 (see `docs/plan/v97-index.md`).

@@ -11,16 +11,16 @@ Goal: Meeting Room chat overlay shows a right-side “参会者” roster so pla
 
 | Milestone | Scope | Verify | Status |
 |---|---|---|---|
-| M1 | Roster sidebar exists + populated | `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` | todo |
-| M2 | Roster updates on join/part | same as M1 | todo |
+| M1 | Roster sidebar exists + populated | `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` | done |
+| M2 | Roster updates on join/part | same as M1 | done |
 
 ## Traceability
 
 | Req ID | Plan | Tests / Verify | Evidence |
 |---|---|---|---|
-| REQ-004 | v97 | `tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` | (pending) |
+| REQ-004 | v97 | `tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` | 2026-02-07 PASS |
 
 ## Evidence
 
-- (pending)
-
+- 2026-02-07: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` → PASS
+- 2026-02-07: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` → EXIT=0
