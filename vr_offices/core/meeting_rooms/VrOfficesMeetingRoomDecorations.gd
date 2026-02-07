@@ -3,6 +3,7 @@ extends RefCounted
 const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
 const _WallUtils := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomWallUtils.gd")
 const _ModelUtils := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomDecorationModelUtils.gd")
+const _TableLayout := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomTableLayout.gd")
 
 const TABLE_SCENE := "res://assets/meeting_room/Table.glb"
 const SCREEN_SCENE := "res://assets/meeting_room/projector screen.glb"
@@ -11,6 +12,11 @@ const PROJECTOR_SCENE := "res://assets/meeting_room/projector.glb"
 const _MARGIN_XZ := 0.55
 const _SCREEN_GAP := 0.75
 const _CEILING_INSET := 0.05
+const _SCREEN_YAW_OFFSET := PI * 0.5
+const _SCREEN_WIDTH_MULT := 2.0
+const _PROJECTOR_TARGET_H := 0.65
+const _PROJECTOR_MODEL_YAW_OFFSET := PI
+const _TABLE_STRETCH_RATIO := 1.1
 
 static func decorate_meeting_room(meeting_room_node: Node3D, meeting_room_id: String, rect_xz: Rect2) -> void:
 	if meeting_room_node == null:
@@ -52,17 +58,20 @@ static func decorate_meeting_room(meeting_room_node: Node3D, meeting_room_id: St
 	table_wrap.position = Vector3.ZERO
 	table_wrap.rotation = Vector3.ZERO
 	table_wrap.scale = Vector3.ONE
-	var table_model := _Props.spawn_floor_model(table_wrap, TABLE_SCENE)
+	var table_model := _Props.spawn_floor_model(table_wrap, TABLE_SCENE, true)
 
 	screen_wrap.position = Vector3.ZERO
 	screen_wrap.rotation = Vector3.ZERO
 	screen_wrap.scale = Vector3.ONE
-	var screen_model := _Props.spawn_wall_model(screen_wrap, SCREEN_SCENE)
+	var screen_model := _Props.spawn_wall_model(screen_wrap, SCREEN_SCENE, true)
 
 	proj_wrap.position = Vector3.ZERO
 	proj_wrap.rotation = Vector3.ZERO
 	proj_wrap.scale = Vector3.ONE
-	var projector_model := _ModelUtils.spawn_ceiling_model(proj_wrap, PROJECTOR_SCENE)
+	var projector_model := _ModelUtils.spawn_ceiling_model(proj_wrap, PROJECTOR_SCENE, true)
+	if projector_model != null:
+		projector_model.rotation.y += _PROJECTOR_MODEL_YAW_OFFSET
+		_ModelUtils.realign_ceiling_model(proj_wrap, projector_model)
 
 	# Compute bounds in meeting-room local space for placement and fitting.
 	var table_bounds := _ModelUtils.bounds_in_space(decor, table_model)
@@ -73,13 +82,13 @@ static func decorate_meeting_room(meeting_room_node: Node3D, meeting_room_id: St
 	if screen_bounds.size == Vector3.ZERO:
 		screen_bounds = AABB(Vector3(-0.75, 0.0, 0.0), Vector3(1.5, 1.0, 0.25))
 
-	# Fit table horizontally within the room footprint (with margins).
-	_ModelUtils.fit_xz(table_wrap, decor, table_model, Vector2(sx, sz), _MARGIN_XZ)
+	# Scale up and stretch table into a long meeting table aligned with the room long axis.
+	_TableLayout.scale_table_for_room(table_wrap, decor, table_model, screen_axis, Vector2(sx, sz), _MARGIN_XZ, _TABLE_STRETCH_RATIO)
 	table_bounds = _ModelUtils.bounds_in_space(decor, table_model)
 	if table_bounds.size == Vector3.ZERO:
 		table_bounds = AABB(Vector3(-1.0, 0.0, -0.5), Vector3(2.0, 0.75, 1.0))
 
-	# Decide table yaw: long axis perpendicular to screen normal.
+	# Ensure table long axis points into the room from the screen (room long axis).
 	var want_long_x := (screen_axis == "x")
 	var b0 := table_bounds
 	var long_is_x := float(b0.size.x) >= float(b0.size.z)
@@ -97,6 +106,8 @@ static func decorate_meeting_room(meeting_room_node: Node3D, meeting_room_id: St
 
 	# Place screen on wall, centered along the wall.
 	_WallUtils.place_wall_wrapper(screen_wall, screen_wrap, screen_bounds)
+	screen_wrap.rotation.y += _SCREEN_YAW_OFFSET
+	_WallUtils.stretch_screen_width(screen_wrap, screen_wall, screen_model, _SCREEN_WIDTH_MULT)
 
 	# Place table near center but ensure it stays inside footprint and keeps a gap to the screen wall.
 	var table_pos := Vector3.ZERO
@@ -117,7 +128,20 @@ static func decorate_meeting_room(meeting_room_node: Node3D, meeting_room_id: St
 	proj_pos += toward_wall * offset
 	proj_pos.y = ceiling_y
 	proj_wrap.position = proj_pos
-	proj_wrap.rotation = Vector3(0.0, atan2(toward_wall.x, toward_wall.z), 0.0)
+	var screen_target_local := Vector3.ZERO
+	if screen_axis == "x":
+		screen_target_local = Vector3(screen_wall_sign * hx, 1.35, 0.0)
+	else:
+		screen_target_local = Vector3(0.0, 1.35, screen_wall_sign * hz)
+	var tgt_global := decor.to_global(Vector3(screen_target_local.x, proj_wrap.position.y, screen_target_local.z))
+	proj_wrap.look_at(tgt_global, Vector3.UP)
+	# Keep projector level (avoid pitch).
+	proj_wrap.rotation.x = 0.0
+	proj_wrap.rotation.z = 0.0
+
+	# Ensure projector doesn't hang all the way down to the table.
+	_ModelUtils.fit_height(proj_wrap, decor, projector_model, _PROJECTOR_TARGET_H)
+	_ModelUtils.realign_ceiling_model(proj_wrap, projector_model)
 
 	# Fit projector footprint gently if it is too large.
 	_ModelUtils.fit_xz(proj_wrap, decor, projector_model, Vector2(sx, sz), _MARGIN_XZ)

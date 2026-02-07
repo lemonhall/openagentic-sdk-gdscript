@@ -21,3 +21,7 @@ config/features=PackedStringArray("4.6")
 [autoload]
 
 OpenAgentic="*res://addons/openagentic/OpenAgentic.gd"
+
+[filesystem]
+
+import/blender/enabled=false

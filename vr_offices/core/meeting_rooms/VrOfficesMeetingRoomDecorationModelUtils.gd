@@ -24,11 +24,27 @@ static func fit_xz(wrapper: Node3D, space: Node3D, model_root: Node3D, room_size
 		return
 	wrapper.scale = wrapper.scale * scale
 
-static func spawn_ceiling_model(wrapper: Node3D, scene_path: String) -> Node3D:
+static func fit_height(wrapper: Node3D, space: Node3D, model_root: Node3D, target_h: float) -> void:
+	if wrapper == null or space == null or model_root == null:
+		return
+	if target_h <= 0.001:
+		return
+	var b := bounds_in_space(space, model_root)
+	if b.size == Vector3.ZERO:
+		return
+	var h := float(b.size.y)
+	if h <= 0.001:
+		return
+	var scale := clampf(target_h / h, 0.2, 6.0)
+	if absf(scale - 1.0) <= 0.0001:
+		return
+	wrapper.scale = wrapper.scale * scale
+
+static func spawn_ceiling_model(wrapper: Node3D, scene_path: String, allow_headless: bool = false) -> Node3D:
 	if wrapper == null:
 		return null
 	# Use PropUtils to ensure consistent GLB instantiation + collision disabling.
-	var model := _Props.spawn_floor_model(wrapper, scene_path)
+	var model := _Props.spawn_floor_model(wrapper, scene_path, allow_headless)
 	if model == null:
 		return null
 	realign_ceiling_model(wrapper, model)
@@ -43,4 +59,3 @@ static func realign_ceiling_model(wrapper: Node3D, model_root: Node3D) -> void:
 	var center := b.position + b.size * 0.5
 	var top := float(b.position.y + b.size.y)
 	model_root.position -= Vector3(center.x, top, center.z)
-

@@ -57,13 +57,68 @@ func _init() -> void:
 	var decor := child.get_node_or_null("Decor") as Node3D
 	if not T.require_true(self, decor != null, "Expected meeting room Decor node"):
 		return
-	if not T.require_true(self, decor.get_node_or_null("Table") != null, "Expected Decor/Table wrapper"):
+	var table_wrap := decor.get_node_or_null("Table") as Node3D
+	if not T.require_true(self, table_wrap != null, "Expected Decor/Table wrapper"):
 		return
-	if not T.require_true(self, decor.get_node_or_null("CeilingProjector") != null, "Expected Decor/CeilingProjector wrapper"):
+	var proj_wrap := decor.get_node_or_null("CeilingProjector") as Node3D
+	if not T.require_true(self, proj_wrap != null, "Expected Decor/CeilingProjector wrapper"):
 		return
 	# Screen should be attached under a wall so it hides with wall visibility.
 	var screen := _find_descendant_named(walls, "ProjectorScreen") as Node3D
 	if not T.require_true(self, screen != null, "Expected Walls/**/ProjectorScreen wrapper"):
+		return
+
+	# Table should be scaled up and stretched into a long meeting table.
+	var sx := float(table_wrap.scale.x)
+	var sz := float(table_wrap.scale.z)
+	var smax := maxf(sx, sz)
+	var smin := maxf(0.0001, minf(sx, sz))
+	if not T.require_true(self, smax > 1.05, "Expected Table wrapper scaled up"):
+		return
+	if not T.require_true(self, (smax / smin) >= 1.2, "Expected Table wrapper stretched (long/short ratio >= 1.2)"):
+		return
+
+	# Screen should be rotated by +90deg relative to the wall-facing default.
+	var wall := screen.get_parent() as Node
+	if not T.require_true(self, wall != null, "Expected ProjectorScreen parent wall"):
+		return
+	var wall_yaw := 0.0
+	if wall.name == "WallPosX":
+		wall_yaw = PI * 0.5
+	elif wall.name == "WallNegX":
+		wall_yaw = -PI * 0.5
+	elif wall.name == "WallPosZ":
+		wall_yaw = 0.0
+	elif wall.name == "WallNegZ":
+		wall_yaw = PI
+	var want := wall_yaw + PI * 0.5
+	var dy := _angle_diff(float(screen.rotation.y), want)
+	if not T.require_true(self, absf(dy) <= 0.15, "Expected screen yaw ~ wall_yaw + 90deg"):
+		return
+	# Screen should be stretched wider (roughly 2x).
+	if not T.require_true(self, float(screen.scale.x) >= 1.6, "Expected screen scale.x stretched wider"):
+		return
+
+	# Projector should hang above the table and face the screen.
+	if not T.require_true(self, float(proj_wrap.position.y) >= 1.6, "Expected projector raised near ceiling"):
+		return
+	var room := child as Node3D
+	if room == null:
+		T.fail_and_quit(self, "Expected meeting room node to be Node3D")
+		return
+	var tgt_local := Vector3.ZERO
+	if wall.name == "WallPosX":
+		tgt_local = Vector3(1.5, float(proj_wrap.position.y), 0.0)
+	elif wall.name == "WallNegX":
+		tgt_local = Vector3(-1.5, float(proj_wrap.position.y), 0.0)
+	elif wall.name == "WallPosZ":
+		tgt_local = Vector3(0.0, float(proj_wrap.position.y), 2.0)
+	else:
+		tgt_local = Vector3(0.0, float(proj_wrap.position.y), -2.0)
+	var tgt_global := room.to_global(tgt_local)
+	var to_tgt := (tgt_global - proj_wrap.global_position).normalized()
+	var forward := -proj_wrap.global_transform.basis.z
+	if not T.require_true(self, forward.dot(to_tgt) >= 0.6, "Expected projector facing screen (forward dot >= 0.6)"):
 		return
 
 	var rid := String(child.get("meeting_room_id"))
@@ -79,3 +134,7 @@ func _init() -> void:
 	root.free()
 	await process_frame
 	T.pass_and_quit(self)
+
+func _angle_diff(a: float, b: float) -> float:
+	var d := fmod(a - b + PI, TAU) - PI
+	return d

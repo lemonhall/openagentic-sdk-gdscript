@@ -1,6 +1,7 @@
 extends RefCounted
 
 const _WALL_EPS := 0.02
+const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
 
 static func pick_screen_wall(walls: Node3D, sx: float, sz: float, meeting_room_id: String) -> MeshInstance3D:
 	if walls == null:
@@ -75,10 +76,28 @@ static func fit_screen(wrapper: Node3D, wall: MeshInstance3D, screen_bounds: AAB
 	var wall_len := wall_half_length(wall) * 2.0
 	var max_h := maxf(0.25, height - 0.45)
 	var max_w := maxf(0.25, wall_len - 0.7)
-	var scale := minf(1.0, minf(max_h / sh, max_w / sw))
+	var scale := minf(max_h / sh, max_w / sw)
+	scale = clampf(scale, 0.2, 6.0)
 	if absf(scale - 1.0) <= 0.0001:
 		return
 	wrapper.scale = wrapper.scale * scale
+
+static func stretch_screen_width(wrapper: Node3D, wall: MeshInstance3D, model_root: Node3D, width_mult: float) -> void:
+	if wrapper == null or wall == null or model_root == null:
+		return
+	if width_mult <= 0.001:
+		return
+	wrapper.scale.x *= width_mult
+	var b := _compute_bounds_in_space(wrapper, model_root)
+	if b.size == Vector3.ZERO:
+		return
+	var wall_len := wall_half_length(wall) * 2.0
+	var max_w := maxf(0.25, wall_len - 0.7)
+	var w := float(b.size.x)
+	if w <= 0.001:
+		return
+	if w > max_w + 1e-4:
+		wrapper.scale.x *= max_w / w
 
 static func wall_thickness(wall: MeshInstance3D) -> float:
 	if wall == null:
@@ -105,6 +124,10 @@ static func wall_half_length(wall: MeshInstance3D) -> float:
 	var wall_len := maxf(float(bm.size.x), float(bm.size.z))
 	return wall_len * 0.5
 
+static func _compute_bounds_in_space(space: Node3D, model_root: Node3D) -> AABB:
+	# Use the same bounds helper as PropUtils for consistency.
+	return _Props._compute_visual_bounds_local(space, model_root)
+
 static func _clamp_along(v: float, half_len: float, margin: float) -> float:
 	var h := maxf(0.0, half_len - margin)
 	if h <= 0.001:
@@ -118,4 +141,3 @@ static func _fnv1a32(s: String) -> int:
 		h = h ^ s.unicode_at(i)
 		h = int((h * 0x01000193) & 0xFFFFFFFF)
 	return h
-
