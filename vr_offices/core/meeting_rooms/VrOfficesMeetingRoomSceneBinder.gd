@@ -1,6 +1,7 @@
 extends RefCounted
 
 const _Palette := preload("res://vr_offices/core/workspaces/VrOfficesWorkspacePalette.gd")
+const _Decorations := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomDecorations.gd")
 
 var _root: Node3D = null
 var _scene: PackedScene = null
@@ -50,6 +51,7 @@ func spawn_node_for(room: Dictionary) -> void:
 		n.set("meeting_room_name", String(room.get("name", "")))
 	if n.has_method("configure"):
 		n.call("configure", r, color, false)
+	_Decorations.decorate_meeting_room(n as Node3D, rid, r)
 	n.name = rid
 	_nodes_by_id[rid] = n
 
@@ -81,4 +83,3 @@ func free_node_for_id(meeting_room_id: String) -> void:
 	var n := n0 as Node
 	if n != null and is_instance_valid(n):
 		n.queue_free()
-

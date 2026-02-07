@@ -2,6 +2,22 @@ extends SceneTree
 
 const T := preload("res://tests/_test_util.gd")
 
+func _find_descendant_named(root: Node, want: String) -> Node:
+	if root == null:
+		return null
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var cur := stack.pop_back() as Node
+		if cur == null:
+			continue
+		if cur.name == want:
+			return cur
+		for c0 in cur.get_children():
+			var c := c0 as Node
+			if c != null:
+				stack.append(c)
+	return null
+
 func _init() -> void:
 	var ManagerScript := load("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomManager.gd")
 	var AreaScene0 := load("res://vr_offices/meeting_rooms/MeetingRoomArea.tscn")
@@ -37,6 +53,19 @@ func _init() -> void:
 	if not T.require_true(self, walls != null, "Expected meeting room Walls node"):
 		return
 
+	# Decorations should include stable wrapper nodes even in headless mode.
+	var decor := child.get_node_or_null("Decor") as Node3D
+	if not T.require_true(self, decor != null, "Expected meeting room Decor node"):
+		return
+	if not T.require_true(self, decor.get_node_or_null("Table") != null, "Expected Decor/Table wrapper"):
+		return
+	if not T.require_true(self, decor.get_node_or_null("CeilingProjector") != null, "Expected Decor/CeilingProjector wrapper"):
+		return
+	# Screen should be attached under a wall so it hides with wall visibility.
+	var screen := _find_descendant_named(walls, "ProjectorScreen") as Node3D
+	if not T.require_true(self, screen != null, "Expected Walls/**/ProjectorScreen wrapper"):
+		return
+
 	var rid := String(child.get("meeting_room_id"))
 	var del: Dictionary = mgr.call("delete_meeting_room", rid)
 	if not T.require_true(self, bool(del.get("ok", false)), "Expected delete ok"):
@@ -50,4 +79,3 @@ func _init() -> void:
 	root.free()
 	await process_frame
 	T.pass_and_quit(self)
-
