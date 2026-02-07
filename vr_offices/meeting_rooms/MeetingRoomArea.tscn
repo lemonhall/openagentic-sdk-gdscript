@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://vr_offices/meeting_rooms/MeetingRoomArea.gd" id="1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(1, 0.1, 1)
+
+[node name="MeetingRoomArea" type="StaticBody3D"]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("1")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.02, 0)
+
+[node name="Collider" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.05, 0)
+shape = SubResource("BoxShape3D_1")
+
+[node name="Walls" type="Node3D" parent="."]
+
+[node name="WallPosX" type="MeshInstance3D" parent="Walls"]
+
+[node name="WallNegX" type="MeshInstance3D" parent="Walls"]
+
+[node name="WallPosZ" type="MeshInstance3D" parent="Walls"]
+
+[node name="WallNegZ" type="MeshInstance3D" parent="Walls"]
+

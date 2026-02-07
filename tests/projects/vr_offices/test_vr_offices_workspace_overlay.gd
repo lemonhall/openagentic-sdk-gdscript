@@ -15,18 +15,28 @@ func _init() -> void:
 	await process_frame
 
 	var confirmed: Array = []
+	var meeting_confirmed: Array = []
 	var canceled := [0]
 	var deleted: Array = []
+	var meeting_deleted: Array = []
 
 	overlay.connect("create_confirmed", func(n: String) -> void:
 		confirmed.append(n)
 	)
+	if overlay.has_signal("create_meeting_room_confirmed"):
+		overlay.connect("create_meeting_room_confirmed", func(n: String) -> void:
+			meeting_confirmed.append(n)
+		)
 	overlay.connect("create_canceled", func() -> void:
 		canceled[0] += 1
 	)
 	overlay.connect("delete_requested", func(wid: String) -> void:
 		deleted.append(wid)
 	)
+	if overlay.has_signal("meeting_room_delete_requested"):
+		overlay.connect("meeting_room_delete_requested", func(rid: String) -> void:
+			meeting_deleted.append(rid)
+		)
 
 	overlay.call("prompt_create", "  Alpha  ")
 	await process_frame
@@ -62,6 +72,41 @@ func _init() -> void:
 	if not T.require_eq(self, deleted.size(), 1, "Expected delete_requested once"):
 		return
 	if not T.require_eq(self, String(deleted[0]), "ws_9", "Expected workspace id"):
+		return
+
+	# Meeting room create should emit a dedicated signal when the user selects Meeting Room.
+	if not overlay.has_signal("create_meeting_room_confirmed"):
+		T.fail_and_quit(self, "WorkspaceOverlay missing create_meeting_room_confirmed signal")
+		return
+	overlay.call("prompt_create", "Workspace 1")
+	await process_frame
+	var type_opt := overlay.get_node_or_null("%RoomTypeOption") as OptionButton
+	if type_opt == null:
+		T.fail_and_quit(self, "Missing %RoomTypeOption")
+		return
+	type_opt.selected = 1
+	var name_edit := overlay.get_node_or_null("%NameEdit") as LineEdit
+	if name_edit == null:
+		T.fail_and_quit(self, "Missing %NameEdit")
+		return
+	name_edit.text = "  Gamma  "
+	overlay.call("confirm_create")
+	await process_frame
+	if not T.require_eq(self, meeting_confirmed.size(), 1, "Expected create_meeting_room_confirmed once"):
+		return
+	if not T.require_eq(self, String(meeting_confirmed[0]), "Gamma", "Expected trimmed meeting room name"):
+		return
+
+	# Meeting room delete should emit a dedicated signal.
+	if not overlay.has_signal("meeting_room_delete_requested"):
+		T.fail_and_quit(self, "WorkspaceOverlay missing meeting_room_delete_requested signal")
+		return
+	overlay.call("show_meeting_room_menu", Vector2(10, 10), "mr_2")
+	overlay.call("_on_context_menu_id_pressed", 3)
+	await process_frame
+	if not T.require_eq(self, meeting_deleted.size(), 1, "Expected meeting_room_delete_requested once"):
+		return
+	if not T.require_eq(self, String(meeting_deleted[0]), "mr_2", "Expected meeting room id"):
 		return
 
 	get_root().remove_child(overlay)

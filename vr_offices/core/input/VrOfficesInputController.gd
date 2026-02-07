@@ -1,16 +1,14 @@
 extends RefCounted
 const _ClickPicker := preload("res://vr_offices/core/input/VrOfficesClickPicker.gd")
-
 var owner: Node = null
 var dialogue: Control = null
 var camera_rig: Node = null
 var dialogue_ctrl: RefCounted = null
-
 var command_move_to_click: Callable
 var select_npc: Callable
 var workspace_ctrl: RefCounted = null
+var meeting_room_ctrl: RefCounted = null
 var open_manager_dialogue_for_workspace: Callable = Callable()
-
 var _rmb_down := false
 var _rmb_dragged := false
 var _rmb_down_pos := Vector2.ZERO
@@ -23,6 +21,7 @@ func _init(
 	command_move_to_click_in: Callable,
 	select_npc_in: Callable,
 	workspace_ctrl_in: RefCounted = null,
+	meeting_room_ctrl_in: RefCounted = null,
 	open_manager_dialogue_for_workspace_in: Callable = Callable()
 ) -> void:
 	owner = owner_in
@@ -32,12 +31,11 @@ func _init(
 	command_move_to_click = command_move_to_click_in
 	select_npc = select_npc_in
 	workspace_ctrl = workspace_ctrl_in
+	meeting_room_ctrl = meeting_room_ctrl_in
 	open_manager_dialogue_for_workspace = open_manager_dialogue_for_workspace_in
-
 func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 	if owner == null:
 		return
-
 	if event is InputEventKey:
 		var k0 := event as InputEventKey
 		if k0.pressed and not k0.echo and k0.ctrl_pressed and k0.physical_keycode == KEY_I:
@@ -45,7 +43,6 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				owner.call("toggle_settings_overlay")
 				owner.get_viewport().set_input_as_handled()
 				return
-
 	if dialogue != null and dialogue.visible:
 		if Input.is_action_just_pressed("ui_cancel") and dialogue.has_method("close"):
 			var input_node: Control = null
@@ -61,7 +58,6 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 				dialogue.close()
 		owner.get_viewport().set_input_as_handled()
 		return
-
 	if event is InputEventMouseButton:
 		var mb0 := event as InputEventMouseButton
 		if mb0.button_index == MOUSE_BUTTON_LEFT and mb0.pressed and mb0.double_click:
@@ -80,17 +76,14 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 						open_manager_dialogue_for_workspace.call(workspace_id0)
 						owner.get_viewport().set_input_as_handled()
 						return
-
 	if workspace_ctrl != null and workspace_ctrl.has_method("handle_lmb_event"):
 		var consumed := bool(workspace_ctrl.call("handle_lmb_event", event, select_npc))
 		if consumed:
 			return
-
 	if event is InputEventKey and workspace_ctrl != null and workspace_ctrl.has_method("handle_key_event"):
 		var consumed_key := bool(workspace_ctrl.call("handle_key_event", event))
 		if consumed_key:
 			return
-
 	if event is InputEventMouseMotion and _rmb_down:
 		var mm := event as InputEventMouseMotion
 		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT != 0:
@@ -134,11 +127,14 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 						if bool(workspace_ctrl.call("try_open_context_menu", mb.position)):
 							_rmb_down = false
 							return
+					if meeting_room_ctrl != null and meeting_room_ctrl.has_method("try_open_context_menu"):
+						if bool(meeting_room_ctrl.call("try_open_context_menu", mb.position)):
+							_rmb_down = false
+							return
 					if command_move_to_click.is_valid():
 						command_move_to_click.call(mb.position)
 				_rmb_down = false
 			return
-
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			var clicked := _try_select_from_click(mb.position)
 			if mb.double_click and clicked != null:
@@ -164,7 +160,6 @@ func handle_unhandled_input(event: InputEvent, selected_npc: Node) -> void:
 					if did.strip_edges() != "":
 						owner.call("open_settings_overlay_for_desk", did)
 			return
-
 	if selected_npc != null and event is InputEventKey:
 		var k := event as InputEventKey
 		if k.pressed and not k.echo and k.physical_keycode == KEY_E:

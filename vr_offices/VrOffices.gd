@@ -12,6 +12,8 @@ const _InputControllerScript := preload("res://vr_offices/core/input/VrOfficesIn
 const _MoveControllerScript := preload("res://vr_offices/core/movement/VrOfficesMoveController.gd")
 const _WorkspaceManagerScript := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceManager.gd")
 const _WorkspaceControllerScript := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceController.gd")
+const _MeetingRoomManagerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomManager.gd")
+const _MeetingRoomControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomController.gd")
 const _DeskManagerScript := preload("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/audio/VrOfficesBgm.gd")
 const _IrcSettingsScript := preload("res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
@@ -19,6 +21,7 @@ const _ManagerDeskDefaults := preload("res://vr_offices/core/workspaces/VrOffice
 const _OAPaths := preload("res://addons/openagentic/core/OAPaths.gd")
 const _MoveIndicatorScene := preload("res://vr_offices/fx/MoveIndicator.tscn")
 const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.tscn")
+const _MeetingRoomAreaScene := preload("res://vr_offices/meeting_rooms/MeetingRoomArea.tscn")
 const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tscn")
 
 @export var npc_scene: PackedScene
@@ -30,6 +33,7 @@ const _StandingDeskScene := preload("res://vr_offices/furniture/StandingDesk.tsc
 @onready var npc_root: Node3D = $NpcRoot
 @onready var move_indicators: Node3D = $MoveIndicators
 @onready var workspaces_root: Node3D = $Workspaces
+@onready var meeting_rooms_root: Node3D = $MeetingRooms
 @onready var furniture_root: Node3D = $Furniture
 @onready var camera_rig: Node3D = $CameraRig
 @onready var ui: Control = $UI/VrOfficesUi
@@ -56,6 +60,8 @@ var _input_ctrl: RefCounted = null
 var _move_ctrl: RefCounted = null
 var _workspace_manager: RefCounted = null
 var _workspace_ctrl: RefCounted = null
+var _meeting_room_manager: RefCounted = null
+var _meeting_room_ctrl: RefCounted = null
 var _desk_manager: RefCounted = null
 var _irc_settings: RefCounted = null
 var _quitting := false
@@ -107,11 +113,14 @@ func _ready() -> void:
 	_workspace_manager = _WorkspaceManagerScript.new(bounds)
 	if _workspace_manager != null:
 		_workspace_manager.call("bind_scene", workspaces_root, _WorkspaceAreaScene, Callable(self, "_is_headless"))
+	_meeting_room_manager = _MeetingRoomManagerScript.new(bounds)
+	if _meeting_room_manager != null:
+		_meeting_room_manager.call("bind_scene", meeting_rooms_root, _MeetingRoomAreaScene, Callable(self, "_is_headless"))
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
 		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"), Callable(_agent, "effective_save_id"))
 	_irc_settings = _IrcSettingsScript.new()
-	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _desk_manager, _irc_settings)
+	_save_ctrl = _SaveControllerScript.new(_world_state, _npc_manager, Callable(_agent, "effective_save_id"), _workspace_manager, _meeting_room_manager, _desk_manager, _irc_settings)
 	var manager_dialogue_ui: Control = null
 	if manager_dialogue_overlay != null and manager_dialogue_overlay.has_method("get_embedded_dialogue"):
 		manager_dialogue_ui = manager_dialogue_overlay.call("get_embedded_dialogue") as Control
@@ -151,6 +160,14 @@ func _ready() -> void:
 		_desk_manager,
 		workspace_overlay,
 		action_hint_overlay,
+		Callable(self, "autosave"),
+		_meeting_room_manager
+	)
+	_meeting_room_ctrl = _MeetingRoomControllerScript.new(
+		self,
+		camera_rig,
+		_meeting_room_manager,
+		workspace_overlay,
 		Callable(self, "autosave")
 	)
 	var dialogue_blocker: Control = manager_dialogue_overlay if manager_dialogue_overlay != null else dialogue
@@ -162,6 +179,7 @@ func _ready() -> void:
 		Callable(self, "_command_selected_move_to_click"),
 		Callable(self, "select_npc"),
 		_workspace_ctrl,
+		_meeting_room_ctrl,
 		Callable(self, "open_manager_dialogue_for_workspace")
 	)
 	if _save_ctrl != null:

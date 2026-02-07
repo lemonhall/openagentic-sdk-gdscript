@@ -2,10 +2,12 @@ extends RefCounted
 
 const _WorkspaceAreaScene := preload("res://vr_offices/workspaces/WorkspaceArea.tscn")
 const _Raycast := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceRaycast.gd")
+const _RoomMenuHint := preload("res://vr_offices/core/rooms/VrOfficesRoomMenuHint.gd")
 
 var owner: Node = null
 var camera_rig: Node = null
 var workspace_manager: RefCounted = null
+var meeting_room_manager: RefCounted = null
 var overlay: Control = null
 var action_hint: Control = null
 
@@ -18,15 +20,17 @@ var _last_world := Vector3.ZERO
 
 var _pending_rect: Rect2 = Rect2()
 var _preview_node: Node = null
-var _action_hint_generation := 0
-var _workspace_create_hint_shown := false
+var _room_menu_hint: RefCounted = null
 
-func _init(owner_in: Node, camera_rig_in: Node, manager_in: RefCounted, overlay_in: Control, action_hint_in: Control) -> void:
+func _init(owner_in: Node, camera_rig_in: Node, manager_in: RefCounted, meeting_room_manager_in: RefCounted, overlay_in: Control, action_hint_in: Control) -> void:
 	owner = owner_in
 	camera_rig = camera_rig_in
 	workspace_manager = manager_in
+	meeting_room_manager = meeting_room_manager_in
 	overlay = overlay_in
 	action_hint = action_hint_in
+	if action_hint != null:
+		_room_menu_hint = _RoomMenuHint.new(owner, action_hint)
 
 func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 	if owner == null or camera_rig == null or workspace_manager == null:
@@ -67,7 +71,7 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 			if _dragging:
 				var rect := _Raycast.rect_from_world_points(_start_world, _last_world)
 				rect = workspace_manager.call("clamp_rect_to_floor", rect)
-				if not bool(workspace_manager.call("can_place", rect)):
+				if not _can_place_any(rect):
 					_hide_preview()
 					_reset_drag()
 					return true
@@ -75,7 +79,13 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 				_show_preview(rect, true)
 				if overlay != null and overlay.has_method("prompt_create"):
 					var next_idx := int(workspace_manager.call("get_workspace_counter")) + 1
-					overlay.call("prompt_create", "Workspace %d" % next_idx)
+					var next_mr_idx := 1
+					if meeting_room_manager != null and meeting_room_manager.has_method("get_meeting_room_counter"):
+						next_mr_idx = int(meeting_room_manager.call("get_meeting_room_counter")) + 1
+					if overlay.has_method("prompt_create_room"):
+						overlay.call("prompt_create_room", "Workspace %d" % next_idx, "Meeting Room %d" % next_mr_idx)
+					else:
+						overlay.call("prompt_create", "Workspace %d" % next_idx)
 				# Keep preview visible until confirm/cancel.
 			else:
 				_hide_preview()
@@ -99,7 +109,7 @@ func handle_lmb_event(event: InputEvent, select_npc: Callable) -> bool:
 		if _dragging:
 			var rect2 := _Raycast.rect_from_world_points(_start_world, _last_world)
 			rect2 = workspace_manager.call("clamp_rect_to_floor", rect2)
-			var ok := bool(workspace_manager.call("can_place", rect2))
+			var ok := _can_place_any(rect2)
 			_show_preview(rect2, ok)
 			return true
 
@@ -116,7 +126,20 @@ func on_create_confirmed(name: String, autosave: Callable) -> void:
 	if bool(res.get("ok", false)):
 		if autosave.is_valid():
 			autosave.call()
-		_show_post_create_hint()
+		_show_room_menu_hint()
+	_hide_preview()
+
+func on_create_meeting_room_confirmed(name: String, autosave: Callable) -> void:
+	if meeting_room_manager == null:
+		return
+	if _pending_rect.size == Vector2.ZERO:
+		return
+	var res: Dictionary = meeting_room_manager.call("create_meeting_room", _pending_rect, name)
+	_pending_rect = Rect2()
+	if bool(res.get("ok", false)):
+		if autosave.is_valid():
+			autosave.call()
+		_show_room_menu_hint()
 	_hide_preview()
 
 func on_create_canceled() -> void:
@@ -157,30 +180,18 @@ func _hide_preview() -> void:
 		_preview_node.queue_free()
 	_preview_node = null
 
-func _show_post_create_hint() -> void:
-	# Help users discover the workspace context menu (needed to add desks / delete workspaces).
-	# Show once per session to avoid spamming during rapid workspace creation.
-	if owner == null or action_hint == null:
+func _show_room_menu_hint() -> void:
+	if _room_menu_hint == null:
 		return
-	if not owner.is_inside_tree():
-		return
-	if _workspace_create_hint_shown:
-		return
-	if not action_hint.has_method("show_hint") or not action_hint.has_method("hide_hint"):
-		return
+	_room_menu_hint.call("show_once", "提示：Shift + 右键 房间 打开菜单（工作区/会议室）\nTip: Shift + RMB on a room opens the menu (Workspace / Meeting room).", 10.0)
 
-	_workspace_create_hint_shown = true
-	_action_hint_generation += 1
-	var gen := _action_hint_generation
-	action_hint.call("show_hint", "提示：Shift + 右键 工作区 打开菜单（添加桌子/删除）\nTip: Shift + RMB on a workspace opens the menu (Add desk / Delete).")
-
-	var tree := owner.get_tree()
-	if tree == null:
-		return
-	tree.create_timer(10.0).timeout.connect(func() -> void:
-		# Only hide if this hint is still the latest hint shown by the controller.
-		if _action_hint_generation != gen:
-			return
-		if action_hint != null and action_hint.has_method("hide_hint"):
-			action_hint.call("hide_hint")
-	)
+func _can_place_any(rect_xz: Rect2) -> bool:
+	if workspace_manager == null:
+		return false
+	if not bool(workspace_manager.call("can_place", rect_xz)):
+		return false
+	if meeting_room_manager == null:
+		return true
+	if meeting_room_manager.has_method("can_place"):
+		return bool(meeting_room_manager.call("can_place", rect_xz))
+	return true

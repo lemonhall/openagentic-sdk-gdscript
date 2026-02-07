@@ -35,7 +35,9 @@ func build_state(
 	workspace_counter: int = 0,
 	desks: Array = [],
 	desk_counter: int = 0,
-	irc: Dictionary = {}
+	irc: Dictionary = {},
+	meeting_rooms: Array = [],
+	meeting_room_counter: int = 0
 ) -> Dictionary:
 	var npcs: Array = []
 	if npc_root != null:
@@ -72,4 +74,6 @@ func build_state(
 		"desk_counter": desk_counter,
 		"desks": desks,
 		"irc": irc,
+		"meeting_room_counter": meeting_room_counter,
+		"meeting_rooms": meeting_rooms,
 	}

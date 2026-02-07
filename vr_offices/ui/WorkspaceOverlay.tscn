@@ -16,8 +16,8 @@ visible = false
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 520.0
-offset_bottom = 180.0
-size = Vector2i(520, 180)
+offset_bottom = 220.0
+size = Vector2i(520, 220)
 
 [node name="Panel" type="Panel" parent="%CreatePopup"]
 layout_mode = 1
@@ -38,6 +38,10 @@ offset_bottom = -12.0
 [node name="Title" type="Label" parent="%CreatePopup/Panel/VBox"]
 layout_mode = 2
 text = "Create workspace"
+
+[node name="RoomTypeOption" type="OptionButton" parent="%CreatePopup/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="NameEdit" type="LineEdit" parent="%CreatePopup/Panel/VBox"]
 unique_name_in_owner = true

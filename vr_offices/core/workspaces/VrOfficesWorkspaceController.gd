@@ -7,6 +7,7 @@ const _Raycast := preload("res://vr_offices/core/workspaces/VrOfficesWorkspaceRa
 var owner: Node = null
 var camera_rig: Node = null
 var workspace_manager: RefCounted = null
+var meeting_room_manager: RefCounted = null
 var desk_manager: RefCounted = null
 var overlay: Control = null
 var action_hint: Control = null
@@ -22,22 +23,26 @@ func _init(
 	desk_manager_in: RefCounted,
 	overlay_in: Control,
 	action_hint_in: Control,
-	autosave_in: Callable
+	autosave_in: Callable,
+	meeting_room_manager_in: RefCounted = null
 ) -> void:
 	owner = owner_in
 	camera_rig = camera_rig_in
 	workspace_manager = manager_in
+	meeting_room_manager = meeting_room_manager_in
 	desk_manager = desk_manager_in
 	overlay = overlay_in
 	action_hint = action_hint_in
 	autosave = autosave_in
 
-	_selection = _SelectionCtrl.new(owner, camera_rig, workspace_manager, overlay, action_hint)
+	_selection = _SelectionCtrl.new(owner, camera_rig, workspace_manager, meeting_room_manager, overlay, action_hint)
 	_placement = _PlacementCtrl.new(owner, camera_rig, workspace_manager, desk_manager, overlay, action_hint, autosave)
 
 	if overlay != null:
 		if overlay.has_signal("create_confirmed"):
 			overlay.connect("create_confirmed", Callable(self, "_on_create_confirmed"))
+		if overlay.has_signal("create_meeting_room_confirmed"):
+			overlay.connect("create_meeting_room_confirmed", Callable(self, "_on_create_meeting_room_confirmed"))
 		if overlay.has_signal("create_canceled"):
 			overlay.connect("create_canceled", Callable(self, "_on_create_canceled"))
 		if overlay.has_signal("delete_requested"):
@@ -83,6 +88,10 @@ func debug_set_pending_rect(rect: Rect2) -> void:
 func _on_create_confirmed(name: String) -> void:
 	if _selection != null:
 		_selection.call("on_create_confirmed", name, autosave)
+
+func _on_create_meeting_room_confirmed(name: String) -> void:
+	if _selection != null:
+		_selection.call("on_create_meeting_room_confirmed", name, autosave)
 
 func _on_create_canceled() -> void:
 	if _selection != null:
@@ -131,4 +140,3 @@ func _on_add_standing_desk_requested(workspace_id: String) -> void:
 	if _selection != null:
 		_selection.call("cancel_interaction")
 	_placement.call("begin_placement", wid, rect)
-
