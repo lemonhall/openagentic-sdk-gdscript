@@ -4,10 +4,12 @@ const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
 const _ModelUtils := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomDecorationModelUtils.gd")
 
 const MIC_SCENE := "res://assets/meeting_room/mic.glb"
+const MIC_INDICATOR_SCENE := "res://vr_offices/fx/InteractPlumbob.tscn"
 const _MIC_TARGET_H := 0.085
 const _MIC_END_INSET := 0.12
 const _MIC_Y_EPS := 0.01
 const _MIC_YAW_OFFSET :=  PI * 1.5
+const _MIC_INDICATOR_GAP := 0.12
 
 const _TABLE_COLLISION_LAYER := 1 # Layer 1 (floor/props): NPCs collide with this.
 const _NPC_COLLISION_LAYER := 2 # vr_offices/npc/Npc.tscn: collision_layer = 2
@@ -123,3 +125,28 @@ static func _place_mic_on_table(table_wrap: Node3D, table_model: Node3D) -> void
 		var max_z := float(table_bounds.position.z + table_bounds.size.z)
 		var half_micz := float(mic_bounds.size.z) * 0.5
 		mic_wrap.position = Vector3(0.0, top_y + _MIC_Y_EPS, max_z - inset - half_micz)
+
+	_ensure_mic_indicator(mic_wrap, mic_model, mic_bounds)
+
+static func _ensure_mic_indicator(mic_wrap: Node3D, mic_model: Node3D, mic_bounds: AABB) -> void:
+	if mic_wrap == null or mic_model == null:
+		return
+
+	var existing := mic_wrap.get_node_or_null("InteractIndicator") as Node3D
+	if existing != null:
+		existing.queue_free()
+
+	var ps0 := load(MIC_INDICATOR_SCENE)
+	if ps0 == null or not (ps0 is PackedScene):
+		return
+	var inst0 := (ps0 as PackedScene).instantiate()
+	var inst := inst0 as Node3D
+	if inst == null:
+		return
+	inst.name = "InteractIndicator"
+	mic_wrap.add_child(inst)
+
+	var top_y := float(mic_bounds.position.y + mic_bounds.size.y)
+	var anchor_local := Vector3(0.0, top_y + _MIC_INDICATOR_GAP, 0.0)
+	if inst.has_method("bind_to"):
+		inst.call("bind_to", mic_wrap, anchor_local)

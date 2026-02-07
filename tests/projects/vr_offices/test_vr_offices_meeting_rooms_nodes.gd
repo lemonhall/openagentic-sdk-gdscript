@@ -133,6 +133,9 @@ func _init() -> void:
 	var mic_wrap := table_wrap.get_node_or_null("Mic") as Node3D
 	if not T.require_true(self, mic_wrap != null, "Expected Decor/Table/Mic wrapper"):
 		return
+	var mic_indicator := mic_wrap.get_node_or_null("InteractIndicator") as Node3D
+	if not T.require_true(self, mic_indicator != null, "Expected Mic/InteractIndicator wrapper"):
+		return
 	# Screen should be attached under a wall so it hides with wall visibility.
 	var screen := _find_descendant_named(walls, "ProjectorScreen") as Node3D
 	if not T.require_true(self, screen != null, "Expected Walls/**/ProjectorScreen wrapper"):
