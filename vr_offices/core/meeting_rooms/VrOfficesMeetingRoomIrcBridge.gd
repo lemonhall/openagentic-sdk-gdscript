@@ -6,13 +6,10 @@ const _Connections := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeet
 var _config: Dictionary = {}
 var _get_save_id: Callable = Callable()
 var _is_headless: Callable = Callable()
-# meeting_room_id -> { host: Node, npcs: Dictionary[npc_id -> Node] }
 var _rooms: Dictionary = {}
-func _online_tests_enabled() -> bool:
-	return OS.get_cmdline_args().has("--oa-online-tests")
+func _online_tests_enabled() -> bool: return OS.get_cmdline_args().has("--oa-online-tests")
 func bind(get_save_id: Callable, is_headless: Callable) -> void:
-	_get_save_id = get_save_id
-	_is_headless = is_headless
+	_get_save_id = get_save_id; _is_headless = is_headless
 func set_config(cfg: Dictionary) -> void:
 	_config = cfg if cfg != null else {}
 	_reconfigure_all()
@@ -26,12 +23,16 @@ func join_participant(meeting_room_id: String, npc_id: String, _display_name: St
 	_ensure_host_link(rid)
 	_ensure_npc_link(rid, nid, irc_nick.strip_edges())
 func ensure_host_for_room(meeting_room_id: String) -> void:
-	if not _enabled():
-		return
 	var rid := meeting_room_id.strip_edges()
-	if rid == "":
-		return
-	_ensure_host_link(rid)
+	if rid != "" and _enabled():
+		_ensure_host_link(rid)
+func peek_host_link(meeting_room_id: String) -> Node:
+	var rid := meeting_room_id.strip_edges()
+	var st0: Variant = _rooms.get(rid, null)
+	if rid == "" or not _enabled() or typeof(st0) != TYPE_DICTIONARY:
+		return null
+	var host := (st0 as Dictionary).get("host", null) as Node
+	return host if host != null and is_instance_valid(host) else null
 func get_host_link(meeting_room_id: String) -> Node:
 	var rid := meeting_room_id.strip_edges()
 	return null if rid == "" or not _enabled() else _ensure_host_link(rid)
@@ -40,8 +41,7 @@ func get_npc_link(meeting_room_id: String, npc_id: String) -> Node:
 	var nid := npc_id.strip_edges()
 	return null if rid == "" or nid == "" else _npc_link(rid, nid)
 func close_room_connections(meeting_room_id: String) -> void:
-	if _Connections != null:
-		_Connections.close_room_connections(_rooms, meeting_room_id)
+	if _Connections != null: _Connections.close_room_connections(_rooms, meeting_room_id)
 func part_participant(meeting_room_id: String, npc_id: String) -> void:
 	var rid := meeting_room_id.strip_edges()
 	var nid := npc_id.strip_edges()

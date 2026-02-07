@@ -92,9 +92,28 @@ func _init() -> void:
 	if room == null:
 		T.fail_and_quit(self, "Missing meeting room node")
 		return
-	var table := room.get_node_or_null("Decor/Table") as Node3D
-	if table == null:
-		T.fail_and_quit(self, "Missing Decor/Table")
+
+	var bridge := s.get_node_or_null("MeetingRoomIrcBridge") as Node
+	if bridge == null:
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Missing MeetingRoomIrcBridge")
+		return
+
+	# NEW FLOW: meeting room creation should immediately establish the host IRC link and JOIN the derived channel,
+	# not require opening the mic overlay.
+	if not bridge.has_method("peek_host_link"):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "MeetingRoomIrcBridge must implement peek_host_link(meeting_room_id) without creating new links.")
+		return
+	var host_link0: Variant = bridge.call("peek_host_link", rid)
+	var host_link := host_link0 as Node
+	if host_link == null or not is_instance_valid(host_link):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Expected host IRC link to exist immediately after room creation (auto-join lifecycle).")
 		return
 
 	# Spawn 3 NPCs and bind into meeting state.
@@ -117,26 +136,45 @@ func _init() -> void:
 		npc_root.add_child(n)
 	await process_frame
 
-	var near := table.global_position + Vector3(1.0, 0.0, 0.0)
+	# Invite NPCs explicitly (no proximity auto-join).
+	var part0: Variant = s.get("_meeting_participation")
+	if not (part0 is RefCounted):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Missing _meeting_participation controller")
+		return
+	var part := part0 as RefCounted
+	if not part.has_method("invite_npc_to_meeting_room"):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "MeetingParticipationController must implement invite_npc_to_meeting_room(meeting_room_id, npc) -> Vector3")
+		return
 	for nid in npc_ids:
 		var n2 := npc_root.get_node_or_null(NodePath(nid)) as Node
 		if n2 == null:
+			if bridge.has_method("close_room_connections"):
+				bridge.call("close_room_connections", rid)
+			_cleanup(s, oa, created_oa)
 			T.fail_and_quit(self, "Missing NPC node: %s" % nid)
 			return
-		n2.emit_signal("move_target_reached", nid, Vector3(near.x, 0.0, near.z))
-	await process_frame
-
-	# Open overlay via mic and send one host message to ensure host link is created.
-	var mic := room.get_node_or_null("Decor/Table/Mic") as Node
-	if mic == null:
-		T.fail_and_quit(self, "Missing Decor/Table/Mic")
-		return
-	if s.has_method("open_meeting_room_chat_for_mic"):
-		s.call("open_meeting_room_chat_for_mic", mic)
-	await process_frame
-	var overlay := s.get_node_or_null("UI/MeetingRoomChatOverlay") as Control
-	if overlay != null:
-		overlay.emit_signal("message_submitted", "e2e ping")
+		var target0: Variant = part.call("invite_npc_to_meeting_room", rid, n2)
+		if not (target0 is Vector3):
+			if bridge.has_method("close_room_connections"):
+				bridge.call("close_room_connections", rid)
+			_cleanup(s, oa, created_oa)
+			T.fail_and_quit(self, "invite_npc_to_meeting_room must return a Vector3 target for %s" % nid)
+			return
+		var target := target0 as Vector3
+		if target == Vector3.ZERO:
+			if bridge.has_method("close_room_connections"):
+				bridge.call("close_room_connections", rid)
+			_cleanup(s, oa, created_oa)
+			T.fail_and_quit(self, "invite_npc_to_meeting_room returned Vector3.ZERO for %s" % nid)
+			return
+		# Headless E2E: shortcut pathfinding by directly emitting the reached signal.
+		n2.emit_signal("move_target_reached", nid, target)
 	await process_frame
 
 	var ch := String(IrcNames.derive_channel_for_meeting_room(save_id, rid, 50)).strip_edges()
@@ -148,20 +186,8 @@ func _init() -> void:
 	for nid in npc_ids:
 		want_nicks.append(String(IrcNames.derive_nick(save_id, nid, 9)).strip_edges())
 
-	var bridge := s.get_node_or_null("MeetingRoomIrcBridge") as Node
-	if bridge == null:
-		_cleanup(s, oa, created_oa)
-		T.fail_and_quit(self, "Missing MeetingRoomIrcBridge")
-		return
-
 	# Use the host's real IRC connection to query NAMES (avoid extra monitor connection;
 	# some servers cap connections per IP).
-	var host_link0: Variant = bridge.call("get_host_link", rid) if bridge.has_method("get_host_link") else null
-	var host_link := host_link0 as Node
-	if host_link == null or not is_instance_valid(host_link):
-		_cleanup(s, oa, created_oa)
-		T.fail_and_quit(self, "Missing host IRC link")
-		return
 	if not await _wait_for_ready(host_link, 900):
 		if bridge.has_method("close_room_connections"):
 			bridge.call("close_room_connections", rid)

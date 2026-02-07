@@ -108,10 +108,22 @@ func _init() -> void:
 	npc_root.add_child(bob)
 	await process_frame
 
-	# Join both NPCs into the meeting by emitting "move_target_reached" near the table.
-	var near := table.global_position + Vector3(1.0, 0.0, 0.0)
-	alice.emit_signal("move_target_reached", "npc_01", Vector3(near.x, 0.0, near.z))
-	bob.emit_signal("move_target_reached", "npc_02", Vector3(near.x, 0.0, near.z))
+	# Invite both NPCs into the meeting explicitly (no proximity auto-join).
+	var part0: Variant = s.get("_meeting_participation")
+	if not (part0 is RefCounted):
+		T.fail_and_quit(self, "Missing _meeting_participation controller")
+		return
+	var part := part0 as RefCounted
+	if not part.has_method("invite_npc_to_meeting_room"):
+		T.fail_and_quit(self, "MeetingParticipationController must implement invite_npc_to_meeting_room(meeting_room_id, npc) -> Vector3")
+		return
+	var alice_target0: Variant = part.call("invite_npc_to_meeting_room", rid, alice)
+	var bob_target0: Variant = part.call("invite_npc_to_meeting_room", rid, bob)
+	if not (alice_target0 is Vector3) or not (bob_target0 is Vector3):
+		T.fail_and_quit(self, "invite_npc_to_meeting_room must return Vector3 targets")
+		return
+	alice.emit_signal("move_target_reached", "npc_01", alice_target0 as Vector3)
+	bob.emit_signal("move_target_reached", "npc_02", bob_target0 as Vector3)
 	await process_frame
 
 	# Open overlay via mic.

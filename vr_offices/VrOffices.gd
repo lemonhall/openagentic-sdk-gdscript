@@ -134,6 +134,12 @@ func _ready() -> void:
 		if _meeting_irc_bridge.has_method("bind"):
 			_meeting_irc_bridge.call("bind", Callable(_agent, "effective_save_id"), Callable(self, "_is_headless"))
 	_meeting_channel_hub.call("set_irc_bridge", _meeting_irc_bridge)
+	if _meeting_room_manager != null and _meeting_room_manager.has_method("set_lifecycle_callbacks"):
+		_meeting_room_manager.call(
+			"set_lifecycle_callbacks",
+			Callable(self, "_on_meeting_room_created"),
+			Callable(self, "_on_meeting_room_deleted")
+		)
 	_meeting_participation = _MeetingParticipationScript.new(self, npc_root, meeting_rooms_root, _meeting_room_manager, _meeting_channel_hub)
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
@@ -313,6 +319,20 @@ func _apply_irc_settings_to_desks() -> void:
 	_desk_manager.call("set_irc_config", _irc_settings.call("get_config"))
 	if _meeting_irc_bridge != null and is_instance_valid(_meeting_irc_bridge) and _meeting_irc_bridge.has_method("set_config"):
 		_meeting_irc_bridge.call("set_config", _irc_settings.call("get_config"))
+
+func _on_meeting_room_created(meeting_room_id: String) -> void:
+	var rid := meeting_room_id.strip_edges()
+	if rid == "":
+		return
+	if _meeting_irc_bridge != null and is_instance_valid(_meeting_irc_bridge) and _meeting_irc_bridge.has_method("ensure_host_for_room"):
+		_meeting_irc_bridge.call("ensure_host_for_room", rid)
+
+func _on_meeting_room_deleted(meeting_room_id: String) -> void:
+	var rid := meeting_room_id.strip_edges()
+	if rid == "":
+		return
+	if _meeting_irc_bridge != null and is_instance_valid(_meeting_irc_bridge) and _meeting_irc_bridge.has_method("close_room_connections"):
+		_meeting_irc_bridge.call("close_room_connections", rid)
 
 func open_settings_overlay() -> void:
 	if settings_overlay == null:

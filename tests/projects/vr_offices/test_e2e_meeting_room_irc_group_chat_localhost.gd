@@ -160,7 +160,17 @@ func _init() -> void:
 		npc_root.add_child(n)
 	await process_frame
 
-	var near := table.global_position + Vector3(1.0, 0.0, 0.0)
+	# Invite NPCs explicitly (no proximity auto-join).
+	var part0: Variant = s.get("_meeting_participation")
+	if not (part0 is RefCounted):
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "Missing _meeting_participation controller")
+		return
+	var part := part0 as RefCounted
+	if not part.has_method("invite_npc_to_meeting_room"):
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "MeetingParticipationController must implement invite_npc_to_meeting_room(meeting_room_id, npc) -> Vector3")
+		return
 	for p in roster:
 		var nid2 := String(p.get("id", "")).strip_edges()
 		var n2 := npc_root.get_node_or_null(NodePath(nid2)) as Node
@@ -168,7 +178,18 @@ func _init() -> void:
 			_cleanup(s, null, oa)
 			T.fail_and_quit(self, "Missing NPC node: %s" % nid2)
 			return
-		n2.emit_signal("move_target_reached", nid2, Vector3(near.x, 0.0, near.z))
+		var target0: Variant = part.call("invite_npc_to_meeting_room", rid, n2)
+		if not (target0 is Vector3):
+			_cleanup(s, null, oa)
+			T.fail_and_quit(self, "invite_npc_to_meeting_room must return a Vector3 target for %s" % nid2)
+			return
+		var target := target0 as Vector3
+		if target == Vector3.ZERO:
+			_cleanup(s, null, oa)
+			T.fail_and_quit(self, "invite_npc_to_meeting_room returned Vector3.ZERO for %s" % nid2)
+			return
+		# Headless E2E: shortcut pathfinding by directly emitting the reached signal.
+		n2.emit_signal("move_target_reached", nid2, target)
 	await process_frame
 
 	# Open overlay via mic.
@@ -198,11 +219,16 @@ func _init() -> void:
 		T.fail_and_quit(self, "Missing MeetingRoomIrcBridge")
 		return
 
-	var host_link0: Variant = bridge.call("get_host_link", rid) if bridge.has_method("get_host_link") else null
+	# NEW FLOW: meeting room creation should immediately establish the host IRC link and JOIN the derived channel.
+	if not bridge.has_method("peek_host_link"):
+		_cleanup(s, null, oa)
+		T.fail_and_quit(self, "MeetingRoomIrcBridge must implement peek_host_link(meeting_room_id) without creating new links.")
+		return
+	var host_link0: Variant = bridge.call("peek_host_link", rid)
 	var host_link := host_link0 as Node
 	if host_link == null or not is_instance_valid(host_link):
 		_cleanup(s, null, oa)
-		T.fail_and_quit(self, "Missing host IRC link")
+		T.fail_and_quit(self, "Expected host IRC link to exist immediately after room creation (auto-join lifecycle).")
 		return
 
 	# Sanity: ensure host + three NPCs are present.

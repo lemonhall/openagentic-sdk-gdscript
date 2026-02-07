@@ -63,10 +63,6 @@ func _init() -> void:
 	if rid == "":
 		T.fail_and_quit(self, "Meeting room id empty")
 		return
-	var table := room.get_node_or_null("Decor/Table") as Node3D
-	if table == null:
-		T.fail_and_quit(self, "Missing Decor/Table")
-		return
 
 	var npc_scene := load("res://vr_offices/npc/Npc.tscn")
 	if npc_scene == null or not (npc_scene is PackedScene):
@@ -97,13 +93,32 @@ func _init() -> void:
 		if not T.require_true(self, not bool((meeting_ring as Node3D).visible), "MeetingRing must start hidden"):
 			return
 
-	var near := table.global_position + Vector3(1.0, 0.0, 0.0)
-	npc.emit_signal("move_target_reached", "npc_01", Vector3(near.x, 0.0, near.z))
+	var part0: Variant = s.get("_meeting_participation")
+	if not (part0 is RefCounted):
+		T.fail_and_quit(self, "Missing _meeting_participation controller")
+		return
+	var part := part0 as RefCounted
+	if not part.has_method("invite_npc_to_meeting_room"):
+		T.fail_and_quit(self, "MeetingParticipationController must implement invite_npc_to_meeting_room(meeting_room_id, npc) -> Vector3")
+		return
+	if not part.has_method("uninvite_npc_from_meeting_room"):
+		T.fail_and_quit(self, "MeetingParticipationController must implement uninvite_npc_from_meeting_room(npc) -> void")
+		return
+
+	var target0: Variant = part.call("invite_npc_to_meeting_room", rid, npc)
+	if not (target0 is Vector3):
+		T.fail_and_quit(self, "invite_npc_to_meeting_room must return a Vector3 target")
+		return
+	var target := target0 as Vector3
+	if target == Vector3.ZERO:
+		T.fail_and_quit(self, "invite_npc_to_meeting_room returned Vector3.ZERO")
+		return
+	npc.emit_signal("move_target_reached", "npc_01", target)
 	await process_frame
 
 	if not T.require_true(self, npc.has_method("get_bound_meeting_room_id"), "Npc missing get_bound_meeting_room_id()"):
 		return
-	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), rid, "NPC should enter meeting state near the table"):
+	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), rid, "NPC should enter meeting state after explicit invite"):
 		return
 	if not T.require_true(self, not bool(npc.get("wander_enabled")), "Meeting NPC should stop wandering"):
 		return
@@ -114,44 +129,10 @@ func _init() -> void:
 		if not T.require_true(self, bool((meeting_ring as Node3D).visible), "MeetingRing must be visible when meeting-bound"):
 			return
 
-	# Repro: command_move_to sets a "waiting-for-work" timer by default; meeting state must suppress that.
-	# Use a target near the table end (outside center radius) but within 2m of the table footprint.
-	var table_body := table.get_node_or_null("TableCollision") as StaticBody3D
-	var shape_node := table_body.get_node_or_null("Shape") as CollisionShape3D if table_body != null else null
-	if not T.require_true(self, shape_node != null and shape_node.shape is BoxShape3D, "Expected table collision box"):
-		return
-	var box := shape_node.shape as BoxShape3D
-	var hx := float(box.size.x) * 0.5
-	var local_outside := Vector3(shape_node.position.x + hx + 0.5, 0.0, shape_node.position.z)
-	var p_global := table_body.to_global(local_outside)
-	if npc is Node3D:
-		# Start a bit away so the NPC has to process a real move-to completion.
-		(npc as Node3D).global_position = Vector3(p_global.x + 3.0, 0.3, p_global.z)
-	# Wait until the NPC settles on the floor.
-	for _k in range(60):
-		await process_frame
-		if npc.has_method("is_on_floor") and bool(npc.call("is_on_floor")):
-			break
-	npc.call("command_move_to", Vector3(p_global.x, 0.0, p_global.z))
-	for _m in range(240):
-		await process_frame
-		if not bool(npc.get("_goto_active")):
-			break
-	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), rid, "Move-to near table footprint should keep meeting binding"):
-		return
-	if not T.require_true(self, float(npc.get("_waiting_for_work_left")) <= 0.001, "Meeting-bound NPC must not start waiting-for-work timer"):
-		return
+	part.call("uninvite_npc_from_meeting_room", npc)
+	await process_frame
 
-	var far := table.global_position + Vector3(5.0, 0.0, 5.0)
-	npc.call("command_move_to", Vector3(far.x, 0.0, far.z))
-	for _n in range(600):
-		await process_frame
-		if not bool(npc.get("_goto_active")):
-			break
-	if not T.require_true(self, not bool(npc.get("_goto_active")), "Expected NPC to reach far target"):
-		return
-
-	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), "", "NPC should exit meeting state when moved away"):
+	if not T.require_eq(self, String(npc.call("get_bound_meeting_room_id")), "", "NPC should exit meeting state after uninvite"):
 		return
 	if not T.require_true(self, bool(npc.get("wander_enabled")), "NPC should resume wandering after meeting exit"):
 		return

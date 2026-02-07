@@ -1,12 +1,12 @@
 extends RefCounted
 
-const _Meeting := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingConstants.gd")
-
 var owner: Node = null
 var npc_root: Node3D = null
 var meeting_rooms_root: Node3D = null
 var meeting_room_manager: RefCounted = null
 var channel_hub: RefCounted = null
+var _pending_room_by_npc_id: Dictionary = {}
+var _pending_target_by_npc_id: Dictionary = {}
 
 func _init(
 	owner_in: Node,
@@ -31,6 +31,31 @@ func _init(
 
 	if meeting_rooms_root != null:
 		meeting_rooms_root.child_exiting_tree.connect(_on_meeting_room_child_exiting_tree)
+
+func invite_npc_to_meeting_room(meeting_room_id: String, npc: Node) -> Vector3:
+	var rid := meeting_room_id.strip_edges()
+	if rid == "" or npc == null or not is_instance_valid(npc):
+		return Vector3.ZERO
+	var nid := _npc_id_for_node(npc)
+	if nid == "":
+		return Vector3.ZERO
+
+	# If the NPC is already bound to a different meeting room, leave it immediately.
+	if npc.has_method("get_bound_meeting_room_id") and npc.has_method("on_meeting_unbound"):
+		var cur := String(npc.call("get_bound_meeting_room_id")).strip_edges()
+		if cur != "" and cur != rid:
+			if channel_hub != null and channel_hub.has_method("part_participant"):
+				channel_hub.call("part_participant", cur, nid)
+			npc.call("on_meeting_unbound", cur)
+
+	var target := _pick_target_for_room(rid, nid)
+	if target == Vector3.ZERO:
+		return Vector3.ZERO
+	_pending_room_by_npc_id[nid] = rid
+	_pending_target_by_npc_id[nid] = target
+	if npc.has_method("command_move_to"):
+		npc.call("command_move_to", target)
+	return target
 
 func _on_npc_child_entered_tree(n: Node) -> void:
 	_try_connect_npc(n)
@@ -70,88 +95,58 @@ func _try_connect_npc(n: Node) -> void:
 func _on_npc_move_target_reached(_npc_id: String, target: Vector3, npc: Node) -> void:
 	if npc == null or not is_instance_valid(npc):
 		return
-	if meeting_room_manager == null:
+	var nid := _npc_id_for_node(npc)
+	if nid == "":
+		nid = _npc_id.strip_edges()
+	if nid == "":
 		return
-	if not npc.has_method("get_bound_meeting_room_id"):
-		return
-	var cur_room := String(npc.call("get_bound_meeting_room_id")).strip_edges()
-
-	var target_xz := Vector2(target.x, target.z)
-	var best_room := ""
-	var best_dist := 999999.0
-
-	var rooms0: Variant = meeting_room_manager.call("list_meeting_rooms") if meeting_room_manager.has_method("list_meeting_rooms") else []
-	var rooms: Array = rooms0 as Array if typeof(rooms0) == TYPE_ARRAY else []
-	for r0 in rooms:
-		if typeof(r0) != TYPE_DICTIONARY:
-			continue
-		var r: Dictionary = r0 as Dictionary
-		var rid := String(r.get("id", "")).strip_edges()
-		if rid == "":
-			continue
-		var dist0: Dictionary = _distance_xz_to_table(rid, target)
-		if not bool(dist0.get("ok", false)):
-			continue
-		var d0: Variant = dist0.get("dist", null)
-		if typeof(d0) != TYPE_FLOAT and typeof(d0) != TYPE_INT:
-			continue
-		var d := float(d0)
-		if d < best_dist:
-			best_dist = d
-			best_room = rid
-
-	var want_room := best_room if best_dist <= float(_Meeting.ENTER_RADIUS_M) else ""
-	if cur_room != "" and best_room == cur_room and best_dist <= float(_Meeting.EXIT_RADIUS_M):
-		want_room = cur_room
-
-	if want_room == cur_room:
+	var rid0: Variant = _pending_room_by_npc_id.get(nid, "")
+	var rid := String(rid0).strip_edges()
+	if rid == "":
 		return
 
-	if cur_room != "" and npc.has_method("on_meeting_unbound"):
-		if channel_hub != null and channel_hub.has_method("part_participant"):
-			channel_hub.call("part_participant", cur_room, _npc_id_for_node(npc))
-		npc.call("on_meeting_unbound", cur_room)
-	if want_room != "" and npc.has_method("on_meeting_bound"):
-		npc.call("on_meeting_bound", want_room)
-		if channel_hub != null and channel_hub.has_method("join_participant"):
-			channel_hub.call("join_participant", want_room, npc)
+	_pending_room_by_npc_id.erase(nid)
+	_pending_target_by_npc_id.erase(nid)
 
-func _distance_xz_to_table(meeting_room_id: String, point: Vector3) -> Dictionary:
+	if npc.has_method("on_meeting_bound"):
+		npc.call("on_meeting_bound", rid)
+	if channel_hub != null and channel_hub.has_method("join_participant"):
+		channel_hub.call("join_participant", rid, npc)
+
+func _pick_target_for_room(meeting_room_id: String, npc_id: String) -> Vector3:
 	if meeting_room_manager == null or not meeting_room_manager.has_method("get_meeting_room_node"):
-		return {"ok": false}
+		return Vector3.ZERO
 	var room := meeting_room_manager.call("get_meeting_room_node", meeting_room_id) as Node
 	if room == null or not is_instance_valid(room):
-		return {"ok": false}
+		return Vector3.ZERO
 	var table := room.get_node_or_null("Decor/Table") as Node3D
-	if table == null:
-		if room is Node3D:
-			var rp := (room as Node3D).global_position
-			var d2 := Vector2(point.x, point.z).distance_to(Vector2(rp.x, rp.z))
-			return {"ok": true, "dist": d2}
-		return {"ok": false}
+	var base := Vector3.ZERO
+	if table != null:
+		base = table.global_position
+	elif room is Node3D:
+		base = (room as Node3D).global_position
+	if base == Vector3.ZERO:
+		return Vector3.ZERO
 
-	# Prefer table collision footprint: distance to the oriented box in XZ.
-	var body := table.get_node_or_null("TableCollision") as StaticBody3D
-	var shape_node := body.get_node_or_null("Shape") as CollisionShape3D if body != null else null
-	if shape_node != null and shape_node.shape is BoxShape3D:
-		var box := shape_node.shape as BoxShape3D
-		var center := shape_node.position
-		# Compute in body-local coordinates (accounts for table transform/rotation).
-		var p_local := body.to_local(Vector3(point.x, body.global_position.y, point.z))
-		var hx := float(box.size.x) * 0.5
-		var hz := float(box.size.z) * 0.5
-		var dx := maxf(absf(float(p_local.x - center.x)) - hx, 0.0)
-		var dz := maxf(absf(float(p_local.z - center.z)) - hz, 0.0)
-		# Convert local distances back to global meters (to_local cancels parent scaling).
-		var sc := body.global_transform.basis.get_scale()
-		dx *= absf(float(sc.x))
-		dz *= absf(float(sc.z))
-		return {"ok": true, "dist": sqrt(dx * dx + dz * dz)}
+	var h: int = int(abs(int(npc_id.hash())))
+	var angle_steps := 8
+	var ang := float(h % angle_steps) * (TAU / float(angle_steps))
+	var radius := 1.25 + float((h / 13) % 3) * 0.15
+	var p := base + Vector3(cos(ang) * radius, 0.0, sin(ang) * radius)
 
-	# Fallback: distance to table origin.
-	var tp := table.global_position
-	var d := Vector2(point.x, point.z).distance_to(Vector2(tp.x, tp.z))
-	return {"ok": true, "dist": d}
+	# Clamp to room rect when available (keeps targets inside walls).
+	if meeting_room_manager != null and meeting_room_manager.has_method("get_meeting_room_rect_xz"):
+		var rect0: Variant = meeting_room_manager.call("get_meeting_room_rect_xz", meeting_room_id)
+		var rect: Rect2 = rect0 as Rect2 if rect0 is Rect2 else Rect2()
+		if rect.size != Vector2.ZERO:
+			var pad := 0.35
+			var min_x := float(rect.position.x + pad)
+			var max_x := float(rect.position.x + rect.size.x - pad)
+			var min_z := float(rect.position.y + pad)
+			var max_z := float(rect.position.y + rect.size.y - pad)
+			p.x = clampf(p.x, min_x, max_x)
+			p.z = clampf(p.z, min_z, max_z)
+	return p
 
 func _unbind_all_from_room(meeting_room_id: String) -> void:
 	if npc_root == null:
@@ -169,6 +164,10 @@ func _unbind_all_from_room(meeting_room_id: String) -> void:
 				if channel_hub != null and channel_hub.has_method("part_participant"):
 					channel_hub.call("part_participant", rid, _npc_id_for_node(npc))
 				npc.call("on_meeting_unbound", rid)
+		var nid := _npc_id_for_node(npc)
+		if nid != "" and String(_pending_room_by_npc_id.get(nid, "")).strip_edges() == rid:
+			_pending_room_by_npc_id.erase(nid)
+			_pending_target_by_npc_id.erase(nid)
 
 func _npc_id_for_node(npc: Node) -> String:
 	if npc == null:
