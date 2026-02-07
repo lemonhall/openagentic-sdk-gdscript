@@ -57,6 +57,22 @@ func invite_npc_to_meeting_room(meeting_room_id: String, npc: Node) -> Vector3:
 		npc.call("command_move_to", target)
 	return target
 
+func uninvite_npc_from_meeting_room(npc: Node) -> void:
+	if npc == null or not is_instance_valid(npc):
+		return
+	var nid := _npc_id_for_node(npc)
+	if nid != "":
+		_pending_room_by_npc_id.erase(nid)
+		_pending_target_by_npc_id.erase(nid)
+	if not npc.has_method("get_bound_meeting_room_id") or not npc.has_method("on_meeting_unbound"):
+		return
+	var rid := String(npc.call("get_bound_meeting_room_id")).strip_edges()
+	if rid == "":
+		return
+	if channel_hub != null and channel_hub.has_method("part_participant"):
+		channel_hub.call("part_participant", rid, nid)
+	npc.call("on_meeting_unbound", rid)
+
 func _on_npc_child_entered_tree(n: Node) -> void:
 	_try_connect_npc(n)
 
