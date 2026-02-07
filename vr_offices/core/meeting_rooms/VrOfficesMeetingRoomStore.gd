@@ -36,6 +36,19 @@ func get_meeting_room_rect_xz(meeting_room_id: String) -> Rect2:
 	var v0: Variant = r.get("rect_xz")
 	return v0 as Rect2 if (v0 is Rect2) else Rect2()
 
+func meeting_room_id_from_point_xz(point_xz: Vector2) -> String:
+	for r0 in _meeting_rooms:
+		var r := r0 as Dictionary
+		if r == null:
+			continue
+		var rid := String(r.get("id", "")).strip_edges()
+		if rid == "":
+			continue
+		var rect0: Variant = r.get("rect_xz")
+		if rect0 is Rect2 and (rect0 as Rect2).has_point(point_xz):
+			return rid
+	return ""
+
 func clamp_rect_to_floor(r: Rect2) -> Rect2:
 	var min_x := float(floor_bounds_xz.position.x)
 	var max_x := float(floor_bounds_xz.position.x + floor_bounds_xz.size.x)
@@ -173,4 +186,3 @@ static func _rects_overlap_exclusive(a: Rect2, b: Rect2) -> bool:
 	var bz1 := float(b.position.y + b.size.y)
 
 	return (ax0 < bx1) and (ax1 > bx0) and (az0 < bz1) and (az1 > bz0)
-

@@ -33,6 +33,11 @@ func get_meeting_room(meeting_room_id: String) -> Dictionary:
 func get_meeting_room_rect_xz(meeting_room_id: String) -> Rect2:
 	return _store.call("get_meeting_room_rect_xz", meeting_room_id)
 
+func meeting_room_id_from_point_xz(point_xz: Vector2) -> String:
+	if _store == null or not _store.has_method("meeting_room_id_from_point_xz"):
+		return ""
+	return String(_store.call("meeting_room_id_from_point_xz", point_xz)).strip_edges()
+
 func bind_scene(root: Node3D, scene: PackedScene, is_headless: Callable) -> void:
 	_scene.call("bind_scene", root, scene, is_headless)
 	_scene.call("rebuild_nodes", _store.call("list_meeting_rooms_ref"))
