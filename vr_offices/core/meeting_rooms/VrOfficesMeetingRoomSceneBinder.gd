@@ -83,3 +83,15 @@ func free_node_for_id(meeting_room_id: String) -> void:
 	var n := n0 as Node
 	if n != null and is_instance_valid(n):
 		n.queue_free()
+
+func get_node_for_id(meeting_room_id: String) -> Node:
+	var rid := meeting_room_id.strip_edges()
+	if rid == "" or not _nodes_by_id.has(rid):
+		return null
+	var n0: Variant = _nodes_by_id.get(rid)
+	if typeof(n0) != TYPE_OBJECT:
+		return null
+	var n := n0 as Node
+	if n == null or not is_instance_valid(n):
+		return null
+	return n

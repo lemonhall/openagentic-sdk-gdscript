@@ -20,6 +20,33 @@ static func derive_nick(save_id: String, desk_id: String, nicklen: int) -> Strin
 static func derive_channel(save_id: String, desk_id: String, channellen: int) -> String:
 	return derive_channel_for_workspace(save_id, "", desk_id, channellen)
 
+static func derive_channel_for_meeting_room(save_id: String, meeting_room_id: String, channellen: int) -> String:
+	var clen := channellen
+	if clen < 1:
+		clen = 1
+	var prefix := "#oa_"
+	if clen <= prefix.length():
+		return prefix.substr(0, clen)
+
+	var rid := _sanitize_token(meeting_room_id)
+	var digest := _sha256_hex("%s:%s" % [save_id, meeting_room_id]).substr(0, 8)
+
+	var body := _sanitize_token("mr_%s_%s" % [rid, digest])
+	var ch := prefix + body
+	if ch.length() <= clen:
+		return ch
+
+	# Shorten the meaningful part first.
+	var rid_short := rid.substr(0, 16)
+	body = _sanitize_token("mr_%s_%s" % [rid_short, digest])
+	ch = prefix + body
+	if ch.length() <= clen:
+		return ch
+
+	# Last resort: just hash (still deterministic).
+	var need := clen - prefix.length()
+	return (prefix + _sha256_hex("%s:%s" % [save_id, meeting_room_id]).substr(0, max(0, need))).substr(0, clen)
+
 static func _sanitize_token(s: String) -> String:
 	var out := ""
 	var last_us := false

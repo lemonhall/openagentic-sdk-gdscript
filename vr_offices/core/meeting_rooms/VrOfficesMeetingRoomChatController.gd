@@ -4,6 +4,7 @@ var owner: Node = null
 var camera_rig: Node = null
 var overlay: Control = null
 var oa: Node = null
+var channel_hub: RefCounted = null
 var chat_history: RefCounted = null
 var is_headless: Callable
 var get_save_id: Callable
@@ -18,6 +19,7 @@ func _init(
 	camera_rig_in: Node,
 	overlay_in: Control,
 	oa_in: Node,
+	channel_hub_in: RefCounted,
 	chat_history_in: RefCounted,
 	is_headless_in: Callable,
 	get_save_id_in: Callable
@@ -26,6 +28,7 @@ func _init(
 	camera_rig = camera_rig_in
 	overlay = overlay_in
 	oa = oa_in
+	channel_hub = channel_hub_in
 	chat_history = chat_history_in
 	is_headless = is_headless_in
 	get_save_id = get_save_id_in
@@ -66,39 +69,21 @@ func on_message_submitted(text: String) -> void:
 		return
 	if _chat_npc_id.strip_edges() == "":
 		return
-	_start_turn(_chat_npc_id, text)
+	_start_broadcast(text)
 
-func _start_turn(npc_id: String, text: String) -> void:
+func _start_broadcast(text: String) -> void:
 	busy = true
 	if overlay != null and overlay.has_method("set_busy"):
 		overlay.call("set_busy", true)
-	if overlay != null and overlay.has_method("begin_assistant"):
-		overlay.call("begin_assistant")
-	if oa == null:
-		push_warning("OpenAgentic not configured")
-		busy = false
-		if overlay != null and overlay.has_method("set_busy"):
-			overlay.call("set_busy", false)
-		return
 
-	await oa.run_npc_turn(npc_id, text, Callable(self, "_on_agent_event"))
+	if channel_hub == null or not channel_hub.has_method("broadcast_human_message"):
+		push_warning("Meeting channel hub not configured")
+	else:
+		await channel_hub.call("broadcast_human_message", _meeting_room_id, _chat_npc_id, text, overlay)
 
 	busy = false
 	if overlay != null and overlay.has_method("set_busy"):
 		overlay.call("set_busy", false)
-
-func _on_agent_event(ev: Dictionary) -> void:
-	if overlay == null:
-		return
-	var t := String(ev.get("type", ""))
-	if t == "assistant.delta":
-		if overlay.has_method("append_assistant_delta"):
-			overlay.call("append_assistant_delta", String(ev.get("text_delta", "")))
-		return
-	if t == "result":
-		if overlay.has_method("end_assistant"):
-			overlay.call("end_assistant")
-		return
 
 func _disable_skills_ui() -> void:
 	if overlay == null:

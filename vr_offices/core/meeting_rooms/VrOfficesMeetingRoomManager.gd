@@ -72,3 +72,9 @@ func meeting_room_id_from_collider(obj: Object) -> String:
 		cur = n.get_parent()
 	return ""
 
+func get_meeting_room_node(meeting_room_id: String) -> Node:
+	if _scene == null:
+		return null
+	if not _scene.has_method("get_node_for_id"):
+		return null
+	return _scene.call("get_node_for_id", meeting_room_id) as Node

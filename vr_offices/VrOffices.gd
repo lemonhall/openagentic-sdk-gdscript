@@ -15,6 +15,8 @@ const _WorkspaceControllerScript := preload("res://vr_offices/core/workspaces/Vr
 const _MeetingRoomManagerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomManager.gd")
 const _MeetingRoomControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomController.gd")
 const _MeetingRoomChatControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChatController.gd")
+const _MeetingParticipationScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingParticipationController.gd")
+const _MeetingChannelHubScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChannelHub.gd")
 const _DeskManagerScript := preload("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
 const _BgmScript := preload("res://vr_offices/core/audio/VrOfficesBgm.gd")
 const _IrcSettingsScript := preload("res://vr_offices/core/irc/VrOfficesIrcSettings.gd")
@@ -66,6 +68,8 @@ var _workspace_manager: RefCounted = null
 var _workspace_ctrl: RefCounted = null
 var _meeting_room_manager: RefCounted = null
 var _meeting_room_ctrl: RefCounted = null
+var _meeting_participation: RefCounted = null
+var _meeting_channel_hub: RefCounted = null
 var _desk_manager: RefCounted = null
 var _irc_settings: RefCounted = null
 var _quitting := false
@@ -120,6 +124,8 @@ func _ready() -> void:
 	_meeting_room_manager = _MeetingRoomManagerScript.new(bounds)
 	if _meeting_room_manager != null:
 		_meeting_room_manager.call("bind_scene", meeting_rooms_root, _MeetingRoomAreaScene, Callable(self, "_is_headless"))
+	_meeting_channel_hub = _MeetingChannelHubScript.new(oa, Callable(_agent, "effective_save_id"), Callable(self, "_find_npc_by_id"))
+	_meeting_participation = _MeetingParticipationScript.new(self, npc_root, meeting_rooms_root, _meeting_room_manager, _meeting_channel_hub)
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
 		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"), Callable(_agent, "effective_save_id"))
@@ -151,6 +157,7 @@ func _ready() -> void:
 		camera_rig,
 		meeting_room_chat_overlay,
 		oa,
+		_meeting_channel_hub,
 		_chat_history,
 		Callable(self, "_is_headless"),
 		Callable(_agent, "effective_save_id")

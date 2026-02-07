@@ -54,6 +54,7 @@ var _stationary_anim: StringName = &""
 # Desk binding / work state.
 var _desk_bound_id: String = ""
 var _skip_wait_after_goto := false
+var _meeting_bound_room_id: String = ""
 
 # Right-click move command:
 var _goto_target_xz := Vector2.ZERO
@@ -179,6 +180,9 @@ func _autoplay_animation(root: Node) -> void:
 func get_bound_desk_id() -> String:
 	return _desk_bound_id
 
+func get_bound_meeting_room_id() -> String:
+	return _meeting_bound_room_id
+
 func on_desk_bound(desk_id: String) -> void:
 	var did := desk_id.strip_edges()
 	if did == "":
@@ -203,6 +207,39 @@ func on_desk_unbound(desk_id: String) -> void:
 	if _desk_bound_id == "":
 		return
 	_desk_bound_id = ""
+	if _goto_active:
+		return
+	_waiting_for_work_left = 0.0
+	wander_enabled = true
+	_wander_pause_left = 0.0
+	_pick_new_wander_target()
+	_play_anim(_anim_idle)
+
+func on_meeting_bound(meeting_room_id: String) -> void:
+	var rid := meeting_room_id.strip_edges()
+	if rid == "":
+		return
+	if _meeting_bound_room_id == rid:
+		return
+	# Meeting state is for "standing by" near the table; keep NPC in place.
+	_meeting_bound_room_id = rid
+	_skip_wait_after_goto = false
+	_goto_active = false
+	_waiting_for_work_left = 0.0
+	_wander_pause_left = 0.0
+	stop_override_animation()
+	wander_enabled = false
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_play_anim(_anim_idle)
+
+func on_meeting_unbound(meeting_room_id: String) -> void:
+	var rid := meeting_room_id.strip_edges()
+	if rid != "" and _meeting_bound_room_id != rid:
+		return
+	if _meeting_bound_room_id == "":
+		return
+	_meeting_bound_room_id = ""
 	if _goto_active:
 		return
 	_waiting_for_work_left = 0.0
@@ -438,6 +475,13 @@ func _update_wander(delta: float) -> void:
 		if turn_speed > 0.0:
 			var target_yaw := atan2(-cmd_dir.x, -cmd_dir.y) + model_yaw_offset
 			rotation.y = lerp_angle(rotation.y, target_yaw, clampf(turn_speed * delta, 0.0, 1.0))
+		return
+
+	# Meeting "stand by" state: stay near the meeting table and do not wander.
+	if _meeting_bound_room_id != "":
+		velocity.x = move_toward(velocity.x, 0.0, wander_speed * 3.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, wander_speed * 3.0 * delta)
+		_play_anim(_anim_idle)
 		return
 
 	# Desk-bound work state: stand still and play a working loop.
