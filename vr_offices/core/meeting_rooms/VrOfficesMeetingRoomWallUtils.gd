@@ -6,8 +6,8 @@ const _Props := preload("res://vr_offices/core/props/VrOfficesPropUtils.gd")
 static func pick_screen_wall(walls: Node3D, sx: float, sz: float, meeting_room_id: String) -> MeshInstance3D:
 	if walls == null:
 		return null
-	var seed := _fnv1a32(meeting_room_id.strip_edges())
-	var choose_pos := ((seed >> 3) & 1) == 1
+	var hash_seed := _fnv1a32(meeting_room_id.strip_edges())
+	var choose_pos := ((hash_seed >> 3) & 1) == 1
 	# Put the screen on the short wall so the table can extend along the long axis.
 	if sx >= sz:
 		return walls.get_node_or_null("WallPosX" if choose_pos else "WallNegX") as MeshInstance3D

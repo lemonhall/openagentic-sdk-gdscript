@@ -86,9 +86,9 @@ func command_selected_move_to_click(selected_npc: Node, screen_pos: Vector2) -> 
 	if _transform_move_command.is_valid():
 		var t0: Variant = _transform_move_command.call(selected_npc, p)
 		if typeof(t0) == TYPE_DICTIONARY:
-			var tr := t0 as Dictionary
-			skip_default = bool(tr.get("skip_default", false))
-			var tp0: Variant = tr.get("target", null)
+			var transformed := t0 as Dictionary
+			skip_default = bool(transformed.get("skip_default", false))
+			var tp0: Variant = transformed.get("target", null)
 			if tp0 is Vector3:
 				p = tp0 as Vector3
 	if skip_default:

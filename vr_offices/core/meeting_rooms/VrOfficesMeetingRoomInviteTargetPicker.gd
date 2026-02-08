@@ -32,7 +32,8 @@ static func pick_target(
 	var h: int = int(abs(int(npc_id.hash())))
 	var angle_steps := 8
 	var ang := float(h % angle_steps) * (TAU / float(angle_steps))
-	var radius := 1.25 + float((h / 13) % 3) * 0.15
+	var radius_bucket := int(float(h) / 13.0)
+	var radius := 1.25 + float(radius_bucket % 3) * 0.15
 
 	var p := Vector3.ZERO
 	if clicked_world_pos != Vector3.ZERO:
@@ -70,4 +71,3 @@ static func _clamp_to_room_rect_xz(meeting_room_manager: RefCounted, meeting_roo
 	p.x = clampf(p.x, min_x, max_x)
 	p.z = clampf(p.z, min_z, max_z)
 	return p
-

@@ -429,16 +429,16 @@ func open_meeting_room_chat_for_mic(mic_node: Node) -> void:
 	while cur != null:
 		if cur.is_in_group("vr_offices_meeting_room"):
 			var rid := ""
-			var name := ""
+			var room_name := ""
 			if cur.has_method("get"):
 				var rid0: Variant = cur.get("meeting_room_id")
 				if rid0 != null:
 					rid = String(rid0).strip_edges()
 				var name0: Variant = cur.get("meeting_room_name")
 				if name0 != null:
-					name = String(name0).strip_edges()
+					room_name = String(name0).strip_edges()
 			if rid != "":
-				var label := name
+				var label := room_name
 				if label == "":
 					label = "Meeting Room"
 				_meeting_room_chat_ctrl.call("open_for_meeting_room", rid, label)
