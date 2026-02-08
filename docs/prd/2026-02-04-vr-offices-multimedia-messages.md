@@ -28,6 +28,7 @@
 
 - NPC 对话 UI：`vr_offices/ui/DialogueOverlay.gd` 目前仅渲染纯文本气泡（`RichTextLabel`）。
 - 对话历史来自每 NPC 的 `events.jsonl`，只重建 `user.message` / `assistant.message`（`vr_offices/core/chat/VrOfficesChatHistory.gd`）。
+- 性能约束（避免打开对话前卡顿）：见 `docs/prd/2026-02-08-vr-offices-dialogue-overlay-log-io-performance.md`。
 - IRC 桥接（桌子频道 -> NPC）：`vr_offices/furniture/DeskNpcDeskChannelBridge.gd` 只处理纯文本，并忽略 `OA1 ` 前缀帧（保留给工具 RPC）。
 - OpenAgentic runtime 当前“对模型输入”只回放纯文本（`addons/openagentic/runtime/OAReplay.gd`）。
 
