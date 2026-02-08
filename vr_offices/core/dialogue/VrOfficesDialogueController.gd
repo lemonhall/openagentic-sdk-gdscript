@@ -56,10 +56,13 @@ func enter_talk(npc: Node) -> void:
 	if get_save_id.is_valid():
 		sid = String(get_save_id.call())
 	dialogue.open(npc_id, npc_name, sid)
-	if dialogue.has_method("set_history") and chat_history != null and sid.strip_edges() != "":
-		var hist0: Variant = chat_history.call("read_ui_history", sid, npc_id)
-		var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
-		dialogue.call("set_history", hist)
+	if sid.strip_edges() != "":
+		if dialogue.has_method("begin_history_load_from_events_jsonl"):
+			dialogue.call("begin_history_load_from_events_jsonl", sid, npc_id)
+		elif dialogue.has_method("set_history") and chat_history != null:
+			var hist0: Variant = chat_history.call("read_ui_history", sid, npc_id)
+			var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
+			dialogue.call("set_history", hist)
 
 func exit_talk() -> void:
 	_unlock_npc_after_dialogue()
@@ -114,10 +117,13 @@ func enter_talk_by_id(npc_id: String, npc_name: String) -> void:
 	if get_save_id.is_valid():
 		sid = String(get_save_id.call())
 	dialogue.open(nid, npc_name.strip_edges(), sid)
-	if dialogue.has_method("set_history") and chat_history != null and sid.strip_edges() != "":
-		var hist0: Variant = chat_history.call("read_ui_history", sid, nid)
-		var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
-		dialogue.call("set_history", hist)
+	if sid.strip_edges() != "":
+		if dialogue.has_method("begin_history_load_from_events_jsonl"):
+			dialogue.call("begin_history_load_from_events_jsonl", sid, nid)
+		elif dialogue.has_method("set_history") and chat_history != null:
+			var hist0: Variant = chat_history.call("read_ui_history", sid, nid)
+			var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
+			dialogue.call("set_history", hist)
 
 func _on_agent_event(ev: Dictionary) -> void:
 	if dialogue == null:

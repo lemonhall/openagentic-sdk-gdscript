@@ -52,10 +52,21 @@ const _BUBBLE_MIN_WIDTH := 320.0
 const _BUBBLE_MAX_WIDTH := 720.0
 const _BUBBLE_WIDTH_RATIO := 0.72
 const _HISTORY_BATCH_SIZE := 24
+const _HISTORY_LOAD_LINES_PER_FRAME := 240
+const _HISTORY_LOAD_MAX_SCAN_BYTES := 4 * 1024 * 1024
 
 var _pending_history: Array = []
 var _pending_history_index := 0
 var _pending_history_gen := 0
+
+var _history_load_gen := 0
+var _history_load_save_id: String = ""
+var _history_load_npc_id: String = ""
+var _history_load_paths: Array[String] = []
+var _history_load_path_idx := 0
+var _history_load_file: FileAccess = null
+var _history_load_items: Array[Dictionary] = []
+var _history_load_max_items := 200
 
 func _ready() -> void:
 	visible = false
@@ -138,6 +149,7 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	_pending_history = []
 	_pending_history_index = 0
 	_pending_history_gen += 1
+	_cancel_history_load()
 	set_participants_visible(false)
 	set_participants([])
 	_reset_attachments()
@@ -168,6 +180,7 @@ func close() -> void:
 	if not visible:
 		return
 	visible = false
+	_cancel_history_load()
 	closed.emit()
 
 func set_participants_visible(v: bool) -> void:
@@ -214,6 +227,125 @@ func set_history(items: Array) -> void:
 		_render_history_batch(_pending_history_gen)
 	else:
 		call_deferred("_render_history_batch", _pending_history_gen)
+
+func begin_history_load_from_events_jsonl(save_id: String, npc_id: String, max_items: int = 200) -> void:
+	# Load persisted history from events.jsonl incrementally across frames to avoid hitches.
+	_cancel_history_load()
+
+	var sid := save_id.strip_edges()
+	var nid := npc_id.strip_edges()
+	if sid == "" or nid == "" or not visible:
+		return
+
+	_history_load_gen += 1
+	_history_load_save_id = sid
+	_history_load_npc_id = nid
+	_history_load_max_items = max_items if max_items > 0 else 200
+	_history_load_items = []
+	_history_load_paths = _history_candidate_paths(sid, nid)
+	_history_load_path_idx = 0
+
+	_open_next_history_path()
+	if _history_load_file == null:
+		return
+	set_process(true)
+
+func _history_candidate_paths(save_id: String, npc_id: String) -> Array[String]:
+	var out: Array[String] = []
+	var p := _OAPaths.npc_events_path(save_id, npc_id)
+	if String(p).strip_edges() != "":
+		out.append(String(p))
+	# Back-compat: old manager id path.
+	var workspace_id := _OAPaths.workspace_id_from_manager_npc_id(npc_id)
+	if workspace_id != "":
+		var old_manager_npc_id := "%s_manager" % workspace_id
+		var p2 := _OAPaths.npc_events_path(save_id, old_manager_npc_id)
+		if String(p2).strip_edges() != "":
+			out.append(String(p2))
+	return out
+
+func _cancel_history_load() -> void:
+	_history_load_gen += 1
+	_history_load_save_id = ""
+	_history_load_npc_id = ""
+	_history_load_paths = []
+	_history_load_path_idx = 0
+	_history_load_items = []
+	_history_load_max_items = 200
+	if _history_load_file != null:
+		_history_load_file.close()
+	_history_load_file = null
+	set_process(false)
+
+func _open_next_history_path() -> void:
+	if _history_load_file != null:
+		_history_load_file.close()
+	_history_load_file = null
+
+	while _history_load_path_idx < _history_load_paths.size():
+		var path := String(_history_load_paths[_history_load_path_idx]).strip_edges()
+		_history_load_path_idx += 1
+		if path == "" or not FileAccess.file_exists(path):
+			continue
+		var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+		if f == null:
+			continue
+		var file_len := int(f.get_length())
+		var start := maxi(0, file_len - _HISTORY_LOAD_MAX_SCAN_BYTES)
+		f.seek(start)
+		if start > 0:
+			# Discard partial line so subsequent get_line() yields full JSONL records.
+			f.get_line()
+		_history_load_file = f
+		return
+
+func _process(_delta: float) -> void:
+	if not visible:
+		_cancel_history_load()
+		return
+	if _history_load_file == null:
+		set_process(false)
+		return
+
+	var lines := 0
+	while lines < _HISTORY_LOAD_LINES_PER_FRAME and _history_load_file != null and not _history_load_file.eof_reached():
+		lines += 1
+		var line := String(_history_load_file.get_line()).strip_edges()
+		if line == "":
+			continue
+		if line.find("\"type\":\"user.message\"") == -1 and line.find("\"type\": \"user.message\"") == -1 and line.find("\"type\":\"assistant.message\"") == -1 and line.find("\"type\": \"assistant.message\"") == -1:
+			continue
+		var obj: Variant = JSON.parse_string(line)
+		if typeof(obj) != TYPE_DICTIONARY:
+			continue
+		var e := obj as Dictionary
+		var typ := String(e.get("type", "")).strip_edges()
+		if typ == "user.message":
+			var tx0: Variant = e.get("text", null)
+			if typeof(tx0) == TYPE_STRING:
+				_history_load_items.append({"role": "user", "text": String(tx0)})
+		elif typ == "assistant.message":
+			var tx1: Variant = e.get("text", null)
+			if typeof(tx1) == TYPE_STRING:
+				_history_load_items.append({"role": "assistant", "text": String(tx1)})
+		if _history_load_items.size() > _history_load_max_items:
+			_history_load_items.pop_front()
+
+	if _history_load_file != null and _history_load_file.eof_reached():
+		_history_load_file.close()
+		_history_load_file = null
+		# If nothing found and we have more candidate paths (legacy manager), try next path.
+		if _history_load_items.is_empty() and _history_load_path_idx < _history_load_paths.size():
+			_open_next_history_path()
+			if _history_load_file != null:
+				return
+
+		set_process(false)
+		var out: Array = []
+		for it in _history_load_items:
+			out.append(it)
+		_history_load_items = []
+		set_history(out)
 
 func _render_history_batch(gen: int) -> void:
 	if gen != _pending_history_gen:
