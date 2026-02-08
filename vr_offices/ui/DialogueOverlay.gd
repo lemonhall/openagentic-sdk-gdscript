@@ -52,21 +52,23 @@ const _BUBBLE_MIN_WIDTH := 320.0
 const _BUBBLE_MAX_WIDTH := 720.0
 const _BUBBLE_WIDTH_RATIO := 0.72
 const _HISTORY_BATCH_SIZE := 24
-const _HISTORY_LOAD_LINES_PER_FRAME := 240
-const _HISTORY_LOAD_MAX_SCAN_BYTES := 4 * 1024 * 1024
+const _TAIL_CHUNK_BYTES := 65536
+const _TAIL_MAX_SCAN_BYTES := 4 * 1024 * 1024
 
 var _pending_history: Array = []
 var _pending_history_index := 0
 var _pending_history_gen := 0
 
-var _history_load_gen := 0
-var _history_load_save_id: String = ""
-var _history_load_npc_id: String = ""
-var _history_load_paths: Array[String] = []
-var _history_load_path_idx := 0
-var _history_load_file: FileAccess = null
-var _history_load_items: Array[Dictionary] = []
-var _history_load_max_items := 200
+var _history_job_gen := 0
+var _history_job_thread: Thread = null
+var _history_orphan_threads: Array[Thread] = []
+var _history_job_done := false
+var _history_job_items: Array = []
+var _history_job_bytes := -1
+var _history_job_mutex := Mutex.new()
+var _history_job_save_id: String = ""
+var _history_job_npc_id: String = ""
+var _history_job_max_items := 200
 
 func _ready() -> void:
 	visible = false
@@ -149,7 +151,7 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	_pending_history = []
 	_pending_history_index = 0
 	_pending_history_gen += 1
-	_cancel_history_load()
+	_cancel_history_job()
 	set_participants_visible(false)
 	set_participants([])
 	_reset_attachments()
@@ -161,10 +163,15 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	send_button.disabled = false
 	if skills_button != null:
 		skills_button.disabled = _npc_id.strip_edges() == ""
-	# Avoid synchronous disk access in the talk-open frame; refresh on next frame.
+
+	# Avoid synchronous disk access in the talk-open frame.
+	# Show a placeholder and refresh in the background.
+	if session_log_size_label != null:
+		session_log_size_label.text = "events.jsonl=…"
+		session_log_size_label.tooltip_text = ""
 	if clear_session_log_button != null:
 		clear_session_log_button.disabled = true
-	call_deferred("_refresh_session_log_ui")
+	_begin_session_log_size_refresh()
 	call_deferred("_grab_focus")
 
 func _on_skills_pressed() -> void:
@@ -183,7 +190,7 @@ func close() -> void:
 	if not visible:
 		return
 	visible = false
-	_cancel_history_load()
+	_cancel_history_job()
 	closed.emit()
 
 func set_participants_visible(v: bool) -> void:
@@ -231,26 +238,29 @@ func set_history(items: Array) -> void:
 	else:
 		call_deferred("_render_history_batch", _pending_history_gen)
 
-func begin_history_load_from_events_jsonl(save_id: String, npc_id: String, max_items: int = 200) -> void:
-	# Load persisted history from events.jsonl incrementally across frames to avoid hitches.
-	_cancel_history_load()
+func begin_history_load_from_events_jsonl(save_id: String, npc_id: String, max_items: int = 200, load_history: bool = true) -> void:
+	# Load persisted history from events.jsonl in a background thread (no main-thread disk I/O).
+	_cancel_history_job()
 
 	var sid := save_id.strip_edges()
 	var nid := npc_id.strip_edges()
 	if sid == "" or nid == "" or not visible:
 		return
 
-	_history_load_gen += 1
-	_history_load_save_id = sid
-	_history_load_npc_id = nid
-	_history_load_max_items = max_items if max_items > 0 else 200
-	_history_load_items = []
-	_history_load_paths = _history_candidate_paths(sid, nid)
-	_history_load_path_idx = 0
+	_history_job_gen += 1
+	var gen := _history_job_gen
+	_history_job_save_id = sid
+	_history_job_npc_id = nid
+	_history_job_max_items = max_items if max_items > 0 else 200
 
-	_open_next_history_path()
-	if _history_load_file == null:
-		return
+	_history_job_mutex.lock()
+	_history_job_done = false
+	_history_job_items = []
+	_history_job_bytes = -1
+	_history_job_mutex.unlock()
+
+	_history_job_thread = Thread.new()
+	_history_job_thread.start(Callable(self, "_history_job_thread_main").bind(gen, sid, nid, _history_job_max_items, load_history))
 	set_process(true)
 
 func _history_candidate_paths(save_id: String, npc_id: String) -> Array[String]:
@@ -267,88 +277,176 @@ func _history_candidate_paths(save_id: String, npc_id: String) -> Array[String]:
 			out.append(String(p2))
 	return out
 
-func _cancel_history_load() -> void:
-	_history_load_gen += 1
-	_history_load_save_id = ""
-	_history_load_npc_id = ""
-	_history_load_paths = []
-	_history_load_path_idx = 0
-	_history_load_items = []
-	_history_load_max_items = 200
-	if _history_load_file != null:
-		_history_load_file.close()
-	_history_load_file = null
+func _history_job_thread_main(gen: int, save_id: String, npc_id: String, max_items: int, load_history: bool) -> void:
+	var paths := _history_candidate_paths(save_id, npc_id)
+	var items: Array = []
+	var bytes := -1
+
+	for p0 in paths:
+		var p := String(p0).strip_edges()
+		if p == "" or not FileAccess.file_exists(p):
+			continue
+		var f: FileAccess = FileAccess.open(p, FileAccess.READ)
+		if f != null:
+			bytes = int(f.get_length())
+			f.close()
+		# Tail-parse just enough to fill max_items (bounded scan).
+		if load_history:
+			items = _read_ui_history_tail_from_path(p, max_items)
+			if not items.is_empty():
+				break
+		else:
+			break
+
+	_history_job_mutex.lock()
+	if gen == _history_job_gen:
+		_history_job_done = true
+		_history_job_items = items
+		_history_job_bytes = bytes
+	_history_job_mutex.unlock()
+
+func _cancel_history_job() -> void:
+	_history_job_gen += 1
+	_history_job_save_id = ""
+	_history_job_npc_id = ""
+	_history_job_max_items = 200
+	_history_job_mutex.lock()
+	_history_job_done = false
+	_history_job_items = []
+	_history_job_bytes = -1
+	_history_job_mutex.unlock()
+	# Threads cannot be safely killed; we just ignore late results via gen.
+	if _history_job_thread != null:
+		if _history_job_thread.is_alive():
+			_history_orphan_threads.append(_history_job_thread)
+		else:
+			_history_job_thread.wait_to_finish()
+		_history_job_thread = null
 	set_process(false)
-
-func _open_next_history_path() -> void:
-	if _history_load_file != null:
-		_history_load_file.close()
-	_history_load_file = null
-
-	while _history_load_path_idx < _history_load_paths.size():
-		var path := String(_history_load_paths[_history_load_path_idx]).strip_edges()
-		_history_load_path_idx += 1
-		if path == "" or not FileAccess.file_exists(path):
-			continue
-		var f: FileAccess = FileAccess.open(path, FileAccess.READ)
-		if f == null:
-			continue
-		var file_len := int(f.get_length())
-		var start := maxi(0, file_len - _HISTORY_LOAD_MAX_SCAN_BYTES)
-		f.seek(start)
-		if start > 0:
-			# Discard partial line so subsequent get_line() yields full JSONL records.
-			f.get_line()
-		_history_load_file = f
-		return
 
 func _process(_delta: float) -> void:
 	if not visible:
-		_cancel_history_load()
-		return
-	if _history_load_file == null:
-		set_process(false)
+		_cancel_history_job()
 		return
 
-	var lines := 0
-	while lines < _HISTORY_LOAD_LINES_PER_FRAME and _history_load_file != null and not _history_load_file.eof_reached():
-		lines += 1
-		var line := String(_history_load_file.get_line()).strip_edges()
-		if line == "":
-			continue
-		if line.find("\"type\":\"user.message\"") == -1 and line.find("\"type\": \"user.message\"") == -1 and line.find("\"type\":\"assistant.message\"") == -1 and line.find("\"type\": \"assistant.message\"") == -1:
-			continue
-		var obj: Variant = JSON.parse_string(line)
-		if typeof(obj) != TYPE_DICTIONARY:
-			continue
-		var e := obj as Dictionary
-		var typ := String(e.get("type", "")).strip_edges()
-		if typ == "user.message":
-			var tx0: Variant = e.get("text", null)
-			if typeof(tx0) == TYPE_STRING:
-				_history_load_items.append({"role": "user", "text": String(tx0)})
-		elif typ == "assistant.message":
-			var tx1: Variant = e.get("text", null)
-			if typeof(tx1) == TYPE_STRING:
-				_history_load_items.append({"role": "assistant", "text": String(tx1)})
-		if _history_load_items.size() > _history_load_max_items:
-			_history_load_items.pop_front()
+	_cleanup_orphan_history_threads()
 
-	if _history_load_file != null and _history_load_file.eof_reached():
-		_history_load_file.close()
-		_history_load_file = null
-		# If nothing found and we have more candidate paths (legacy manager), try next path.
-		if _history_load_items.is_empty() and _history_load_path_idx < _history_load_paths.size():
-			_open_next_history_path()
-			if _history_load_file != null:
-				return
+	var done := false
+	var items: Array = []
+	var bytes := -1
+	_history_job_mutex.lock()
+	done = _history_job_done
+	if done:
+		items = _history_job_items
+		bytes = _history_job_bytes
+		_history_job_done = false
+	_history_job_mutex.unlock()
 
+	if done:
+		if _history_job_thread != null and not _history_job_thread.is_alive():
+			_history_job_thread.wait_to_finish()
+			_history_job_thread = null
+		if bytes >= 0 and session_log_size_label != null:
+			session_log_size_label.text = "events.jsonl=%s" % _format_bytes(bytes)
+		if clear_session_log_button != null:
+			clear_session_log_button.disabled = _busy or _session_events_path() == ""
+		if not items.is_empty():
+			set_history(items)
 		set_process(false)
-		var out: Array = []
-		for it in _history_load_items:
-			out.append(it)
-		_history_load_items = []
-		set_history(out)
+
+func _cleanup_orphan_history_threads() -> void:
+	if _history_orphan_threads.is_empty():
+		return
+	var keep: Array[Thread] = []
+	for t in _history_orphan_threads:
+		if t == null:
+			continue
+		if t.is_alive():
+			keep.append(t)
+		else:
+			t.wait_to_finish()
+	_history_orphan_threads = keep
+
+func _begin_session_log_size_refresh() -> void:
+	var sid := _resolve_save_id()
+	if sid == "" or _npc_id.strip_edges() == "" or not visible:
+		return
+	# Populate the size label without blocking; do not load history yet.
+	begin_history_load_from_events_jsonl(sid, _npc_id, 1, false)
+
+static func _read_ui_history_tail_from_path(path: String, max_items: int) -> Array:
+	if path.strip_edges() == "" or not FileAccess.file_exists(path) or max_items <= 0:
+		return []
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return []
+
+	var file_len := int(f.get_length())
+	var pos := file_len
+	var scanned := 0
+	var carry := PackedByteArray()
+	var rev: Array[Dictionary] = []
+
+	while pos > 0 and rev.size() < max_items and scanned < _TAIL_MAX_SCAN_BYTES:
+		var step: int = min(_TAIL_CHUNK_BYTES, pos)
+		pos -= step
+		scanned += step
+		f.seek(pos)
+		var chunk := f.get_buffer(step)
+		if chunk.is_empty():
+			break
+		# buf = chunk + carry
+		var buf := chunk
+		if not carry.is_empty():
+			buf.append_array(carry)
+
+		var end := buf.size()
+		var i := buf.size() - 1
+		while i >= 0:
+			if rev.size() >= max_items:
+				break
+			if int(buf[i]) == 10:
+				var lb := i + 1
+				if lb < end:
+					var line_bytes := buf.slice(lb, end)
+					_consume_ui_line_bytes(line_bytes, rev, max_items)
+				end = i
+			i -= 1
+
+		carry = buf.slice(0, end)
+
+	if rev.size() < max_items and pos == 0 and not carry.is_empty():
+		_consume_ui_line_bytes(carry, rev, max_items)
+	f.close()
+
+	rev.reverse()
+	var out: Array = []
+	for it in rev:
+		out.append(it)
+	return out
+
+static func _consume_ui_line_bytes(line_bytes: PackedByteArray, rev_out: Array[Dictionary], max_items: int) -> void:
+	if rev_out.size() >= max_items or line_bytes.is_empty():
+		return
+	var s := line_bytes.get_string_from_utf8().strip_edges()
+	if s == "":
+		return
+	# Avoid JSON.parse unless likely a UI message event.
+	if s.find("\"type\":\"user.message\"") == -1 and s.find("\"type\": \"user.message\"") == -1 and s.find("\"type\":\"assistant.message\"") == -1 and s.find("\"type\": \"assistant.message\"") == -1:
+		return
+	var obj: Variant = JSON.parse_string(s)
+	if typeof(obj) != TYPE_DICTIONARY:
+		return
+	var e := obj as Dictionary
+	var typ := String(e.get("type", "")).strip_edges()
+	if typ == "user.message":
+		var tx0: Variant = e.get("text", null)
+		if typeof(tx0) == TYPE_STRING:
+			rev_out.append({"role": "user", "text": String(tx0)})
+	elif typ == "assistant.message":
+		var tx1: Variant = e.get("text", null)
+		if typeof(tx1) == TYPE_STRING:
+			rev_out.append({"role": "assistant", "text": String(tx1)})
 
 func _render_history_batch(gen: int) -> void:
 	if gen != _pending_history_gen:
@@ -953,3 +1051,15 @@ func _scroll_to_bottom() -> void:
 	var bar := scroll.get_v_scroll_bar()
 	if bar != null:
 		scroll.scroll_vertical = int(bar.max_value)
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_join_all_history_threads()
+
+func _join_all_history_threads() -> void:
+	if _history_job_thread != null:
+		_history_job_thread.wait_to_finish()
+		_history_job_thread = null
+	for t in _history_orphan_threads:
+		if t != null:
+			t.wait_to_finish()
+	_history_orphan_threads = []

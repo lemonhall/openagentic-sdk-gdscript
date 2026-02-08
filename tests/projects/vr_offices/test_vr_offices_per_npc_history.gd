@@ -65,7 +65,7 @@ func _init() -> void:
 
 	# Open npc_1 dialogue should load npc_1 history.
 	world.call("_enter_talk", npc1)
-	await process_frame
+	await _wait_for_message_count(messages, 2, 60)
 	if not T.require_eq(self, messages.get_child_count(), 2, "Expected 2 messages for npc_1"):
 		return
 	if not _require_message_contains(messages, 0, "hi1"):
@@ -79,7 +79,7 @@ func _init() -> void:
 
 	# Open npc_2 dialogue should NOT show npc_1 messages.
 	world.call("_enter_talk", npc2)
-	await process_frame
+	await _wait_for_message_count(messages, 2, 60)
 	if not T.require_eq(self, messages.get_child_count(), 2, "Expected 2 messages for npc_2"):
 		return
 	if not _require_message_contains(messages, 0, "hi2"):
@@ -93,7 +93,7 @@ func _init() -> void:
 
 	# Re-open npc_1 should return to npc_1 history.
 	world.call("_enter_talk", npc1)
-	await process_frame
+	await _wait_for_message_count(messages, 2, 60)
 	if not T.require_eq(self, messages.get_child_count(), 2, "Expected 2 messages for npc_1 (again)"):
 		return
 	if not _require_message_contains(messages, 0, "hi1"):
@@ -109,6 +109,14 @@ func _init() -> void:
 	world.free()
 	await process_frame
 	T.pass_and_quit(self)
+
+func _wait_for_message_count(messages: VBoxContainer, want: int, max_frames: int) -> void:
+	if messages == null:
+		return
+	for _i in range(max_frames):
+		if messages.get_child_count() == want:
+			return
+		await process_frame
 
 func _require_message_contains(messages: VBoxContainer, idx: int, needle: String) -> bool:
 	if messages == null or idx < 0 or idx >= messages.get_child_count():
