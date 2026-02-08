@@ -156,6 +156,8 @@ foreach ($t in $tests) {
 
   $res = Run-ProcessCapture -FilePath $GodotExe -Args $args -WorkingDirectory $RootDir.Path -TimeoutSec $TimeoutSec
   if ($res.timed_out) {
+    if (-not [string]::IsNullOrWhiteSpace($res.stdout)) { $res.stdout | Write-Host }
+    if (-not [string]::IsNullOrWhiteSpace($res.stderr)) { $res.stderr | Write-Host }
     Write-Host ("TIMEOUT after {0}s: {1}" -f $TimeoutSec, $t)
     $status = 1
     continue
