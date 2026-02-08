@@ -5,8 +5,8 @@
 - Topic：Meeting Room NPC 进入会议状态 + 会议室 IRC channel + 群聊分发
 - Owner：OpenAgentic VR Offices
 - Status：draft
-- Version：v2
-- Last updated：2026-02-07
+- Version：v3
+- Last updated：2026-02-08
 - Links：
   - 相关 PRD：`docs/prd/2026-02-07-vr-offices-meeting-rooms.md`
   - 相关 PRD：`docs/prd/2026-02-07-vr-offices-meeting-room-mic-group-chat.md`
@@ -14,17 +14,17 @@
 
 ## 1) 背景与问题（Problem Statement）
 
-当前 Meeting Room 已经能生成（矩形创建 + 持久化 + 右键删除）并具备 mic + 群聊 overlay 的入口，但缺少“**NPC 参会**”这个核心闭环：
+当前 Meeting Room 已经能生成（矩形创建 + 持久化 + 右键删除）并具备 mic + 群聊 overlay 的入口，但缺少“**可控、可回归的 NPC 参会闭环**”：
 
 - 玩家可以用“选中 NPC → 右键点击地面 → NPC 走到目标点并停住”的方式摆位；
-- 但当目标点在会议桌周围时，NPC 没有自动进入“会议待命”状态，也没有加入会议室的群聊通道；
+- 但 Meeting Room 的“入会/退会”规则需要从“靠近桌子半径判定”升级为“**显式邀请（invite-only）**”，否则 NPC 漫游/路过会造成非请勿入的问题；
 - 玩家通过 mic 打开的群聊 overlay 也还没有一个明确、稳定、可复用的“会议室 channel”抽象。
 
-需要补齐：NPC 到位 → 自动入会 → 加入会议室 channel → 玩家在群聊说话 → 参会 NPC 收到并可选择回复（被点名必须回复）。
+需要补齐：Meeting Room 建立 → 立即派生并加入 meeting channel（host/mic）→ 玩家显式邀请 NPC 入会 → NPC 加入 channel 待命 → 群聊广播（IRC 可观测）→ NPC 自主决定回复（被点名必须回复）。
 
 ## 2) 目标（Goals）
 
-- G1：NPC 被指令移动到会议桌附近（2m 内）并停下后，自动进入 **meeting 状态**（参会待命）。
+- G1：NPC 仅在**被玩家显式邀请进入某个 Meeting Room**后进入 **meeting 状态**（参会待命）；不允许“靠近桌子自动入会”。
 - G2：每个 Meeting Room 有一个稳定、可推导的 **IRC channel 名称**（用于群聊与日志/工具链对齐）。
 - G3：进入 meeting 状态的 NPC 会加入该 channel；玩家从 mic overlay 发送的消息会广播给所有参会 NPC。
 - G4：被主持人/玩家在消息中明确点名的 NPC 必须回应；否则 NPC 可以自主决定是否回应（基于其 persona/当前任务/策略）。
@@ -47,28 +47,29 @@
 
 ## 5) 用户画像与关键场景（Personas & Scenarios）
 
-- S1（摆位入会）：玩家选中 NPC → 右键点击会议桌周围地面 → NPC 到位停下 → 自动进入 meeting state → 加入 channel 待命。
+- S1（邀请入会）：玩家选中 NPC → **右键点击某个 Meeting Room 范围内**（= 选择它进入该会议室）→ NPC 到位停下 → 进入 meeting state → 加入 channel 待命。
 - S2（群聊广播）：玩家双击 mic → 打开 MeetingRoomChatOverlay → 输入一句话并发送 → 所有参会 NPC 都“听到”并可以选择回复。
 - S3（点名必答）：玩家消息包含明确点名（例如 `@Alice` 或 `Alice:`）→ 被点名 NPC 必须回复；未点名 NPC 仍可选择性回复。
-- S4（离开会议）：NPC 被再次右键指令移动到远离会议桌的位置（或走出半径阈值）→ 自动退出 meeting state → 从 channel 离开待命。
+- S4（离开会议）：NPC 被右键指令移动到 Meeting Room 之外 → 退出 meeting state → 从 channel 离开待命。
 - S5（房间删除）：会议室被删除 → 参会 NPC 自动退出 meeting state（防止悬挂状态/残留订阅）。
 
 ## 6) 需求清单（Requirements with Req IDs）
 
 | Req ID | 需求描述 | 验收口径（可二元判定） | 验证方式（命令/测试/步骤） | 优先级 | 依赖/风险 |
 |---|---|---|---|---|---|
-| REQ-001 | 定义 meeting state 的进入/退出规则（围绕 meeting table 2m 半径） | NPC 到达 move-to 目标点后：若目标点到 meeting table anchor 距离 ≤ 2.0m，则进入 meeting state；若后续离开 ≥ 2.2m（滞回）则退出 | 自动化测试：模拟 NPC move_target_reached 事件 + 位置判定；验证 NPC 状态字段/分组变化 | P0 | 需要稳定的 table anchor 获取方式 |
+| REQ-001 | 定义 meeting state 的进入/退出规则（invite-only） | NPC 仅在“被玩家邀请进入某个 Meeting Room”后进入 meeting state；当玩家将其移出 Meeting Room（或显式取消邀请）后退出 | 自动化测试：邀请→进入；取消邀请→退出；不可由 proximity 自动触发 | P0 | 需要稳定、可测试的邀请入口（RMB 进入 / Move-to 离开） |
 | REQ-002 | Meeting Room 提供可定位的“meeting table anchor” | 每个 meeting room node 能提供一个 `Vector3` anchor（桌子中心/桌边中心之一，需在 PRD 里固定口径） | 测试：meeting room 节点树里能找到 anchor 节点或可计算；在 headless 场景不依赖渲染 | P0 | 资产 bounds/缩放会影响 anchor 计算 |
 | REQ-003 | 每个 Meeting Room 派生一个稳定的 IRC channel 名称 | 同一 `save_id + meeting_room_id` 推导出的 channel 名称稳定不变、只含安全字符、长度受限 | 单测/脚本：对不同 id 生成并校验格式与稳定性；与 `VrOfficesIrcNames` 风格一致 | P0 | 需要决定命名方案与长度约束 |
-| REQ-004 | NPC 进入 meeting state 后加入 meeting channel 待命 | 当 NPC 进入 meeting state 时：MeetingChannel 参与者列表包含该 NPC；退出时移除 | 自动化测试：进入/退出触发 join/part；无重复加入；无泄漏 | P0 | 并发：多个 NPC 同时加入/退出 |
+| REQ-004 | NPC 进入 meeting state 后加入 meeting channel 待命 | 当 NPC 进入 meeting state 时：MeetingChannel 参与者列表包含该 NPC；退出时移除 | 自动化测试：invite→JOIN；uninvite→PART；无重复加入；无泄漏 | P0 | 并发：多个 NPC 同时加入/退出 |
 | REQ-005 | mic overlay 的输入作为 “Human/Host” 消息发布到 meeting channel | 从 MeetingRoomChatOverlay 发送一条消息 → meeting channel 广播给所有参会 NPC（含点名元数据） | 集成测试：打开 overlay → 提交消息 → mock OA 收到对每个参会 NPC 的 turn 调用 | P0 | UI 与 channel 的解耦、避免影响 NPC 对话 overlay |
 | REQ-006 | 参会 NPC 的“是否回应”策略（含点名必答） | 未点名：允许 0..N 个 NPC 回复；点名：被点名 NPC 必须回复（至少 1 条可见消息/或明确“不回应”的系统消息） | 单测/集成测试：构造消息包含 `@npc_name`；验证目标 NPC 必产生一次 turn/回复 | P0 | 点名规则需清晰，避免误触发 |
 | REQ-007 | 点名规则固定且可预测 | 仅支持明确格式：`@DisplayName` / `@npc_id` / `DisplayName:` / `npc_id:`（大小写策略需明确） | 单测：输入样例 → 解析出 expected mentions | P1 | 多语言/空格/标点边界处理 |
 | REQ-008 | 复用/扩展既有 IRC/RPC 传输层以承载长回复 | 长回复不会被粗暴硬切导致乱码或语义断裂；IRC 单行限制下可重组（类似 `OAMEDIA1F`） | 单测：编码→分片→重组；集成测试：NPC 生成长回复仍能完整显示 | P1 | 与 `OA1 ` 工具 RPC 前缀冲突风险 |
 | REQ-009 | 可观测性：channel 加入/退出/消息事件可追踪 | 每个 meeting room 有可读日志（磁盘或内存快照），包含 join/part 与消息摘要 | 测试：触发 join/消息后日志存在且含关键行 | P2 | 日志体积与隐私控制 |
 | REQ-010 | 删除 meeting room 时清理状态 | 删除 meeting room → channel 关闭/清理；参会 NPC 状态回落到非 meeting | 集成测试：删除 room 后 participants 清空、NPC 退出 meeting | P0 | 生命周期管理与引用悬挂 |
-| REQ-011 | 会议桌周围显示“呼吸灯圈”提示参会区域 | 每个 meeting room 的桌子周围有一个柔光、呼吸的区域指示；玩家把 NPC 放进圈内即可入会 | 目测 + 自动化：节点树包含 `Decor/MeetingZoneIndicator`；shader 允许 headless 编译 | P1 | 视觉与规则一致性（圈形状 vs 判定） |
+| REQ-011 | 会议桌周围显示“呼吸灯圈”提示会议桌位置（可选） | 每个 meeting room 的桌子周围有一个柔光、呼吸的区域指示（提示桌子位置/会议空间） | 目测 + 自动化：节点树包含 `Decor/MeetingZoneIndicator`；shader 允许 headless 编译 | P2 | 视觉不再作为入会判定依据 |
 | REQ-012 | （可选）Meeting Room 群聊桥接到真实 IRC server 的 channel（含 NPC join/part） | 当 IRC 配置可用且非 headless：meeting room 派生的 channel 在 IRC 上能观察到真实 `JOIN/PART/PRIVMSG`；NPC 入会时 join、离会时 part；人类 mic 消息与 NPC 回复都能被外部观察者看到 | 自动化（离线）：smoke 测试验证 wiring + 模拟 IRC message 使 link ready；手动（在线）：连接到测试 IRC server 验证 JOIN/PART/PRIVMSG | P1 | 多连接开销（每 NPC 1 连接）；测试不能依赖外网；需要设置开关/降级策略 |
+| REQ-013 | 非请勿入：未受邀 NPC 不得进入 Meeting Room 范围 | NPC 漫游/路过不会“进入会议室”；若物理位置进入 Meeting Room rect，系统会将其推出（eject）且不会加入 channel/meeting state | 自动化测试：把 NPC 传送到 room rect 内 → 若未受邀，最终必须离开 rect 且 `get_bound_meeting_room_id==""` | P0 | 需要一个稳定的 rect 判定 + ejection 机制 |
 
 ## 7) 约束与不接受（Constraints）
 

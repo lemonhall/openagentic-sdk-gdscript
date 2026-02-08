@@ -116,6 +116,28 @@ func _init() -> void:
 		T.fail_and_quit(self, "Expected host IRC link to exist immediately after room creation (auto-join lifecycle).")
 		return
 
+	# Prove host JOIN happens even before any NPC is invited.
+	var host_nick_early := String(IrcNames.derive_nick(save_id, "meetingroom_%s" % rid, 9)).strip_edges()
+	if not await _wait_for_ready(host_link, 900):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		T.fail_and_quit(self, "Host IRC link did not become ready (JOIN) to %s:%d" % [irc_host, irc_port])
+		return
+	var saw_host := false
+	for _attempt0 in range(12):
+		var names_early0: Variant = await host_link.call("request_names_for_desired_channel", 240) if host_link.has_method("request_names_for_desired_channel") else {}
+		var names_early: Dictionary = names_early0 as Dictionary if typeof(names_early0) == TYPE_DICTIONARY else {}
+		if names_early.has(host_nick_early):
+			saw_host = true
+			break
+		await _pump(null, 20)
+	if not T.require_true(self, saw_host, "Expected host to appear in IRC NAMES before inviting NPCs"):
+		if bridge.has_method("close_room_connections"):
+			bridge.call("close_room_connections", rid)
+		_cleanup(s, oa, created_oa)
+		return
+
 	# Spawn 3 NPCs and bind into meeting state.
 	var npc_scene := load("res://vr_offices/npc/Npc.tscn")
 	if npc_scene == null or not (npc_scene is PackedScene):

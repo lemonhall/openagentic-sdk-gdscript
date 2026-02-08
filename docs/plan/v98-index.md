@@ -25,12 +25,11 @@ Goal: Make Meeting Rooms feel like a real public group chat:
 
 | Req ID | Plan | Tests / Verify | Evidence |
 |---|---|---|---|
-| REQ-008 | v98 | `tests/projects/vr_offices/test_e2e_meeting_room_irc_group_chat_localhost.gd` | 2026-02-07 PASS |
-| REQ-009 | v98 | `tests/projects/vr_offices/test_e2e_meeting_room_irc_group_chat_localhost.gd` | 2026-02-07 PASS |
+| REQ-008 | v98 | `tests/projects/vr_offices/test_e2e_meeting_room_irc_group_chat_localhost.gd` | 2026-02-08 PASS |
+| REQ-009 | v98 | `tests/projects/vr_offices/test_e2e_meeting_room_irc_group_chat_localhost.gd` | 2026-02-08 PASS |
 
 ## Evidence
 
-- 2026-02-07:
+- 2026-02-08:
   - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_e2e_meeting_room_irc_group_chat_localhost.gd -TimeoutSec 240 -ExtraArgs --oa-online-tests` → PASS
-  - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` → EXIT=0
-
+  - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices -TimeoutSec 240` → EXIT=0

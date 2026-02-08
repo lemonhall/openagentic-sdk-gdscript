@@ -16,6 +16,7 @@ const _MeetingRoomManagerScript := preload("res://vr_offices/core/meeting_rooms/
 const _MeetingRoomControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomController.gd")
 const _MeetingRoomChatControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChatController.gd")
 const _MeetingParticipationScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingParticipationController.gd")
+const _MeetingRoomAccessControllerScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomAccessController.gd")
 const _MeetingChannelHubScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomChannelHub.gd")
 const _MeetingIrcBridgeScript := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomIrcBridge.gd")
 const _DeskManagerScript := preload("res://vr_offices/core/desks/VrOfficesDeskManager.gd")
@@ -72,6 +73,7 @@ var _meeting_room_ctrl: RefCounted = null
 var _meeting_participation: RefCounted = null
 var _meeting_channel_hub: RefCounted = null
 var _meeting_irc_bridge: Node = null
+var _meeting_room_access: Node = null
 var _desk_manager: RefCounted = null
 var _irc_settings: RefCounted = null
 var _quitting := false
@@ -141,6 +143,14 @@ func _ready() -> void:
 			Callable(self, "_on_meeting_room_deleted")
 		)
 	_meeting_participation = _MeetingParticipationScript.new(self, npc_root, meeting_rooms_root, _meeting_room_manager, _meeting_channel_hub)
+	if _move_ctrl != null and _move_ctrl.has_method("set_move_command_transformer"):
+		_move_ctrl.call("set_move_command_transformer", Callable(self, "_transform_move_command_for_meetings"))
+	_meeting_room_access = _MeetingRoomAccessControllerScript.new()
+	if _meeting_room_access != null:
+		_meeting_room_access.name = "MeetingRoomAccessController"
+		add_child(_meeting_room_access)
+		if _meeting_room_access.has_method("bind"):
+			_meeting_room_access.call("bind", npc_root, _meeting_room_manager, _meeting_participation)
 	_desk_manager = _DeskManagerScript.new()
 	if _desk_manager != null:
 		_desk_manager.call("bind_scene", furniture_root, _StandingDeskScene, Callable(self, "_is_headless"), Callable(_agent, "effective_save_id"))
@@ -279,6 +289,31 @@ func _command_selected_move_to_click(screen_pos: Vector2) -> void:
 		if _npc_manager != null:
 			selected = _npc_manager.call("get_selected_npc") as Node
 		_move_ctrl.call("command_selected_move_to_click", selected, screen_pos)
+
+func _transform_move_command_for_meetings(npc: Node, clicked_pos: Vector3) -> Dictionary:
+	if npc == null or not is_instance_valid(npc):
+		return {}
+	if _meeting_room_manager == null or _meeting_participation == null:
+		return {}
+	if not _meeting_room_manager.has_method("meeting_room_id_from_point_xz"):
+		return {}
+	var rid := String(_meeting_room_manager.call("meeting_room_id_from_point_xz", Vector2(clicked_pos.x, clicked_pos.z))).strip_edges()
+	if rid != "":
+		if _meeting_participation.has_method("invite_npc_to_meeting_room"):
+			var target0: Variant = _meeting_participation.call("invite_npc_to_meeting_room", rid, npc)
+			if target0 is Vector3 and (target0 as Vector3) != Vector3.ZERO:
+				return {"skip_default": true, "target": target0 as Vector3}
+		return {"skip_default": true}
+
+	# Leaving: if an NPC is currently meeting-bound, a normal move command outside that room uninvites them.
+	if npc.has_method("get_bound_meeting_room_id"):
+		var cur := String(npc.call("get_bound_meeting_room_id")).strip_edges()
+		if cur != "" and _meeting_room_manager.has_method("get_meeting_room_rect_xz") and _meeting_participation.has_method("uninvite_npc_from_meeting_room"):
+			var rect0: Variant = _meeting_room_manager.call("get_meeting_room_rect_xz", cur)
+			var rect: Rect2 = rect0 as Rect2 if rect0 is Rect2 else Rect2()
+			if rect.size != Vector2.ZERO and not rect.has_point(Vector2(clicked_pos.x, clicked_pos.z)):
+				_meeting_participation.call("uninvite_npc_from_meeting_room", npc)
+	return {}
 
 func add_npc() -> Node:
 	if _npc_manager == null:

@@ -18,9 +18,9 @@ Goal: Meeting Room chat overlay shows a right-side “参会者” roster so pla
 
 | Req ID | Plan | Tests / Verify | Evidence |
 |---|---|---|---|
-| REQ-004 | v97 | `tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` | 2026-02-07 PASS |
+| REQ-004 | v97 | `tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` | 2026-02-08 PASS |
 
 ## Evidence
 
-- 2026-02-07: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` → PASS
-- 2026-02-07: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices` → EXIT=0
+- 2026-02-08: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_meeting_room_group_chat_broadcast.gd` → PASS
+- 2026-02-08: `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices -TimeoutSec 240` → EXIT=0
