@@ -299,20 +299,28 @@ func _transform_move_command_for_meetings(npc: Node, clicked_pos: Vector3) -> Di
 		return {}
 	var rid := String(_meeting_room_manager.call("meeting_room_id_from_point_xz", Vector2(clicked_pos.x, clicked_pos.z))).strip_edges()
 	if rid != "":
+		# If already pending/bound for this room, allow normal movement inside the room.
+		if _meeting_participation.has_method("is_npc_allowed_in_room"):
+			var allowed0: Variant = _meeting_participation.call("is_npc_allowed_in_room", rid, npc)
+			if bool(allowed0):
+				return {}
 		if _meeting_participation.has_method("invite_npc_to_meeting_room"):
-			var target0: Variant = _meeting_participation.call("invite_npc_to_meeting_room", rid, npc)
+			var target0: Variant = _meeting_participation.call("invite_npc_to_meeting_room", rid, npc, clicked_pos)
 			if target0 is Vector3 and (target0 as Vector3) != Vector3.ZERO:
 				return {"skip_default": true, "target": target0 as Vector3}
 		return {"skip_default": true}
 
 	# Leaving: if an NPC is currently meeting-bound, a normal move command outside that room uninvites them.
+	var cur := ""
 	if npc.has_method("get_bound_meeting_room_id"):
-		var cur := String(npc.call("get_bound_meeting_room_id")).strip_edges()
-		if cur != "" and _meeting_room_manager.has_method("get_meeting_room_rect_xz") and _meeting_participation.has_method("uninvite_npc_from_meeting_room"):
-			var rect0: Variant = _meeting_room_manager.call("get_meeting_room_rect_xz", cur)
-			var rect: Rect2 = rect0 as Rect2 if rect0 is Rect2 else Rect2()
-			if rect.size != Vector2.ZERO and not rect.has_point(Vector2(clicked_pos.x, clicked_pos.z)):
-				_meeting_participation.call("uninvite_npc_from_meeting_room", npc)
+		cur = String(npc.call("get_bound_meeting_room_id")).strip_edges()
+	if cur == "" and _meeting_participation.has_method("get_pending_meeting_room_id"):
+		cur = String(_meeting_participation.call("get_pending_meeting_room_id", npc)).strip_edges()
+	if cur != "" and _meeting_room_manager.has_method("get_meeting_room_rect_xz") and _meeting_participation.has_method("uninvite_npc_from_meeting_room"):
+		var rect0: Variant = _meeting_room_manager.call("get_meeting_room_rect_xz", cur)
+		var rect: Rect2 = rect0 as Rect2 if rect0 is Rect2 else Rect2()
+		if rect.size != Vector2.ZERO and not rect.has_point(Vector2(clicked_pos.x, clicked_pos.z)):
+			_meeting_participation.call("uninvite_npc_from_meeting_room", npc)
 	return {}
 
 func add_npc() -> Node:

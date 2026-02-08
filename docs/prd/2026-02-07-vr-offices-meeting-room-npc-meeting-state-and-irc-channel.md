@@ -47,10 +47,10 @@
 
 ## 5) 用户画像与关键场景（Personas & Scenarios）
 
-- S1（邀请入会）：玩家选中 NPC → **右键点击某个 Meeting Room 范围内**（= 选择它进入该会议室）→ NPC 到位停下 → 进入 meeting state → 加入 channel 待命。
+- S1（邀请入会）：玩家选中 NPC → **右键点击某个 Meeting Room 范围内的地面点**（该点作为 NPC 的 move target，必要时在房间 rect 内做轻微 clamp）→ NPC 到位停下 → 进入 meeting state → 加入 channel 待命。
 - S2（群聊广播）：玩家双击 mic → 打开 MeetingRoomChatOverlay → 输入一句话并发送 → 所有参会 NPC 都“听到”并可以选择回复。
 - S3（点名必答）：玩家消息包含明确点名（例如 `@Alice` 或 `Alice:`）→ 被点名 NPC 必须回复；未点名 NPC 仍可选择性回复。
-- S4（离开会议）：NPC 被右键指令移动到 Meeting Room 之外 → 退出 meeting state → 从 channel 离开待命。
+- S4（离开会议）：NPC 被右键指令移动到 Meeting Room 之外（或取消 pending invite）→ 退出 meeting state / 不进入 meeting state → 从 channel 离开待命。
 - S5（房间删除）：会议室被删除 → 参会 NPC 自动退出 meeting state（防止悬挂状态/残留订阅）。
 
 ## 6) 需求清单（Requirements with Req IDs）

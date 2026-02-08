@@ -1,5 +1,7 @@
 extends RefCounted
 
+const _InviteTargetPicker := preload("res://vr_offices/core/meeting_rooms/VrOfficesMeetingRoomInviteTargetPicker.gd")
+
 var owner: Node = null
 var npc_root: Node3D = null
 var meeting_rooms_root: Node3D = null
@@ -32,13 +34,20 @@ func _init(
 	if meeting_rooms_root != null:
 		meeting_rooms_root.child_exiting_tree.connect(_on_meeting_room_child_exiting_tree)
 
-func invite_npc_to_meeting_room(meeting_room_id: String, npc: Node) -> Vector3:
+func invite_npc_to_meeting_room(meeting_room_id: String, npc: Node, clicked_world_pos: Vector3 = Vector3.ZERO) -> Vector3:
 	var rid := meeting_room_id.strip_edges()
 	if rid == "" or npc == null or not is_instance_valid(npc):
 		return Vector3.ZERO
 	var nid := _npc_id_for_node(npc)
 	if nid == "":
 		return Vector3.ZERO
+
+	# If the NPC already has a pending invite to a different room, cancel it.
+	var pending0: Variant = _pending_room_by_npc_id.get(nid, "")
+	var pending := String(pending0).strip_edges()
+	if pending != "" and pending != rid:
+		_pending_room_by_npc_id.erase(nid)
+		_pending_target_by_npc_id.erase(nid)
 
 	# If the NPC is already bound to a different meeting room, leave it immediately.
 	if npc.has_method("get_bound_meeting_room_id") and npc.has_method("on_meeting_unbound"):
@@ -48,7 +57,7 @@ func invite_npc_to_meeting_room(meeting_room_id: String, npc: Node) -> Vector3:
 				channel_hub.call("part_participant", cur, nid)
 			npc.call("on_meeting_unbound", cur)
 
-	var target := _pick_target_for_room(rid, nid)
+	var target := _InviteTargetPicker.pick_target(meeting_room_manager, rid, nid, npc, clicked_world_pos)
 	if target == Vector3.ZERO:
 		return Vector3.ZERO
 	_pending_room_by_npc_id[nid] = rid
@@ -56,6 +65,14 @@ func invite_npc_to_meeting_room(meeting_room_id: String, npc: Node) -> Vector3:
 	if npc.has_method("command_move_to"):
 		npc.call("command_move_to", target)
 	return target
+
+func get_pending_meeting_room_id(npc: Node) -> String:
+	if npc == null or not is_instance_valid(npc):
+		return ""
+	var nid := _npc_id_for_node(npc)
+	if nid == "":
+		return ""
+	return String(_pending_room_by_npc_id.get(nid, "")).strip_edges()
 func uninvite_npc_from_meeting_room(npc: Node) -> void:
 	if npc == null or not is_instance_valid(npc):
 		return
@@ -126,6 +143,15 @@ func _on_npc_move_target_reached(_npc_id: String, target: Vector3, npc: Node) ->
 	if rid == "":
 		return
 
+	# Only bind/join if the reached target is inside the meeting room bounds.
+	if meeting_room_manager != null and meeting_room_manager.has_method("get_meeting_room_rect_xz"):
+		var rect0: Variant = meeting_room_manager.call("get_meeting_room_rect_xz", rid)
+		var rect: Rect2 = rect0 as Rect2 if rect0 is Rect2 else Rect2()
+		if rect.size != Vector2.ZERO and not rect.has_point(Vector2(target.x, target.z)):
+			_pending_room_by_npc_id.erase(nid)
+			_pending_target_by_npc_id.erase(nid)
+			return
+
 	_pending_room_by_npc_id.erase(nid)
 	_pending_target_by_npc_id.erase(nid)
 
@@ -133,41 +159,6 @@ func _on_npc_move_target_reached(_npc_id: String, target: Vector3, npc: Node) ->
 		npc.call("on_meeting_bound", rid)
 	if channel_hub != null and channel_hub.has_method("join_participant"):
 		channel_hub.call("join_participant", rid, npc)
-
-func _pick_target_for_room(meeting_room_id: String, npc_id: String) -> Vector3:
-	if meeting_room_manager == null or not meeting_room_manager.has_method("get_meeting_room_node"):
-		return Vector3.ZERO
-	var room := meeting_room_manager.call("get_meeting_room_node", meeting_room_id) as Node
-	if room == null or not is_instance_valid(room):
-		return Vector3.ZERO
-	var table := room.get_node_or_null("Decor/Table") as Node3D
-	var base := Vector3.ZERO
-	if table != null:
-		base = table.global_position
-	elif room is Node3D:
-		base = (room as Node3D).global_position
-	if base == Vector3.ZERO:
-		return Vector3.ZERO
-
-	var h: int = int(abs(int(npc_id.hash())))
-	var angle_steps := 8
-	var ang := float(h % angle_steps) * (TAU / float(angle_steps))
-	var radius := 1.25 + float((h / 13) % 3) * 0.15
-	var p := base + Vector3(cos(ang) * radius, 0.0, sin(ang) * radius)
-
-	# Clamp to room rect when available (keeps targets inside walls).
-	if meeting_room_manager != null and meeting_room_manager.has_method("get_meeting_room_rect_xz"):
-		var rect0: Variant = meeting_room_manager.call("get_meeting_room_rect_xz", meeting_room_id)
-		var rect: Rect2 = rect0 as Rect2 if rect0 is Rect2 else Rect2()
-		if rect.size != Vector2.ZERO:
-			var pad := 0.35
-			var min_x := float(rect.position.x + pad)
-			var max_x := float(rect.position.x + rect.size.x - pad)
-			var min_z := float(rect.position.y + pad)
-			var max_z := float(rect.position.y + rect.size.y - pad)
-			p.x = clampf(p.x, min_x, max_x)
-			p.z = clampf(p.z, min_z, max_z)
-	return p
 
 func _unbind_all_from_room(meeting_room_id: String) -> void:
 	if npc_root == null:
