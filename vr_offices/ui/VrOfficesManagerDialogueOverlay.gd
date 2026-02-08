@@ -16,6 +16,11 @@ const _TeachPopup := preload("res://vr_offices/ui/VrOfficesTeachSkillPopup.gd")
 var _model_path: String = ""
 var _workspace_id: String = ""
 
+var _preview_gen := 0
+var _preview_loading := false
+var _preview_loading_path: String = ""
+var _preview_placeholder: Node = null
+
 func _ready() -> void:
 	visible = false
 	if close_button != null:
@@ -38,7 +43,7 @@ func open_for_manager(workspace_id: String, manager_name: String, manager_model_
 		title_label.text = "%s · %s" % [who, _workspace_id]
 	_set_identity_labels(who, _workspace_id)
 	visible = true
-	_update_preview_model()
+	_schedule_preview_update()
 
 func open_for_npc(npc_id: String, npc_name: String, npc_model_path: String = "", workspace_id: String = "") -> void:
 	_workspace_id = workspace_id.strip_edges()
@@ -52,7 +57,7 @@ func open_for_npc(npc_id: String, npc_name: String, npc_model_path: String = "",
 		title_label.text = who
 	_set_identity_labels(who, _workspace_id)
 	visible = true
-	_update_preview_model()
+	_schedule_preview_update()
 
 func _set_identity_labels(name_text: String, workspace_id: String) -> void:
 	var who := name_text.strip_edges()
@@ -66,6 +71,7 @@ func _set_identity_labels(name_text: String, workspace_id: String) -> void:
 
 func close() -> void:
 	visible = false
+	_cancel_preview_load()
 	if embedded_dialogue != null and embedded_dialogue.has_method("close") and embedded_dialogue.visible:
 		embedded_dialogue.call("close")
 
@@ -95,15 +101,33 @@ func _notification(what: int) -> void:
 		preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible else SubViewport.UPDATE_DISABLED
 
 func _is_headless() -> bool:
+	var force := bool(ProjectSettings.get_setting("vr_offices/preview_force_non_headless", false))
+	if force:
+		return false
 	return DisplayServer.get_name() == "headless" or OS.has_feature("server") or OS.has_feature("headless")
 
 func _update_preview_visibility() -> void:
 	if preview_container != null:
-		preview_container.visible = not _is_headless()
+		var enabled := bool(ProjectSettings.get_setting("vr_offices/manager_preview_enabled", true))
+		preview_container.visible = enabled and not _is_headless()
 
-func _update_preview_model() -> void:
+func _schedule_preview_update() -> void:
+	_cancel_preview_load()
+	call_deferred("_update_preview_model_deferred", _preview_gen)
+
+func _cancel_preview_load() -> void:
+	_preview_gen += 1
+	_preview_loading = false
+	_preview_loading_path = ""
+	_preview_placeholder = null
+	set_process(false)
+
+func _update_preview_model_deferred(gen: int) -> void:
+	if gen != _preview_gen:
+		return
 	_update_preview_visibility()
-	if _is_headless():
+	var enabled := bool(ProjectSettings.get_setting("vr_offices/manager_preview_enabled", true))
+	if not enabled or _is_headless():
 		return
 	if preview_root == null:
 		return
@@ -113,21 +137,20 @@ func _update_preview_model() -> void:
 			c.queue_free()
 
 	var inst: Node = null
-	if _model_path != "":
-		var res := load(_model_path)
-		if res is PackedScene:
-			inst = (res as PackedScene).instantiate()
-	if inst == null:
-		var mi := MeshInstance3D.new()
-		var mesh := CapsuleMesh.new()
-		mesh.radius = 0.25
-		mesh.height = 1.1
-		mi.mesh = mesh
-		inst = mi
-	_preview_freeze_node(inst)
+	# Always show a lightweight placeholder first so the overlay can appear instantly.
+	_preview_placeholder = _make_placeholder()
+	inst = _preview_placeholder
 	preview_root.add_child(inst)
-	_TeachPopup.autoplay_idle_animation_for_preview(inst)
-	_frame_camera_to_preview_root()
+	_frame_camera()
+
+	var path := _model_path.strip_edges()
+	if path == "":
+		return
+
+	_preview_loading = true
+	_preview_loading_path = path
+	ResourceLoader.load_threaded_request(path)
+	set_process(true)
 
 func _preview_freeze_node(root: Node) -> void:
 	if root == null:
@@ -183,6 +206,55 @@ func _frame_camera_to_preview_root() -> void:
 	var eye := center + Vector3(0.0, extent * 0.18, dist)
 	preview_camera.position = eye
 	preview_camera.look_at(center, Vector3.UP)
+
+func _process(_delta: float) -> void:
+	if not visible:
+		_cancel_preview_load()
+		return
+	if not _preview_loading or _preview_loading_path == "" or _is_headless():
+		set_process(false)
+		return
+
+	# 0=invalid, 1=in-progress, 2=failed, 3=loaded (Godot 4.x ResourceLoader API).
+	var status := int(ResourceLoader.load_threaded_get_status(_preview_loading_path))
+	if status == 1:
+		return
+	_preview_loading = false
+	set_process(false)
+
+	if status != 3:
+		return
+
+	var res := ResourceLoader.load_threaded_get(_preview_loading_path)
+	if res == null or not (res is PackedScene):
+		return
+
+	if preview_root == null:
+		return
+
+	var inst := (res as PackedScene).instantiate()
+	if inst == null:
+		return
+
+	# Replace placeholder with the loaded model.
+	if _preview_placeholder != null and is_instance_valid(_preview_placeholder):
+		_preview_placeholder.queue_free()
+	_preview_placeholder = null
+
+	_preview_freeze_node(inst)
+	preview_root.add_child(inst)
+	_TeachPopup.autoplay_idle_animation_for_preview(inst)
+	# Framing can be a bit expensive; do it next frame so it never blocks talk-open.
+	call_deferred("_frame_camera_to_preview_root")
+
+func _make_placeholder() -> Node:
+	var mi := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.25
+	mesh.height = 1.1
+	mi.mesh = mesh
+	mi.name = "PreviewPlaceholder"
+	return mi
 
 func _aabb_transformed(aabb: AABB, xf: Transform3D) -> AABB:
 	var corners := [

@@ -50,6 +50,19 @@ func _init() -> void:
 	if not T.require_true(self, overlay.visible == true, "DialogueOverlay.open() should show overlay"):
 		return
 
+	# Open should not synchronously hit disk in the same frame (prevents talk-open hitches).
+	# The log size label updates on the next frame.
+	var size_label := overlay.get_node_or_null("%SessionLogSizeLabel") as Label
+	if not T.require_true(self, size_label != null, "Missing SessionLogSizeLabel"):
+		return
+	if not T.require_true(self, size_label.text.find("events.jsonl=") != -1, "Expected events.jsonl size label"):
+		return
+	if not T.require_true(self, size_label.text.find("%dB" % expected_bytes) == -1, "Expected log size label to update on next frame (not synchronously). Got: " + size_label.text):
+		return
+	await process_frame
+	if not T.require_true(self, size_label.text.find("%dB" % expected_bytes) != -1, "Expected label to include file size in bytes after a frame. Got: " + size_label.text):
+		return
+
 	# Layout: dialogue panel should occupy ~2/3 of the screen height.
 	var panel := overlay.get_node_or_null("Panel") as Control
 	if not T.require_true(self, panel != null, "Missing DialogueOverlay Panel"):
@@ -62,14 +75,6 @@ func _init() -> void:
 	if not T.require_true(self, title != null, "Missing TitleLabel"):
 		return
 	if not T.require_eq(self, title.text, "林晓", "Title must reflect npc_name"):
-		return
-
-	var size_label := overlay.get_node_or_null("%SessionLogSizeLabel") as Label
-	if not T.require_true(self, size_label != null, "Missing SessionLogSizeLabel"):
-		return
-	if not T.require_true(self, size_label.text.find("events.jsonl=") != -1, "Expected events.jsonl size label"):
-		return
-	if not T.require_true(self, size_label.text.find("%dB" % expected_bytes) != -1, "Expected label to include file size in bytes. Got: " + size_label.text):
 		return
 
 	var clear_btn := overlay.get_node_or_null("%ClearSessionLogButton") as Button

@@ -161,7 +161,10 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	send_button.disabled = false
 	if skills_button != null:
 		skills_button.disabled = _npc_id.strip_edges() == ""
-	_refresh_session_log_ui()
+	# Avoid synchronous disk access in the talk-open frame; refresh on next frame.
+	if clear_session_log_button != null:
+		clear_session_log_button.disabled = true
+	call_deferred("_refresh_session_log_ui")
 	call_deferred("_grab_focus")
 
 func _on_skills_pressed() -> void:

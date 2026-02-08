@@ -58,7 +58,7 @@ func enter_talk(npc: Node) -> void:
 	dialogue.open(npc_id, npc_name, sid)
 	if sid.strip_edges() != "":
 		if dialogue.has_method("begin_history_load_from_events_jsonl"):
-			dialogue.call("begin_history_load_from_events_jsonl", sid, npc_id)
+			dialogue.call_deferred("begin_history_load_from_events_jsonl", sid, npc_id)
 		elif dialogue.has_method("set_history") and chat_history != null:
 			var hist0: Variant = chat_history.call("read_ui_history", sid, npc_id)
 			var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
@@ -119,7 +119,7 @@ func enter_talk_by_id(npc_id: String, npc_name: String) -> void:
 	dialogue.open(nid, npc_name.strip_edges(), sid)
 	if sid.strip_edges() != "":
 		if dialogue.has_method("begin_history_load_from_events_jsonl"):
-			dialogue.call("begin_history_load_from_events_jsonl", sid, nid)
+			dialogue.call_deferred("begin_history_load_from_events_jsonl", sid, nid)
 		elif dialogue.has_method("set_history") and chat_history != null:
 			var hist0: Variant = chat_history.call("read_ui_history", sid, nid)
 			var hist: Array = hist0 as Array if typeof(hist0) == TYPE_ARRAY else []
