@@ -51,6 +51,11 @@ var _media_transport_override: Callable = Callable()
 const _BUBBLE_MIN_WIDTH := 320.0
 const _BUBBLE_MAX_WIDTH := 720.0
 const _BUBBLE_WIDTH_RATIO := 0.72
+const _HISTORY_BATCH_SIZE := 24
+
+var _pending_history: Array = []
+var _pending_history_index := 0
+var _pending_history_gen := 0
 
 func _ready() -> void:
 	visible = false
@@ -130,6 +135,9 @@ func open(npc_id: String, npc_name: String, save_id: String = "") -> void:
 	visible = true
 	_busy = false
 	_assistant_rtl = null
+	_pending_history = []
+	_pending_history_index = 0
+	_pending_history_gen += 1
 	set_participants_visible(false)
 	set_participants([])
 	_reset_attachments()
@@ -195,7 +203,28 @@ func set_history(items: Array) -> void:
 	# items: [{role: "user"|"assistant", text: String}, ...]
 	_assistant_rtl = null
 	_clear_messages()
-	for it0 in items:
+
+	_pending_history = items
+	_pending_history_index = 0
+	_pending_history_gen += 1
+
+	# Small histories can render synchronously; long histories must render incrementally across frames
+	# to avoid blocking the talk-open path.
+	if items.size() <= _HISTORY_BATCH_SIZE:
+		_render_history_batch(_pending_history_gen)
+	else:
+		call_deferred("_render_history_batch", _pending_history_gen)
+
+func _render_history_batch(gen: int) -> void:
+	if gen != _pending_history_gen:
+		return
+	if messages == null or not visible:
+		return
+
+	var added := 0
+	while _pending_history_index < _pending_history.size() and added < _HISTORY_BATCH_SIZE:
+		var it0: Variant = _pending_history[_pending_history_index]
+		_pending_history_index += 1
 		if typeof(it0) != TYPE_DICTIONARY:
 			continue
 		var it: Dictionary = it0 as Dictionary
@@ -204,7 +233,14 @@ func set_history(items: Array) -> void:
 		if text.strip_edges() == "":
 			continue
 		_add_message(role == "user", text)
-	_scroll_to_bottom_deferred()
+		added += 1
+
+	if _pending_history_index < _pending_history.size():
+		call_deferred("_render_history_batch", gen)
+	else:
+		_pending_history = []
+		_pending_history_index = 0
+		_scroll_to_bottom_deferred()
 
 func begin_assistant() -> void:
 	_assistant_rtl = _add_message(false, "")
