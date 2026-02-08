@@ -44,12 +44,16 @@ func _init() -> void:
 	var rt = RuntimeScript.new(store, runner, tools, fake_provider, "gpt-test")
 	var npc_id := "npc_1"
 
+	var observed: Array = []
 	await rt.run_turn(npc_id, "hello", func(_ev: Dictionary) -> void:
-		pass
+		observed.append(_ev)
 	)
 
 	var events: Array = store.read_events(npc_id)
-	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "assistant.delta"), "expected streaming delta events"):
+	# Deltas should be streamed to the caller, but not persisted into events.jsonl by default (perf + log hygiene).
+	if not T.require_true(self, observed.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "assistant.delta"), "expected streaming delta events via on_event"):
+		return
+	if not T.require_true(self, not events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "assistant.delta"), "did not expect assistant.delta to be persisted"):
 		return
 	if not T.require_true(self, events.any(func(e): return typeof(e) == TYPE_DICTIONARY and e.get("type", "") == "tool.use"), "expected tool.use"):
 		return

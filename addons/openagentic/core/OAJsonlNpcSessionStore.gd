@@ -33,17 +33,37 @@ func _write_text(path: String, text: String) -> void:
 	f.close()
 
 func _append_line(path: String, line: String) -> void:
-	# Godot's cross-platform "append" semantics vary by open mode; implement
-	# a conservative read+write append to avoid truncation on some platforms.
+	# Prefer a real append (seek_end) for performance; fallback to conservative read+write if needed.
 	if not FileAccess.file_exists(path):
 		_write_text(path, line)
 		return
+
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ_WRITE)
+	if f != null:
+		f.seek_end()
+		f.store_string(line)
+		f.close()
+		return
+
+	# Fallback: conservative read+write append.
 	var rf: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if rf == null:
 		return
 	var existing := rf.get_as_text()
 	rf.close()
 	_write_text(path, existing + line)
+
+func append_stream_delta(npc_id: String, event: Dictionary) -> void:
+	# Optional debug log for streaming deltas. This is intentionally separate from
+	# `events.jsonl` so that replay/history stays clean and bounded.
+	#
+	# This method does NOT manage seq numbers and should not be used for replay.
+	var nid := npc_id.strip_edges()
+	if nid == "":
+		return
+	_ensure_session(nid)
+	var line := JSON.stringify(event) + "\n"
+	_append_line(_OAPaths.npc_stream_deltas_path(_save_id, nid), line)
 
 func _load_next_seq(npc_id: String) -> int:
 	var st := _read_json(_OAPaths.npc_state_path(_save_id, npc_id))
@@ -93,6 +113,9 @@ func read_events(npc_id: String) -> Array:
 		var line := f.get_line()
 		var trimmed := String(line).strip_edges()
 		if trimmed == "":
+			continue
+		# Streaming deltas can be extremely high-volume; never include them in replay/history reads.
+		if trimmed.find("\"type\":\"assistant.delta\"") != -1 or trimmed.find("\"type\": \"assistant.delta\"") != -1:
 			continue
 		var obj: Variant = JSON.parse_string(trimmed)
 		if typeof(obj) == TYPE_DICTIONARY:

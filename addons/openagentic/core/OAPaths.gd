@@ -69,6 +69,14 @@ static func npc_events_path(save_id: String, npc_id: String) -> String:
 		return workspace_manager_events_path(save_id, workspace_id)
 	return "%s/events.jsonl" % npc_session_dir(save_id, npc_id)
 
+static func npc_stream_deltas_path(save_id: String, npc_id: String) -> String:
+	# Streaming deltas are optional and used only for debugging; they are not part of the
+	# canonical session replay log (`events.jsonl`).
+	var workspace_id := workspace_id_from_manager_npc_id(npc_id)
+	if workspace_id != "":
+		return "%s/deltas.jsonl" % workspace_manager_session_dir(save_id, workspace_id)
+	return "%s/deltas.jsonl" % npc_session_dir(save_id, npc_id)
+
 static func npc_meta_path(save_id: String, npc_id: String) -> String:
 	var workspace_id := workspace_id_from_manager_npc_id(npc_id)
 	if workspace_id != "":

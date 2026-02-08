@@ -81,6 +81,10 @@ static func _consume_ui_line_bytes(line_bytes: PackedByteArray, rev_out: Array[D
 	var s := line_bytes.get_string_from_utf8().strip_edges()
 	if s == "":
 		return
+	# Perf: events.jsonl contains many non-UI events (tool.*, hook.*, assistant.delta). Avoid JSON.parse unless
+	# it's likely a final user/assistant message.
+	if s.find("\"type\":\"user.message\"") == -1 and s.find("\"type\": \"user.message\"") == -1 and s.find("\"type\":\"assistant.message\"") == -1 and s.find("\"type\": \"assistant.message\"") == -1:
+		return
 	var obj: Variant = JSON.parse_string(s)
 	if typeof(obj) != TYPE_DICTIONARY:
 		return

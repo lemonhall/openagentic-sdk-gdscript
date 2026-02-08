@@ -368,9 +368,13 @@ func run_turn(npc_id: String, user_text: String, on_event: Callable, save_id: St
 				if delta != "":
 					parts.append(delta)
 					var de := {"type": "assistant.delta", "text_delta": delta, "ts": _now_ms()}
-					_store.append_event(npc_id, de)
 					if on_event != null and not on_event.is_null():
 						on_event.call(de)
+					# Persisting streaming deltas is optional and off by default (perf + log hygiene).
+					# When enabled, deltas go to a separate `deltas.jsonl` file (not `events.jsonl`).
+					var persist_deltas := bool(ProjectSettings.get_setting("openagentic/persist_stream_deltas", false))
+					if persist_deltas and typeof(_store) == TYPE_OBJECT and _store.has_method("append_stream_delta"):
+						_store.append_stream_delta(npc_id, de)
 			elif t == "tool_call":
 				var tc0: Variant = mev.get("tool_call", {})
 				if typeof(tc0) == TYPE_DICTIONARY:
