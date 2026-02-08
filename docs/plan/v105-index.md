@@ -2,6 +2,8 @@
 
 Goal: NPC double-click talk-open does not synchronously load 3D preview models; overlay appears immediately and preview loads asynchronously.
 
+Status: deprioritized — root cause was confirmed as `events.jsonl` disk I/O (see v107). Keep this as a future optional optimization only if preview work becomes measurable.
+
 ## Artifacts
 
 - Plan: `docs/plan/v105-vr-offices-manager-preview-async-load.md`
@@ -17,4 +19,3 @@ Goal: NPC double-click talk-open does not synchronously load 3D preview models; 
 
 - 2026-02-08:
   - (pending)
-

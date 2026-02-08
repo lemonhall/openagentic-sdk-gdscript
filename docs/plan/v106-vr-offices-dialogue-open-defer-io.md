@@ -19,3 +19,6 @@ Two culprits in the open path:
 - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_dialogue_ui.gd -TimeoutSec 240` → PASS
 - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices -TimeoutSec 240` → EXIT=0
 
+## Update (2026-02-08)
+
+Deferring disk I/O to “next frame” helps, but it may still execute before the first draw on some platforms/builds. The robust fix is to avoid main-thread disk I/O entirely via a background job (see v107).

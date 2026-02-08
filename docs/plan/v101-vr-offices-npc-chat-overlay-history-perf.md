@@ -19,3 +19,6 @@ Opening the NPC chat overlay (`double click NPC`) became noticeably slow (1–2s
 - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -One tests/projects/vr_offices/test_vr_offices_chat_history_caps_ui_history.gd -TimeoutSec 240` → PASS
 - `pwsh -NoProfile -File scripts/run_godot_tests.ps1 -Suite vr_offices -TimeoutSec 240` → EXIT=0
 
+## Update (2026-02-08)
+
+This plan reduces the amount of history parsed/rendered, but it does not fully prevent “double-click hitch before overlay appears” if the open path still does main-thread `events.jsonl` disk I/O. The final fix for that is v107: background-thread tail-load of message history + log size.

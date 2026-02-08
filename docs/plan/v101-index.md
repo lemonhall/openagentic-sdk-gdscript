@@ -2,6 +2,8 @@
 
 Goal: Fix the 1–2s hitch when opening an NPC chat overlay by bounding the amount of per-NPC session history parsed and rendered.
 
+Status: v101 bounds parsing/rendering, but the “overlay appears late” hitch was ultimately caused by main-thread `events.jsonl` disk I/O; see v107 for the final fix.
+
 ## Artifacts
 
 - Plan: `docs/plan/v101-vr-offices-npc-chat-overlay-history-perf.md`

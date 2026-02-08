@@ -30,6 +30,8 @@ Out of scope:
 2) Clicking “clear log” truncates the file to 0 bytes and updates the indicator accordingly.
 3) A regression test covers both the indicator and the clear action.
 
+Note (2026-02-08): the size indicator may show a placeholder briefly and update on the next frame / background job to avoid blocking the talk-open frame.
+
 ## Files
 
 Modify:

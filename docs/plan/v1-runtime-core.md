@@ -18,12 +18,18 @@ Minimum representative events:
 
 - `system.init` (once per NPC per save)
 - `user.message`
-- `assistant.delta` (streaming)
 - `assistant.message`
 - `tool.use`
 - `tool.result`
 - `permission.question` / `permission.decision`
 - `result`
+
+Notes:
+
+- Streaming deltas (`assistant.delta`) are streamed to the UI but should not be persisted into canonical `events.jsonl` by default (log hygiene + perf).
+- `events.jsonl` is an audit/replay log, not a UI-optimized store. Any UI that needs “chat history” should:
+  - tail-scan for the newest `user.message` / `assistant.message` items,
+  - and avoid main-thread full-file reads/parses on interaction paths (e.g. dialogue open), to prevent frame hitches.
 
 ## Provider contract
 
